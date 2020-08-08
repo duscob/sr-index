@@ -12,6 +12,16 @@ cmake_minimum_required(VERSION 3.0)
 project(ri)
 
 
+# Location of internal cmake modules
+set(CMAKE_MODULE_PATH
+        ${CMAKE_MODULE_PATH}
+        ${PROJECT_SOURCE_DIR}/cmake)
+
+# Guard against in-source builds and bad build-type strings
+include(ConfigSafeGuards)
+
+
+
 if (ri_build_tests)
     enable_testing()
 endif ()
