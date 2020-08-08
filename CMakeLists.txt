@@ -21,9 +21,10 @@ set(CMAKE_MODULE_PATH
 include(ConfigSafeGuards)
 
 
-
 if (ri_build_tests)
     enable_testing()
+
+    include(ConfigGTest)
 endif ()
 
 
