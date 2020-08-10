@@ -21,10 +21,34 @@ set(CMAKE_MODULE_PATH
 include(ConfigSafeGuards)
 
 
+#Global Setup
+set(CMAKE_CXX_STANDARD 14)
+
+
+# Set common include folder for module
+set(COMMON_INCLUDES
+        ${PROJECT_SOURCE_DIR}/include
+        ${CMAKE_INSTALL_PREFIX}/include
+        ${CMAKE_PREFIX_PATH}/include)
+
+include_directories(${COMMON_INCLUDES})
+
+set(SOURCE_FILES
+        ${PROJECT_SOURCE_DIR}/include/ri/bwt.h)
+
+add_library(ri INTERFACE)
+target_sources(ri INTERFACE ${SOURCE_FILES})
+target_include_directories(ri INTERFACE ${PROJECT_SOURCE_DIR}/include/ri)
+
+include(internal_utils)
+
+
 if (ri_build_tests)
     enable_testing()
 
     include(ConfigGTest)
+
+    cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
 endif ()
 
 
