@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 
 #include "ri/bwt.h"
+#include <ri/rle_string.hpp>
 
 using Sequence = std::string;
 using SA = std::vector<std::size_t>;
@@ -72,4 +73,53 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-//SA{12, 11, 8, 1, 4, 6, 9, 2, 5, 7, 10, 3}
+
+using F = std::vector<std::size_t>;
+using Range = std::pair<std::size_t, std::size_t>;
+using Char = unsigned char;
+
+class LFOnBWT_Tests : public testing::TestWithParam<std::tuple<BWT, F, Range, Char, Range>> {
+};
+
+TEST_P(LFOnBWT_Tests, compute) {
+  const auto &bwt = std::get<0>(GetParam());
+
+  ri::rle_string<> bwt_rle(bwt);
+  auto get_bwt_rank = [&bwt_rle](auto pos, auto c) {
+    return bwt_rle.rank(pos, c);
+  };
+
+  const auto &f = std::get<1>(GetParam());
+  auto get_f = [&f](auto i) {
+    return f[i];
+  };
+
+  const auto &range = std::get<2>(GetParam());
+  Char c = std::get<3>(GetParam());
+//  Char max_c = *std::max_element(bwt.begin(), bwt.end()) + 1;
+  Char max_c = bwt.size() - 1;
+  auto new_range = ri::computeLF(get_bwt_rank, get_f, range, c, bwt.size(), max_c);
+
+  auto e_range = std::get<4>(GetParam());
+  EXPECT_EQ(new_range, e_range);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    BWT,
+    LFOnBWT_Tests,
+    testing::Values(
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{0, 11}, 0, Range{1, 0}), // 0 before empty
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{0, 11}, 1, Range{0, 0}), // 1 before empty
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{0, 11}, 2, Range{1, 4}), // 2 before empty
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{0, 11}, 3, Range{5, 8}), // 3 before empty
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{0, 11}, 4, Range{9, 11}), // 4 before empty
+
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{1, 4}, 1, Range{0, 0}), // 1 before 2
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{1, 4}, 2, Range{1, 0}), // 2 before 2
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{1, 4}, 3, Range{5, 5}), // 3 before 2
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{1, 4}, 4, Range{10, 11}), // 4 before 2
+
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{10, 11}, 2, Range{1, 0}), // 2 before 42
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, F{0, 0, 1, 5, 9, 12}, Range{10, 11}, 3, Range{7, 8}) // 3 before 42
+    )
+);

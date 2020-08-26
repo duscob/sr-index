@@ -59,7 +59,7 @@ if (ri_build_tests)
     set(SDSL_LIBS ${SDSL_LIB} ${DIVSUFSORT_LIB} ${DIVSUFSORT64_LIB})
     set(LIBS ${SDSL_LIBS})
 
-    cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
+    cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
     cxx_test_with_flags_and_args(predecessor_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/predecessor_tests.cpp)
 endif ()
 

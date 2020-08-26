@@ -45,7 +45,7 @@ class rle_string {
    * \param B block size. The main sparse bitvector has R/B bits set (R being number of runs)
    *
    */
-  rle_string(std::string &input, ulint B = 2) {
+  rle_string(const std::string &input, ulint B = 2) {
 
     assert(not contains0(input));
 
@@ -490,7 +490,7 @@ class rle_string {
 
  private:
 
-  static ulint count_runs(std::string &s) {
+  static ulint count_runs(const std::string &s) {
 
     ulint runs = 1;
 
@@ -543,7 +543,7 @@ class rle_string {
 
   }
 
-  bool contains0(std::string &s) {
+  bool contains0(const std::string &s) {
 
     for (auto c : s)
       if (c == 0) return true;
