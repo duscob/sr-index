@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cassert>
+#include <memory>
 
 namespace ri {
 
@@ -68,6 +69,58 @@ std::size_t computeBWT(std::size_t t_n,
 
   return n_runs + 1;
 }
+
+/// Backward navigation on BWT
+template<typename TGetCRankOnBWT, typename TGetF, typename Range, typename TChar>
+Range computeLF(const TGetCRankOnBWT &get_c_rank_on_bwt,
+                const TGetF &get_f,
+                Range range,
+                TChar c,
+                std::size_t bwt_size,
+                TChar max_c = 255) {
+  auto prev_to_c = get_f(c);
+  //if character does not appear in the text, return empty pair
+  if ((c == max_c and prev_to_c == bwt_size) || prev_to_c >= get_f(c + 1))
+    return {1, 0};
+
+  //number of c before the interval
+  auto c_before = get_c_rank_on_bwt(range.first, c);
+
+  //number of c inside the interval range
+  auto c_inside = get_c_rank_on_bwt(range.second + 1, c) - c_before;
+
+  //if there are no c in the interval, return empty range
+  if (c_inside == 0)
+    return {1, 0};
+
+  auto l = prev_to_c + c_before;
+
+  return {l, l + c_inside - 1};
+}
+
+/// Backward navigation on BWT
+template<typename TGetCRankOnBWT, typename TGetF, typename TChar = unsigned char>
+class LF {
+ public:
+  using Range = std::pair<std::size_t, std::size_t>;
+
+  LF(const std::shared_ptr<TGetCRankOnBWT> &t_get_c_rank_on_bwt,
+     const std::shared_ptr<TGetF> &t_f,
+     std::size_t t_bwt_size,
+     TChar t_max_c = 255)
+      : get_c_rank_on_bwt_{t_get_c_rank_on_bwt}, f_{t_f}, bwt_size_{t_bwt_size}, max_c_{t_max_c} {
+  }
+
+  Range operator()(Range range, TChar c) const {
+    return computeLF(*get_c_rank_on_bwt_, *f_, range, c, bwt_size_, max_c_);
+  }
+
+ private:
+  std::shared_ptr<TGetCRankOnBWT> get_c_rank_on_bwt_; // BWT rank for a given char and position
+  std::shared_ptr<TGetF> f_; // Accumulative frequencies by symbol
+  std::size_t bwt_size_; // Size of the BWT
+  TChar max_c_; // Maximum symbol
+};
 
 }
 
