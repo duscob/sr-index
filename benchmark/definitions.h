@@ -9,6 +9,8 @@
 
 namespace ri {
 
+const std::string KEY_BWT_RLE = "bwt_rle";
+
 const std::string KEY_BWT_HEADS = "bwt_heads";
 const std::string KEY_BWT_HEADS_TEXT_POS = "bwt_heads_tpos";
 const std::string KEY_BWT_TAILS = "bwt_tails";

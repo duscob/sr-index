@@ -13,7 +13,9 @@
 #include <sdsl/construct.hpp>
 
 #include <ri/bwt.h>
+#include <ri/rle_string.hpp>
 #include "definitions.h"
+
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_bool(rebuild, false, "Rebuild all the items.");
@@ -185,6 +187,25 @@ auto BM_BuildBWT = [](benchmark::State &t_state, auto *t_config) {
 
   SetupCommonCounters(t_state);
   t_state.counters["r"] = r;
+};
+
+/// Build run length codification of Burrows Wheeler Transforms.
+auto BM_BuildBWTRunLengthEncoded = [](benchmark::State &t_state, auto *t_config) {
+  std::size_t buffer_size = 1000000; // buffer_size is a multiple of 8!, TODO: still true?
+  std::string bwt_file = cache_file_name(sdsl::conf::KEY_BWT, *t_config);
+  sdsl::int_vector_buffer<8> bwt_buf(bwt_file, std::ios::in, buffer_size);
+
+  std::string bwt_s;
+  replace_copy(bwt_buf.begin(), bwt_buf.end(), back_inserter(bwt_s), 0, 1);
+
+  ri::rle_string<> bwt_rle;
+  for (auto _ : t_state) {
+    bwt_rle = ri::rle_string<>(bwt_s);
+  }
+
+  sdsl::store_to_cache(bwt_rle, ri::KEY_BWT_RLE, *t_config);
+
+  SetupCommonCounters(t_state);
 };
 
 /// Sort BWT run tails by its positions in the text.
@@ -442,6 +463,10 @@ int main(int argc, char **argv) {
     benchmark::RegisterBenchmark("BuildBWT", BM_BuildBWT, &config);
   }
 
+  if (!cache_file_exists(ri::KEY_BWT_RLE, config) || FLAGS_rebuild) {
+    benchmark::RegisterBenchmark("BuildBWTRLE", BM_BuildBWTRunLengthEncoded, &config);
+  }
+
   if (!cache_file_exists(ri::KEY_BWT_TAILS_TEXT_POS_SORTED_IDX + "_vec", config) || FLAGS_rebuild) {
     benchmark::RegisterBenchmark("SortBWTTailsTPos", BM_SortBWTTailsTextPos, &config);
   }
@@ -453,13 +478,13 @@ int main(int argc, char **argv) {
   if (!cache_file_exists("16_" + ri::KEY_BWT_TAILS_TEXT_POS_SAMPLED, config) || FLAGS_rebuild) {
     benchmark::RegisterBenchmark("BuildBWTTailsSampling", BM_BuildBWTTailsSampling, &config)
         ->RangeMultiplier(2)
-        ->Range(4, 2 << 8);
+        ->Range(4, 2u << 8u);
   }
 
   if (!cache_file_exists("16_" + ri::KEY_BWT_HEADS_SAMPLED_TEXT_POS + "_bv", config) || FLAGS_rebuild) {
     benchmark::RegisterBenchmark("BuildBWTHeadsSampling", BM_BuildBWTHeadsSampling, &config)
         ->RangeMultiplier(2)
-        ->Range(4, 2 << 8);
+        ->Range(4, 2u << 8u);
   }
 
   benchmark::Initialize(&argc, argv);
