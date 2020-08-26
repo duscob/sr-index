@@ -34,7 +34,12 @@ set(COMMON_INCLUDES
 include_directories(${COMMON_INCLUDES})
 
 set(SOURCE_FILES
-        ${PROJECT_SOURCE_DIR}/include/ri/bwt.h)
+        ${PROJECT_SOURCE_DIR}/include/ri/bwt.h
+        ${PROJECT_SOURCE_DIR}/include/ri/definitions.hpp
+        ${PROJECT_SOURCE_DIR}/include/ri/huff_string.hpp
+        ${PROJECT_SOURCE_DIR}/include/ri/sparse_sd_vector.hpp
+        ${PROJECT_SOURCE_DIR}/include/ri/sparse_hyb_vector.hpp
+        ${PROJECT_SOURCE_DIR}/include/ri/rle_string.hpp)
 
 add_library(ri INTERFACE)
 target_sources(ri INTERFACE ${SOURCE_FILES})
