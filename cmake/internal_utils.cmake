@@ -31,6 +31,7 @@ function(cxx_executable_with_flags name cxx_flags libs)
     # library in with an extra call to target_link_libraries.
     foreach (lib "${libs}")
         target_link_libraries(${name} ${lib})
+#        add_dependencies(${name} ${lib})
     endforeach()
 endfunction()
 
