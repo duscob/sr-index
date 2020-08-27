@@ -35,6 +35,8 @@ include_directories(${COMMON_INCLUDES})
 
 set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/ri/bwt.h
+        ${PROJECT_SOURCE_DIR}/include/ri/predecessor.h
+        ${PROJECT_SOURCE_DIR}/include/ri/phi.h
         ${PROJECT_SOURCE_DIR}/include/ri/definitions.hpp
         ${PROJECT_SOURCE_DIR}/include/ri/huff_string.hpp
         ${PROJECT_SOURCE_DIR}/include/ri/sparse_sd_vector.hpp

@@ -70,7 +70,7 @@ std::size_t computeBWT(std::size_t t_n,
   return n_runs + 1;
 }
 
-/// Backward navigation on BWT
+/// Backward navigation (Last to First) on BWT
 template<typename TGetCRankOnBWT, typename TGetF, typename Range, typename TChar>
 Range computeLF(const TGetCRankOnBWT &get_c_rank_on_bwt,
                 const TGetF &get_f,
