@@ -61,6 +61,7 @@ if (ri_build_tests)
 
     cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
     cxx_test_with_flags_and_args(predecessor_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/predecessor_tests.cpp)
+    cxx_test_with_flags_and_args(rle_string_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/rle_string_tests.cpp)
 endif ()
 
 
