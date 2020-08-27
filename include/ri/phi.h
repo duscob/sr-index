@@ -12,51 +12,66 @@
 
 namespace ri {
 
-template<typename TPartitioner, typename TPred, typename TPredToRun, typename TSampledTail>
+template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail>
 class Phi {
  public:
+  Phi(const TPredecessor &t_predecessor,
+      const TPredecessorToTailRun &t_predecessor_to_tail_run,
+      const TSampledTail &t_sampled_tail,
+      std::size_t t_bwt_size)
+      : predecessor_{t_predecessor},
+        predecessor_to_tail_run_{t_predecessor_to_tail_run},
+        sampled_tail_{t_sampled_tail},
+        bwt_size_{t_bwt_size} {
+  }
+
 /*
  * Phi function. Phi(SA[0]) is undefined
  */
-  std::size_t operator()(std::size_t prev_value) {
+  std::pair<std::size_t, bool> operator()(std::size_t t_prev_value) {
 
-    assert(prev_value != bwt_size_ - 1);
+    assert(t_prev_value != bwt_size_ - 1);
 
-    auto p = pred_(prev_value);
+    auto p = predecessor_(t_prev_value);
 
-    //pred_pos is the rank of the predecessor of prev_value (circular)
+    //pred_pos is the rank of the predecessor of t_prev_value (circular)
     auto pred_pos = p.first;
-//    std::size_t pred_pos = pred.predecessor_rank_circular(prev_value);
-//    assert(pred_pos <= r - 1);
 
     //the actual predecessor
     auto pred_value = p.second;
-//    ulint pred_value = pred.select(pred_pos);
-//    assert(pred_pos < r - 1 or pred_value == bwt_size_ - 1);
 
     //distance from predecessor
-    auto delta = pred_value < prev_value ? prev_value - pred_value : prev_value + 1;
+    auto delta = pred_value < t_prev_value ? t_prev_value - pred_value : t_prev_value + 1;
 
-    //cannot fall on first run: this can happen only if I call Phi(SA[0])
-    assert(0 < pred_to_run_(pred_pos));
-    auto run = pred_to_run_(pred_pos) - 1;
+    //cannot fall on first head run: this can happen only if I call Phi(SA[0])
+    auto run = predecessor_to_tail_run_(pred_pos);
 
     //sample at the end of previous run
-//    assert(run - 1 < samples_last.size());
-    auto s = sampled_tail_(run);
-//    auto prev_sample = samples_last[pred_to_run[pred_pos] - 1];
+    auto prev_sample = sampled_tail_(run.first);
 
-    return (prev_sample + delta) % bwt_size_;
+    return {(prev_sample + delta) % bwt_size_, run.second};
   }
 
  private:
-  std::size_t bwt_size_;
-  TPred pred_;
-  TPredToRun pred_to_run_;
+  TPredecessor predecessor_;
+  TPredecessorToTailRun predecessor_to_tail_run_;
   TSampledTail sampled_tail_;
+
+  std::size_t bwt_size_;
 };
 
-template<typename TPhi, typename TSplit, typename TLF, typename TSample>
+template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail>
+auto buildPhi(const TPredecessor &t_predecessor,
+              const TPredecessorToTailRun &predecessor_to_tail_run,
+              const TSampledTail &t_sampled_tail,
+              std::size_t t_bwt_size) {
+  return Phi<TPredecessor, TPredecessorToTailRun, TSampledTail>(t_predecessor,
+                                                                predecessor_to_tail_run,
+                                                                t_sampled_tail,
+                                                                t_bwt_size);
+}
+
+template<typename TPhi, typename TSplit, typename TBackward, typename TSample>
 class PhiForRange {
  public:
   template<typename TReporter, typename Range>
@@ -77,6 +92,7 @@ class PhiForRange {
     } else {
       auto sample = sample_at_(last);
       if (sample.has_value()) {
+        // Position last is sampled, so we can use the sampled value
         last_value = {true, sample.value() + t_n_jumps};
       }
     }
@@ -93,7 +109,7 @@ class PhiForRange {
 
     auto runs_in_range = split_(first, last);
     for (auto it = rbegin(runs_in_range); it != rend(runs_in_range); ++it) {
-      last_value = compute(lf_(*it.range, *it.c), last_value, t_n_jumps + 1, t_reporter);
+      last_value = compute(backward_(*it.range, *it.c), last_value, t_n_jumps + 1, t_reporter);
     }
 
     return last_value;
@@ -102,7 +118,7 @@ class PhiForRange {
  private:
   TPhi phi_;
   TSplit split_;
-  TLF lf_;
+  TBackward backward_; // LF
   TSample sample_at_;
 
   std::size_t sampling_size_;

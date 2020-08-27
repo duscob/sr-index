@@ -37,6 +37,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/ri/bwt.h
         ${PROJECT_SOURCE_DIR}/include/ri/predecessor.h
         ${PROJECT_SOURCE_DIR}/include/ri/phi.h
+        ${PROJECT_SOURCE_DIR}/include/ri/tools.h
         ${PROJECT_SOURCE_DIR}/include/ri/definitions.hpp
         ${PROJECT_SOURCE_DIR}/include/ri/huff_string.hpp
         ${PROJECT_SOURCE_DIR}/include/ri/sparse_sd_vector.hpp
@@ -64,6 +65,7 @@ if (ri_build_tests)
     cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
     cxx_test_with_flags_and_args(predecessor_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/predecessor_tests.cpp)
     cxx_test_with_flags_and_args(rle_string_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/rle_string_tests.cpp)
+    cxx_test_with_flags_and_args(phi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/phi_tests.cpp)
 endif ()
 
 
