@@ -307,7 +307,6 @@ class rle_string {
 
   }
 
-
   std::vector<StringRun> break_in_runs(const range_t &rn) const {
     auto first = rn.first;
     auto last = rn.second;
@@ -351,7 +350,7 @@ class rle_string {
     std::vector<StringRun> runs_in_range;
     auto prev_pos = first;
     while (pos <= last) {
-      runs_in_range.emplace_back(StringRun{(ulint)current_run, (uchar)current_c, range_t{prev_pos, pos - 1}});
+      runs_in_range.emplace_back(StringRun{(ulint) current_run, (uchar) current_c, range_t{prev_pos, pos - 1}});
 
       prev_pos = pos;
 
@@ -361,9 +360,13 @@ class rle_string {
       current_c = run_info.first;
     }
 
-    runs_in_range.emplace_back(StringRun{(ulint)current_run, (uchar)current_c, range_t{prev_pos, last}});
+    runs_in_range.emplace_back(StringRun{(ulint) current_run, (uchar) current_c, range_t{prev_pos, last}});
 
     return runs_in_range;
+  }
+
+  auto get_run_of(std::size_t i) const{
+    return run_of(i);
   }
 
   ulint size() const { return n; }
