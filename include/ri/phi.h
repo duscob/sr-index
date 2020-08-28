@@ -28,7 +28,7 @@ class Phi {
 /*
  * Phi function. Phi(SA[0]) is undefined
  */
-  std::pair<std::size_t, bool> operator()(std::size_t t_prev_value) {
+  std::pair<std::size_t, bool> operator()(std::size_t t_prev_value) const {
 
     assert(t_prev_value != bwt_size_ - 1);
 
@@ -71,12 +71,31 @@ auto buildPhi(const TPredecessor &t_predecessor,
                                                                 t_bwt_size);
 }
 
-template<typename TPhi, typename TSplit, typename TBackward, typename TSample>
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSample>
 class PhiForRange {
  public:
+  PhiForRange(const TPhi &t_phi,
+              const TSplitInBWTRun &t_split,
+              const TBackwardNav &t_lf,
+              const TSample &t_sample,
+              std::size_t t_sampling_size,
+              std::size_t t_bwt_size)
+      : phi_{t_phi},
+        split_{t_split},
+        lf_{t_lf},
+        sample_at_{t_sample},
+        sampling_size_{t_sampling_size},
+        bwt_size_{t_bwt_size} {
+  }
+
+  template<typename TReport, typename TRange>
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport &t_report) {
+    compute(t_range, phi_(t_prev_value), 0, t_report);
+  }
+
   template<typename TReporter, typename Range>
-  std::pair<bool, std::size_t> compute(const Range &t_range,
-                                       std::pair<bool, std::size_t> t_last_value,
+  std::pair<std::size_t, bool> compute(const Range &t_range,
+                                       std::pair<std::size_t, bool> t_last_value,
                                        std::size_t t_n_jumps,
                                        TReporter &t_reporter) const {
 
@@ -86,22 +105,24 @@ class PhiForRange {
     if (last < first) { return {false, -1}; }
 
     auto last_value = t_last_value;
-    if (t_n_jumps == sampling_size_) {
+    if (sampling_size_ < t_n_jumps) {
       // Reach the limits of backward jumps, so the last value is valid
-      last_value.first = true;
-    } else {
+      last_value.second = true;
+    } else if (!last_value.second) {
       auto sample = sample_at_(last);
-      if (sample.has_value()) {
+      if (sample) {
         // Position last is sampled, so we can use the sampled value
-        last_value = {true, sample.value() + t_n_jumps};
+
+        // NOTE we sampled the position of the i-th BWT char, but here we want the position of SA[i], so we need + 1
+        last_value = {(sample.value() + 1 + t_n_jumps) % bwt_size_, true};
       }
     }
 
     // Report the last values while they are valid
-    while (first <= last && last_value.first) {
-      t_reporter(last_value.second);
+    while (first <= last && last_value.second) {
+      t_reporter(last_value.first);
 
-      last_value = phi_(last_value.second);
+      last_value = phi_(last_value.first);
       --last;
     }
 
@@ -109,7 +130,7 @@ class PhiForRange {
 
     auto runs_in_range = split_(first, last);
     for (auto it = rbegin(runs_in_range); it != rend(runs_in_range); ++it) {
-      last_value = compute(backward_(*it.range, *it.c), last_value, t_n_jumps + 1, t_reporter);
+      last_value = compute(lf_(it->range, it->c), last_value, t_n_jumps + 1, t_reporter);
     }
 
     return last_value;
@@ -117,12 +138,24 @@ class PhiForRange {
 
  private:
   TPhi phi_;
-  TSplit split_;
-  TBackward backward_; // LF
+  TSplitInBWTRun split_;
+  TBackwardNav lf_; // LF
   TSample sample_at_;
 
   std::size_t sampling_size_;
+  std::size_t bwt_size_;
 };
+
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSample>
+auto buildPhiForRange(const TPhi &t_phi,
+                      const TSplitInBWTRun &t_split,
+                      const TBackwardNav &t_lf,
+                      const TSample &t_sample,
+                      std::size_t t_sampling_size,
+                      std::size_t t_bwt_size) {
+  return PhiForRange<TPhi, TSplitInBWTRun, TBackwardNav, TSample>(
+      t_phi, t_split, t_lf, t_sample, t_sampling_size, t_bwt_size);
+}
 
 }
 #endif //RI_PHI_H_
