@@ -131,6 +131,30 @@ auto buildLF(const TGetCRankOnBWT &t_get_c_rank_on_bwt,
   return LF<TGetCRankOnBWT, TGetF, TChar>(t_get_c_rank_on_bwt, t_f, t_bwt_size, t_max_c);
 }
 
+template<typename TGetChar, typename TGetCRankOnBWT, typename TGetF>
+class BasicLF {
+ public:
+  BasicLF(const TGetChar &t_get_char, const TGetCRankOnBWT &t_get_c_rank_on_bwt, const TGetF &t_f)
+      : get_char_{t_get_char}, get_c_rank_on_bwt_{t_get_c_rank_on_bwt}, f_(t_f) {
+  }
+
+  std::size_t operator()(std::size_t t_pos) const {
+    auto c = get_char_(t_pos);
+    return f_(c) + get_c_rank_on_bwt_(t_pos, c);
+  }
+
+ private:
+  TGetChar get_char_;
+  TGetCRankOnBWT get_c_rank_on_bwt_;
+
+  TGetF f_;
+};
+
+template<typename TGetChar, typename TGetCRankOnBWT, typename TGetF>
+auto buildBasicLF(const TGetChar &t_get_char, const TGetCRankOnBWT &t_get_c_rank_on_bwt, const TGetF &t_f) {
+  return BasicLF<TGetChar, TGetCRankOnBWT, TGetF>(t_get_char, t_get_c_rank_on_bwt, t_f);
+}
+
 }
 
 #endif //RI_BWT_H_
