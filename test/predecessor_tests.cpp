@@ -20,13 +20,13 @@ class CircularPredecessor_Tests : public testing::TestWithParam<std::tuple<BitVe
 TEST_P(CircularPredecessor_Tests, compute) {
   const auto &raw_bv = std::get<0>(GetParam());
 
-  auto bv = std::make_shared<sdsl::bit_vector>(raw_bv.size());
-  copy(raw_bv.begin(), raw_bv.end(), bv->begin());
+  auto bv = sdsl::bit_vector(raw_bv.size());
+  copy(raw_bv.begin(), raw_bv.end(), bv.begin());
 
-  auto rank = std::make_shared<sdsl::bit_vector::rank_1_type>(bv.get());
-  auto select = std::make_shared<sdsl::bit_vector::select_1_type>(bv.get());
+  auto rank = sdsl::bit_vector::rank_1_type(&bv);
+  auto select = sdsl::bit_vector::select_1_type(&bv);
 
-  ri::CircularPredecessor<sdsl::bit_vector> predecessor(bv, rank, select);
+  auto predecessor = ri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
 
   const auto &value = std::get<1>(GetParam());
   auto p = predecessor(value);

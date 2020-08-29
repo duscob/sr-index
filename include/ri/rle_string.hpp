@@ -29,6 +29,16 @@
 
 namespace ri {
 
+struct StringRun {
+  ulint run = 0;
+  uchar c = 0;
+  range_t range{1, 0};
+};
+
+bool operator==(const StringRun &a, const StringRun &b) {
+  return a.run == b.run && a.c == b.c && a.range == b.range;
+}
+
 template<
     class sparse_bitvector_t = sparse_sd_vector,    //predecessor structure storing run length
     class string_t    = huff_string                    //run heads
@@ -118,7 +128,7 @@ class rle_string {
 
   }
 
-  uchar operator[](ulint i) {
+  uchar operator[](ulint i) const {
 
     assert(i < n);
     return run_heads[run_of(i).first];
@@ -128,7 +138,7 @@ class rle_string {
   /*
    * position of i-th character c. i starts from 0!
    */
-  ulint select(ulint i, uchar c) {
+  ulint select(ulint i, uchar c) const {
 
     assert(i < runs_per_letter[c].size());
 
@@ -162,7 +172,7 @@ class rle_string {
   /*
    * number of c before position i
    */
-  ulint rank(ulint i, uchar c) {
+  ulint rank(ulint i, uchar c) const {
 
     assert(i <= n);
 
@@ -215,7 +225,7 @@ class rle_string {
   /*
    * text position i is inside this run
    */
-  ulint run_of_position(ulint i) {
+  ulint run_of_position(ulint i) const {
 
     assert(i < n);
 
@@ -249,11 +259,12 @@ class rle_string {
     return current_run;
 
   }
+
   //break range: given a range <l',r'> on the string and a character c, this function
   //breaks <l',r'> in maximal sub-ranges containing character c.
   //for simplicity and efficiency, we assume that characters at range extremities are both 'c'
   //thanks to the encoding (run-length), this function is quite efficient: O(|result|) ranks and selects
-  std::vector<range_t> break_range(range_t rn, uchar c) {
+  std::vector<range_t> break_range(range_t rn, uchar c) const {
 
     auto l = rn.first;
     auto r = rn.second;
@@ -296,12 +307,74 @@ class rle_string {
 
   }
 
+  std::vector<StringRun> break_in_runs(const range_t &rn) const {
+    auto first = rn.first;
+    auto last = rn.second;
+
+    assert(first <= last);
+    assert(last < size());
+
+    ulint prev_block = runs.rank(first);
+    ulint current_run = prev_block * B;
+
+    //current position in the string: the first of a block
+    ulint pos = prev_block > 0 ? runs.select(prev_block - 1) + 1 : 0;
+    assert(pos <= first);
+
+//    auto current_c = run_heads[current_run];
+    uchar current_c;
+
+    auto get_run_info = [this](auto run) {
+      auto head = run_heads.inverse_select(run);
+      auto length = runs_per_letter[head.second].gapAt(head.first);
+      return std::make_pair(head.second, length);
+    };
+
+    // Find the initial run containing position first
+    do {
+      auto run_info = get_run_info(current_run);
+      pos += run_info.second;
+      current_c = run_info.first;
+
+      ++current_run;
+    } while (pos <= first);
+
+    --current_run;
+
+    assert(first < pos);
+    assert(current_c == (*this)[first]);
+    assert(pos > 0);
+    assert(current_run < R);
+
+    // Report all the runs in the interval
+    std::vector<StringRun> runs_in_range;
+    auto prev_pos = first;
+    while (pos <= last) {
+      runs_in_range.emplace_back(StringRun{(ulint) current_run, (uchar) current_c, range_t{prev_pos, pos - 1}});
+
+      prev_pos = pos;
+
+      ++current_run;
+      auto run_info = get_run_info(current_run);
+      pos += run_info.second;
+      current_c = run_info.first;
+    }
+
+    runs_in_range.emplace_back(StringRun{(ulint) current_run, (uchar) current_c, range_t{prev_pos, last}});
+
+    return runs_in_range;
+  }
+
+  auto get_run_of(std::size_t i) const{
+    return run_of(i);
+  }
+
   ulint size() const { return n; }
 
   /*
    * return inclusive range of j-th run in the string
    */
-  std::pair<ulint, ulint> run_range(ulint j) {
+  std::pair<ulint, ulint> run_range(ulint j) const {
 
     assert(j < run_heads.size());
 
@@ -323,16 +396,19 @@ class rle_string {
   }
 
   //length of i-th run
-  ulint run_at(ulint i) {
+  ulint run_at(ulint i) const {
 
     assert(i < R);
     uchar c = run_heads[i];
 
     return runs_per_letter[c].gapAt(run_heads.rank(i, c));
 
+//    auto head = run_heads.inverse_select(i);
+//    return runs_per_letter[head.second].gapAt(head.first);
+
   }
 
-  ulint number_of_runs() { return R; }
+  ulint number_of_runs() const { return R; }
 
   typedef std::size_t size_type;
 
@@ -384,7 +460,7 @@ class rle_string {
 
   }
 
-  std::string toString() {
+  std::string toString() const {
 
     std::string s;
 
@@ -395,7 +471,7 @@ class rle_string {
 
   }
 
-  ulint print_space() {
+  ulint print_space() const {
 
     ulint tot_bytes = 0;
 
@@ -448,7 +524,7 @@ class rle_string {
    * rn must contain c and at least another character d!=c
    *
    */
-  ulint closest_run_break(range_t rn, uchar c) {
+  ulint closest_run_break(range_t rn, uchar c) const {
 
     /*
      * case 1: range begins with a c-run: return last position of the run
@@ -505,7 +581,7 @@ class rle_string {
   }
 
   //<j=run of position i, last position of j-th run>
-  std::pair<ulint, ulint> run_of(ulint i) {
+  std::pair<ulint, ulint> run_of(ulint i) const {
 
     ulint last_block = runs.rank(i);
     ulint current_run = last_block * B;
@@ -543,7 +619,7 @@ class rle_string {
 
   }
 
-  bool contains0(const std::string &s) {
+  bool contains0(const std::string &s) const {
 
     for (auto c : s)
       if (c == 0) return true;

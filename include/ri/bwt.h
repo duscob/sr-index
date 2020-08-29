@@ -70,7 +70,7 @@ std::size_t computeBWT(std::size_t t_n,
   return n_runs + 1;
 }
 
-/// Backward navigation on BWT
+/// Backward navigation (Last to First) on BWT
 template<typename TGetCRankOnBWT, typename TGetF, typename Range, typename TChar>
 Range computeLF(const TGetCRankOnBWT &get_c_rank_on_bwt,
                 const TGetF &get_f,
@@ -104,23 +104,32 @@ class LF {
  public:
   using Range = std::pair<std::size_t, std::size_t>;
 
-  LF(const std::shared_ptr<TGetCRankOnBWT> &t_get_c_rank_on_bwt,
-     const std::shared_ptr<TGetF> &t_f,
+  LF(const TGetCRankOnBWT &t_get_c_rank_on_bwt,
+     const TGetF &t_f,
      std::size_t t_bwt_size,
      TChar t_max_c = 255)
       : get_c_rank_on_bwt_{t_get_c_rank_on_bwt}, f_{t_f}, bwt_size_{t_bwt_size}, max_c_{t_max_c} {
   }
 
   Range operator()(Range range, TChar c) const {
-    return computeLF(*get_c_rank_on_bwt_, *f_, range, c, bwt_size_, max_c_);
+    return computeLF(get_c_rank_on_bwt_, f_, range, c, bwt_size_, max_c_);
   }
 
  private:
-  std::shared_ptr<TGetCRankOnBWT> get_c_rank_on_bwt_; // BWT rank for a given char and position
-  std::shared_ptr<TGetF> f_; // Accumulative frequencies by symbol
+  TGetCRankOnBWT get_c_rank_on_bwt_; // BWT rank for a given char and position
+  TGetF f_; // Accumulative frequencies by symbol
+
   std::size_t bwt_size_; // Size of the BWT
   TChar max_c_; // Maximum symbol
 };
+
+template<typename TGetCRankOnBWT, typename TGetF, typename TChar = unsigned char>
+auto buildLF(const TGetCRankOnBWT &t_get_c_rank_on_bwt,
+             const TGetF &t_f,
+             std::size_t t_bwt_size,
+             TChar t_max_c = 255) {
+  return LF<TGetCRankOnBWT, TGetF, TChar>(t_get_c_rank_on_bwt, t_f, t_bwt_size, t_max_c);
+}
 
 }
 
