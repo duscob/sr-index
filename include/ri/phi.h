@@ -65,32 +65,31 @@ auto buildPhi(const TPredecessor &t_predecessor,
               const TPredecessorToTailRun &predecessor_to_tail_run,
               const TSampledTail &t_sampled_tail,
               std::size_t t_bwt_size) {
-  return Phi<TPredecessor, TPredecessorToTailRun, TSampledTail>(t_predecessor,
-                                                                predecessor_to_tail_run,
-                                                                t_sampled_tail,
-                                                                t_bwt_size);
+  return Phi<TPredecessor, TPredecessorToTailRun, TSampledTail>(
+      t_predecessor, predecessor_to_tail_run, t_sampled_tail, t_bwt_size);
 }
 
-template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSample>
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 class PhiForRange {
  public:
   PhiForRange(const TPhi &t_phi,
               const TSplitInBWTRun &t_split,
               const TBackwardNav &t_lf,
-              const TSample &t_sample,
+              const TSampleAt &t_sample_at,
               std::size_t t_sampling_size,
               std::size_t t_bwt_size)
       : phi_{t_phi},
         split_{t_split},
         lf_{t_lf},
-        sample_at_{t_sample},
+        sample_at_{t_sample_at},
         sampling_size_{t_sampling_size},
         bwt_size_{t_bwt_size} {
   }
 
   template<typename TReport, typename TRange>
-  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport &t_report) {
-    compute(t_range, phi_(t_prev_value), 0, t_report);
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport &t_report) const {
+    auto last_value = phi_(t_prev_value);
+    compute(t_range, last_value, 0, t_report);
   }
 
   template<typename TReporter, typename Range>
@@ -138,23 +137,79 @@ class PhiForRange {
 
  private:
   TPhi phi_;
-  TSplitInBWTRun split_;
+  TSplitInBWTRun split_; // Split an interval in its internal BWT runs
   TBackwardNav lf_; // LF
-  TSample sample_at_;
+  TSampleAt sample_at_; // Access to last value of a BWT run. Note that some tails are not sampled.
 
   std::size_t sampling_size_;
   std::size_t bwt_size_;
 };
 
-template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSample>
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 auto buildPhiForRange(const TPhi &t_phi,
                       const TSplitInBWTRun &t_split,
                       const TBackwardNav &t_lf,
-                      const TSample &t_sample,
+                      const TSampleAt &t_sample_at,
                       std::size_t t_sampling_size,
                       std::size_t t_bwt_size) {
-  return PhiForRange<TPhi, TSplitInBWTRun, TBackwardNav, TSample>(
-      t_phi, t_split, t_lf, t_sample, t_sampling_size, t_bwt_size);
+  return PhiForRange<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
+      t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
+}
+
+template<typename TPhi>
+class ComputeAllValuesWithPhi {
+ public:
+  explicit ComputeAllValuesWithPhi(const TPhi &t_phi) : phi_{t_phi} {}
+
+  template<typename TRange, typename TReport>
+  void operator()(const TRange &t_range, std::experimental::optional<std::size_t> t_k, TReport &t_report) const {
+    auto k = *t_k;
+    for (auto i = t_range.first; i <= t_range.second; ++i) {
+      t_report(k);
+
+      // This function is for original r-index, so phi returns always a valid value
+      k = phi_(k).first;
+    }
+  }
+
+ private:
+  TPhi phi_;
+};
+
+template<typename TPhi>
+auto buildComputeAllValuesWithPhi(const TPhi &t_phi) {
+  return ComputeAllValuesWithPhi<TPhi>(t_phi);
+}
+
+template<typename TPhiForRange, typename TGetValueForSAPosition>
+class ComputeAllValuesWithPhiForRange {
+ public:
+  ComputeAllValuesWithPhiForRange(const TPhiForRange &t_phi_for_range,
+                                  const TGetValueForSAPosition &t_get_value_for_sa_position)
+      : phi_for_range_{t_phi_for_range}, get_value_for_sa_position_{t_get_value_for_sa_position} {
+  }
+
+  template<typename TRange, typename TReport>
+  void operator()(const TRange &t_range, std::experimental::optional<std::size_t> t_k, TReport &t_report) const {
+    auto k = t_k ? *t_k : get_value_for_sa_position_(t_range.second);
+    t_report(k);
+
+    auto range = t_range;
+    --range.second;
+
+    phi_for_range_(range, k, t_report);
+  }
+
+ private:
+  TPhiForRange phi_for_range_;
+  TGetValueForSAPosition get_value_for_sa_position_;
+};
+
+template<typename TPhiForRange, typename TGetValueForSAPosition>
+auto buildComputeAllValuesWithPhiForRange(const TPhiForRange &t_phi_for_range,
+                                          const TGetValueForSAPosition &t_get_value_for_sa_position) {
+  return ComputeAllValuesWithPhiForRange<TPhiForRange, TGetValueForSAPosition>(
+      t_phi_for_range, t_get_value_for_sa_position);
 }
 
 }
