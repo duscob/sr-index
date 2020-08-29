@@ -87,4 +87,5 @@ if (ri_build_benchmarks)
     set(LIBS ${SDSL_LIBS})
 
     cxx_executable_with_flags(bm_build_ri_items "" "${GFLAGS_LIB};benchmark;ri;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_build_ri_items.cpp)
+    cxx_executable_with_flags(bm_locate "" "${GFLAGS_LIB};benchmark;ri;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_locate.cpp)
 endif ()
