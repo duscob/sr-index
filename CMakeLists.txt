@@ -38,6 +38,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/ri/predecessor.h
         ${PROJECT_SOURCE_DIR}/include/ri/phi.h
         ${PROJECT_SOURCE_DIR}/include/ri/tools.h
+        ${PROJECT_SOURCE_DIR}/include/ri/r_index.h
         ${PROJECT_SOURCE_DIR}/include/ri/definitions.hpp
         ${PROJECT_SOURCE_DIR}/include/ri/huff_string.hpp
         ${PROJECT_SOURCE_DIR}/include/ri/sparse_sd_vector.hpp
@@ -86,4 +87,5 @@ if (ri_build_benchmarks)
     set(LIBS ${SDSL_LIBS})
 
     cxx_executable_with_flags(bm_build_ri_items "" "${GFLAGS_LIB};benchmark;ri;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_build_ri_items.cpp)
+    cxx_executable_with_flags(bm_locate "" "${GFLAGS_LIB};benchmark;ri;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_locate.cpp)
 endif ()

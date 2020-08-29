@@ -49,6 +49,26 @@ auto buildRandomAccessForTwoContainers(const TContainer1 &t_container1, const TC
   return RandomAccessForTwoContainers<TContainer1, TContainer2>(t_container1, t_container_2);
 }
 
+template<typename TContainer1>
+class RandomAccessForTwoContainersDefault {
+ public:
+  RandomAccessForTwoContainersDefault(const TContainer1 &t_container1)
+      : container1_{t_container1} {
+  }
+
+  auto operator()(std::size_t i) const {
+    return std::make_pair(container1_.get()[i], true);
+  }
+
+ private:
+  TContainer1 container1_;
+};
+
+template<typename TContainer1>
+auto buildRandomAccessForTwoContainersDefault(const TContainer1 &t_container1) {
+  return RandomAccessForTwoContainersDefault<TContainer1>(t_container1);
+}
+
 template<typename TRLEString>
 class SplitInRuns {
  public:
@@ -150,12 +170,135 @@ class GetSampleForSAPosition {
   TSampleForBWTRun sample_for_bwt_run_;
 };
 
-template<typename TRLEString, typename TIsRunSampled, typename TSampleForBWTRun>
-auto buildGetSampleForSAPosition(const TRLEString &t_string,
+template<typename TRunOfSAPosition, typename TIsRunSampled, typename TSampleForBWTRun>
+auto buildGetSampleForSAPosition(const TRunOfSAPosition &t_run_of_sa_position,
                                  const TIsRunSampled &t_is_run_sampled,
                                  const TSampleForBWTRun &t_sample_for_bwt_run) {
-  return GetSampleForSAPosition<TRLEString, TIsRunSampled, TSampleForBWTRun>(
-      t_string, t_is_run_sampled, t_sample_for_bwt_run);
+  return GetSampleForSAPosition<TRunOfSAPosition, TIsRunSampled, TSampleForBWTRun>(
+      t_run_of_sa_position, t_is_run_sampled, t_sample_for_bwt_run);
+}
+
+template<typename TRLEString>
+class GetPreviousPositionInRange {
+ public:
+  GetPreviousPositionInRange(const TRLEString &t_string) : string_{t_string} {}
+
+  template<typename TRange, typename TChar>
+  std::size_t operator()(const TRange &t_range, const TChar &t_c) const {
+    //find last c in range (there must be one because range1 is not empty)
+    //and get its sample (must be sampled because it is at the end of a run)
+    //note: by previous check, bwt[range.second] != c, so we can use argument range.second
+    auto rnk = string_.rank(t_range.second, t_c);
+
+    //there must be at least one c before range.second
+    assert(rnk > 0);
+
+    //this is the rank of the last c
+    rnk--;
+
+    //jump to the corresponding BWT position
+    auto j = string_.select(rnk, t_c);
+
+    //the c must be in the range
+    assert(t_range.first <= j && j < t_range.second);
+
+    return j;
+  }
+
+ private:
+  TRLEString string_;
+};
+
+template<typename TRLEString>
+auto buildGetPreviousPositionInRange(const TRLEString &t_string) {
+  return GetPreviousPositionInRange<TRLEString>(t_string);
+}
+
+template<typename TRLEString, typename TSampleForSAPosition>
+class GetLastValue {
+ public:
+  GetLastValue(const TRLEString &t_string, const TSampleForSAPosition &t_sample_for_sa_position)
+      : string_{t_string}, sample_for_sa_position_{t_sample_for_sa_position} {
+  }
+
+  template<typename TRange, typename TChar>
+  std::experimental::optional<std::size_t> operator()(
+      const TRange &t_range,
+      const TRange &t_next_range,
+      const TChar &t_c,
+      const std::experimental::optional<std::size_t> &t_last_value) const {
+
+    if (!t_last_value || t_next_range.second < t_next_range.first) { return t_last_value; }
+
+    if (string_.get()[t_range.second] == t_c) {
+      // last c is at the end of range. Then, we have this sample by induction!
+      assert(0 < *t_last_value);
+
+      return *t_last_value - 1;
+
+    } else {
+      //find last c in range (there must be one because range1 is not empty)
+      //and get its sample (must be sampled because it is at the end of a run)
+      //note: by previous check, bwt[range.second] != c, so we can use argument range.second
+      auto rnk = string_.get().rank(t_range.second, t_c);
+
+      //there must be at least one c before range.second
+      assert(rnk > 0);
+
+      //this is the rank of the last c
+      rnk--;
+
+      //jump to the corresponding BWT position
+      auto j = string_.get().select(rnk, t_c);
+
+      //the c must be in the range
+      assert(t_range.first <= j && j < t_range.second);
+
+      return sample_for_sa_position_(j);
+    }
+  }
+
+ private:
+  TRLEString string_;
+  TSampleForSAPosition sample_for_sa_position_;
+};
+
+template<typename TRLEString, typename TSampleForSAPosition>
+auto buildGetLastValue(const TRLEString &t_string, const TSampleForSAPosition &t_sample_for_sa_position) {
+  return GetLastValue<TRLEString, TSampleForSAPosition>(t_string, t_sample_for_sa_position);
+}
+
+template<typename TSampleAt, typename TBackwardNav>
+class GetValueForSAPosition {
+ public:
+  GetValueForSAPosition(const TSampleAt &t_sample_at, const TBackwardNav &t_lf, std::size_t t_bwt_size)
+      : sample_at_{t_sample_at}, lf_{t_lf}, bwt_size_{t_bwt_size} {
+  }
+
+  std::size_t operator()(std::size_t t_pos) const {
+    std::size_t jumps = 0;
+    auto pos = t_pos;
+    auto sample = sample_at_(pos);
+
+    while (!sample) {
+      pos = lf_(pos);
+      sample = sample_at_(pos);
+      ++jumps;
+    }
+
+    return (sample.value() + 1 + jumps) % bwt_size_;
+  }
+
+ private:
+  TSampleAt sample_at_;
+  TBackwardNav lf_;
+
+  std::size_t bwt_size_;
+};
+
+template<typename TSampleAt, typename TBackwardNav>
+auto buildGetValueForSAPosition(const TSampleAt &t_sample_at, const TBackwardNav &t_lf, std::size_t t_bwt_size) {
+  return GetValueForSAPosition<TSampleAt, TBackwardNav> (t_sample_at, t_lf, t_bwt_size);
 }
 
 }
