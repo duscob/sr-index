@@ -104,10 +104,23 @@ class PhiForRange {
     if (last < first) { return {false, -1}; }
 
     auto last_value = t_last_value;
-    if (sampling_size_ < t_n_jumps) {
+    if (sampling_size_ <= t_n_jumps) {
       // Reach the limits of backward jumps, so the last value is valid
       last_value.second = true;
-    } else if (!last_value.second) {
+    }
+
+    do {
+
+      // Report the last values while they are valid
+      while (first <= last && last_value.second) {
+        t_reporter(last_value.first);
+
+        last_value = phi_(last_value.first);
+        --last;
+      }
+
+      if (last < first) { return last_value; }
+
       auto sample = sample_at_(last);
       if (sample) {
         // Position last is sampled, so we can use the sampled value
@@ -115,21 +128,16 @@ class PhiForRange {
         // NOTE we sampled the position of the i-th BWT char, but here we want the position of SA[i], so we need + 1
         last_value = {(sample.value() + 1 + t_n_jumps) % bwt_size_, true};
       }
-    }
 
-    // Report the last values while they are valid
-    while (first <= last && last_value.second) {
-      t_reporter(last_value.first);
+    } while (last_value.second);
 
-      last_value = phi_(last_value.first);
-      --last;
-    }
-
-    if (last < first) { return last_value; }
-
+    // TODO Don't split it in all sub-runs. We can go in depth recursively with only the last remaining sub-run, and continue with the other at the same level.
     auto runs_in_range = split_(first, last);
-    for (auto it = rbegin(runs_in_range); it != rend(runs_in_range); ++it) {
-      last_value = compute(lf_(it->range, it->c), last_value, t_n_jumps + 1, t_reporter);
+
+    auto it = rbegin(runs_in_range);
+    last_value = compute(lf_(it->range, it->c), last_value, t_n_jumps + 1, t_reporter);
+    while(++it != rend(runs_in_range)) {
+      last_value = compute(it->range, last_value, t_n_jumps, t_reporter);
     }
 
     return last_value;
