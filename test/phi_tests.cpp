@@ -201,7 +201,7 @@ INSTANTIATE_TEST_SUITE_P(
 
         testing::Values(BitVector{0, 1, 1, 1, 0, 0}),
 
-        testing::Values(4),
+        testing::Values(5),
 
         testing::Values(
             RangeXPrevValueXSA{RangeXPrevValue{Range{1, 10}, 2}, SA{5, 10, 1, 4, 9, 7, 0, 3, 8, 6}},
