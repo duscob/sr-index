@@ -70,6 +70,42 @@ auto buildRandomAccessForTwoContainersDefault(const TContainer1 &t_container1, b
   return RandomAccessForTwoContainersDefault<TContainer1>(t_container1, t_default_value);
 }
 
+class SampleValidatorDefault {
+ public:
+  bool operator()(std::size_t /*t_pred_pos*/, std::size_t /*t_delta*/, bool t_is_trusted_pred) const {
+    return t_is_trusted_pred;
+  }
+};
+
+template<typename TGetTrustedAreaIdx, typename TGetTrustedArea>
+class SampleValidator {
+ public:
+  SampleValidator(const TGetTrustedAreaIdx &t_get_trusted_area_idx, const TGetTrustedArea &t_get_trusted_area)
+      : get_trusted_area_idx_{t_get_trusted_area_idx}, get_trusted_area_{t_get_trusted_area} {
+  }
+
+  bool operator()(std::size_t t_pred_pos, std::size_t t_delta, bool t_is_trusted_pred) const {
+    if (!t_is_trusted_pred) {
+      auto idx = get_trusted_area_idx_(t_pred_pos);
+      auto trusted_area = get_trusted_area_(idx);
+      if (trusted_area <= t_delta) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+ private:
+  TGetTrustedAreaIdx get_trusted_area_idx_;
+  TGetTrustedArea get_trusted_area_;
+};
+
+template<typename TGetTrustedAreaIdx, typename TGetTrustedArea>
+auto buildSampleValidator(const TGetTrustedAreaIdx &t_get_trusted_area_idx, const TGetTrustedArea &t_get_trusted_area) {
+  return SampleValidator<TGetTrustedAreaIdx, TGetTrustedArea>(t_get_trusted_area_idx, t_get_trusted_area);
+}
+
 template<typename TRLEString>
 class SplitInRuns {
  public:

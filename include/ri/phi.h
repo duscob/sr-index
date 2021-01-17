@@ -12,16 +12,18 @@
 
 namespace ri {
 
-template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail>
+template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail, typename TSampledTailValidator>
 class Phi {
  public:
   Phi(const TPredecessor &t_predecessor,
       const TPredecessorToTailRun &t_predecessor_to_tail_run,
       const TSampledTail &t_sampled_tail,
+      const TSampledTailValidator &t_is_sampled_tail_valid,
       std::size_t t_bwt_size)
       : predecessor_{t_predecessor},
         predecessor_to_tail_run_{t_predecessor_to_tail_run},
         sampled_tail_{t_sampled_tail},
+        is_sampled_tail_valid_{t_is_sampled_tail_valid},
         bwt_size_{t_bwt_size} {
   }
 
@@ -49,24 +51,27 @@ class Phi {
     //sample at the end of previous run
     auto prev_sample = sampled_tail_(run.first);
 
-    return {(prev_sample + delta) % bwt_size_, run.second};
+    auto sampled_tail_validity = is_sampled_tail_valid_(pred_pos, delta, run.second);
+    return {(prev_sample + delta) % bwt_size_, sampled_tail_validity};
   }
 
  private:
   TPredecessor predecessor_;
   TPredecessorToTailRun predecessor_to_tail_run_;
   TSampledTail sampled_tail_;
+  TSampledTailValidator is_sampled_tail_valid_;
 
   std::size_t bwt_size_;
 };
 
-template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail>
+template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail, typename TSampledTailValidator>
 auto buildPhi(const TPredecessor &t_predecessor,
               const TPredecessorToTailRun &predecessor_to_tail_run,
               const TSampledTail &t_sampled_tail,
+              const TSampledTailValidator &t_sampled_tail_validator,
               std::size_t t_bwt_size) {
-  return Phi<TPredecessor, TPredecessorToTailRun, TSampledTail>(
-      t_predecessor, predecessor_to_tail_run, t_sampled_tail, t_bwt_size);
+  return Phi<TPredecessor, TPredecessorToTailRun, TSampledTail, TSampledTailValidator>(
+      t_predecessor, predecessor_to_tail_run, t_sampled_tail, t_sampled_tail_validator, t_bwt_size);
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
