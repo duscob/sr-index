@@ -120,6 +120,11 @@ int main(int argc, char *argv[]) {
       {"R-Index-WS-TM/16", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 16}},
       {"R-Index-WS-TM/32", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 32}},
       {"R-Index-WS-TM/64", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 64}},
+      {"R-Index-WS-TA/4", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 4}},
+      {"R-Index-WS-TA/8", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 8}},
+      {"R-Index-WS-TA/16", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 16}},
+      {"R-Index-WS-TA/32", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 32}},
+      {"R-Index-WS-TA/64", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 64}},
   };
 
   std::string print_bm_prefix = "Print-";
