@@ -106,12 +106,19 @@ class PhiForRange {
     auto first = t_range.first;
     auto last = t_range.second;
 
-    if (last < first) { return {false, -1}; }
+    if (last < first) { return {-1, false}; }
 
     auto last_value = t_last_value;
     if (sampling_size_ <= t_n_jumps) {
       // Reach the limits of backward jumps, so the last value is valid
-      last_value.second = true;
+      do {
+        t_reporter(last_value.first);
+
+        last_value = phi_(last_value.first);
+        --last;
+      }while (first <= last);
+
+      return last_value;
     }
 
     do {
