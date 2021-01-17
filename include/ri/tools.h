@@ -13,7 +13,7 @@ namespace ri {
 template<typename TContainer>
 class RandomAccessForContainer {
  public:
-  RandomAccessForContainer(const TContainer &t_container) : container_{t_container} {}
+  explicit RandomAccessForContainer(const TContainer &t_container) : container_{t_container} {}
 
   auto operator()(std::size_t i) const {
     return container_.get()[i];
@@ -52,27 +52,28 @@ auto buildRandomAccessForTwoContainers(const TContainer1 &t_container1, const TC
 template<typename TContainer1>
 class RandomAccessForTwoContainersDefault {
  public:
-  RandomAccessForTwoContainersDefault(const TContainer1 &t_container1)
-      : container1_{t_container1} {
+  RandomAccessForTwoContainersDefault(const TContainer1 &t_container1, bool t_default_value)
+      : container1_{t_container1}, default_value_{t_default_value} {
   }
 
   auto operator()(std::size_t i) const {
-    return std::make_pair(container1_.get()[i], true);
+    return std::make_pair(container1_.get()[i], default_value_);
   }
 
  private:
   TContainer1 container1_;
+  bool default_value_;
 };
 
 template<typename TContainer1>
-auto buildRandomAccessForTwoContainersDefault(const TContainer1 &t_container1) {
-  return RandomAccessForTwoContainersDefault<TContainer1>(t_container1);
+auto buildRandomAccessForTwoContainersDefault(const TContainer1 &t_container1, bool t_default_value) {
+  return RandomAccessForTwoContainersDefault<TContainer1>(t_container1, t_default_value);
 }
 
 template<typename TRLEString>
 class SplitInRuns {
  public:
-  SplitInRuns(const TRLEString &t_string) : string_{t_string} {}
+  explicit SplitInRuns(const TRLEString &t_string) : string_{t_string} {}
 
   auto operator()(std::size_t t_first, std::size_t t_last) const {
     return string_.get().break_in_runs(std::make_pair(t_first, t_last));
@@ -90,7 +91,7 @@ auto buildSplitInRuns(const TRLEString &t_string) {
 template<typename TRLEString>
 class RankOfChar {
  public:
-  RankOfChar(const TRLEString &t_string) : string_{t_string} {}
+  explicit RankOfChar(const TRLEString &t_string) : string_{t_string} {}
 
   auto operator()(std::size_t t_pos, unsigned char t_char) const {
     return string_.get().rank(t_pos, t_char);
@@ -108,7 +109,7 @@ auto buildRankOfChar(const TRLEString &t_string) {
 template<typename TRLEString>
 class RunOfSAPosition {
  public:
-  RunOfSAPosition(const TRLEString &t_string) : string_{t_string} {}
+  explicit RunOfSAPosition(const TRLEString &t_string) : string_{t_string} {}
 
   auto operator()(std::size_t t_pos) const {
     return string_.get().get_run_of(t_pos);
@@ -181,7 +182,7 @@ auto buildGetSampleForSAPosition(const TRunOfSAPosition &t_run_of_sa_position,
 template<typename TRLEString>
 class GetPreviousPositionInRange {
  public:
-  GetPreviousPositionInRange(const TRLEString &t_string) : string_{t_string} {}
+  explicit GetPreviousPositionInRange(const TRLEString &t_string) : string_{t_string} {}
 
   template<typename TRange, typename TChar>
   std::size_t operator()(const TRange &t_range, const TChar &t_c) const {
