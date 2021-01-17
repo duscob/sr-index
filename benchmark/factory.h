@@ -23,7 +23,9 @@ class Factory {
 
   enum class IndexEnum {
     RIndex = 0,
-    RIndexSampled
+    RIndexSampled,
+    RIndexSampledWithTrustedMarks,
+    RIndexSampledWithTrustedAreas
   };
 
   Factory(const sdsl::cache_config &t_config) : config_{t_config} {
@@ -100,16 +102,14 @@ class Factory {
   }
 
  private:
+  struct RIndexComponents;
+
   auto makeLF() const {
     auto get_rank_of_char = ri::buildRankOfChar(std::cref(bwt_rle_.item));
     auto get_f = ri::buildRandomAccessForContainer(std::cref(f_.item));
     auto max_c = f_.item.size() - 1;
 
     return ri::buildLF(get_rank_of_char, get_f, seq_size_, max_c);
-  }
-
-  auto makeAlwaysTrue() const {
-    return [](const auto &p) { return true; };
   }
 
   auto makeGetSampleForSAPosition(std::size_t t_s) const {
@@ -141,46 +141,47 @@ class Factory {
     return ri::buildGetLastValue(std::cref(bwt_rle_.item), makeGetSampleForSAPosition(t_s));
   }
 
+  template<typename TGetPredToRun, typename TSampledTailValidator>
+  auto makePhi(const RIndexComponents &t_components,
+               const TGetPredToRun &t_get_pred_to_run,
+               const TSampledTailValidator &t_sampled_tail_validator) const {
+    auto predecessor = ri::buildCircularPredecessor(std::cref(t_components.rank_heads_in_text_bv.item),
+                                                    std::cref(t_components.select_heads_in_text_bv.item),
+                                                    t_components.heads_in_text_bv.item.size());
+    auto get_sample = ri::buildRandomAccessForContainer(std::cref(t_components.tails_in_text.item));
+
+    return ri::buildPhi(predecessor, t_get_pred_to_run, get_sample, t_sampled_tail_validator, seq_size_);
+  }
+
+  template<typename TGetPredToRun>
+  auto makePhi(const RIndexComponents &t_components, const TGetPredToRun &t_get_pred_to_run) const {
+    ri::SampleValidatorDefault sampled_tail_validator_default;
+    return makePhi(t_components, t_get_pred_to_run, sampled_tail_validator_default);
+  }
+
   auto makePhi() const {
     const auto &components = r_index_packs_.at(0);
 
-    auto predecessor = ri::buildCircularPredecessor(std::cref(components.rank_heads_in_text_bv.item),
-                                                    std::cref(components.select_heads_in_text_bv.item),
-                                                    components.heads_in_text_bv.item.size());
     auto get_pred_to_run = ri::buildRandomAccessForTwoContainersDefault(
-        std::cref(components.tail_idxs_by_heads_in_text.item));
-    auto get_sample = ri::buildRandomAccessForContainer(std::cref(components.tails_in_text.item));
+        std::cref(components.tail_idxs_by_heads_in_text.item), true);
 
-    return ri::buildPhi(predecessor, get_pred_to_run, get_sample, seq_size_);
+    return makePhi(components, get_pred_to_run);
   }
 
-  auto makePhi(std::size_t t_sampling) const {
-    const auto &components = r_index_packs_.at(t_sampling);
-
-    auto predecessor = ri::buildCircularPredecessor(std::cref(components.rank_heads_in_text_bv.item),
-                                                    std::cref(components.select_heads_in_text_bv.item),
-                                                    components.heads_in_text_bv.item.size());
-    auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(
-        std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
-    auto get_sample = ri::buildRandomAccessForContainer(std::cref(components.tails_in_text.item));
-
-    return ri::buildPhi(predecessor, get_pred_to_run, get_sample, seq_size_);
-  }
-
-  auto makePhiForRange(std::size_t t_s) const {
+  template<typename TPhi>
+  auto makePhiForRange(std::size_t t_s, const TPhi &t_phi) const {
     // Split in runs
     auto split_in_runs = ri::buildSplitInRuns(std::cref(bwt_rle_.item));
 
-    return ri::buildPhiForRange(makePhi(t_s), split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
+    return ri::buildPhiForRange(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
   }
 
   auto makeComputeAllValuesWithPhi() const {
-    auto phi = makePhi();
-
-    return ri::buildComputeAllValuesWithPhi(phi);
+    return ri::buildComputeAllValuesWithPhi(makePhi());
   }
 
-  auto makeComputeAllValuesWithPhiForRange(std::size_t t_s) const {
+  template<typename TPhiForRange>
+  auto makeComputeAllValuesWithPhiForRange(std::size_t t_s, const TPhiForRange &t_phi_for_range) const {
     auto get_char = ri::buildRandomAccessForContainer(std::cref(bwt_rle_.item));
     auto get_rank_of_char = ri::buildRankOfChar(std::cref(bwt_rle_.item));
     auto get_f = ri::buildRandomAccessForContainer(std::cref(f_.item));
@@ -188,44 +189,85 @@ class Factory {
 
     auto get_value_for_sa_pos = ri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
 
-    return ri::buildComputeAllValuesWithPhiForRange(makePhiForRange(t_s), get_value_for_sa_pos);
+    return ri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, get_value_for_sa_pos);
   }
 
-  auto sizeRIndexComponents(std::size_t t_s) const {
-    const auto components = r_index_packs_.at(t_s);
+  auto sizeBasicComponents() const {
+    return bwt_rle_.size_in_bytes + f_.size_in_bytes;
+  }
 
-    return components.tails_in_text.size_in_bytes
-        + components.heads_in_text_bv.size_in_bytes
-        + components.rank_heads_in_text_bv.size_in_bytes
-        + components.select_heads_in_text_bv.size_in_bytes
-        + components.tail_idxs_by_heads_in_text.size_in_bytes
-        + components.sampled_tails_idx_bv.size_in_bytes
-        + components.rank_sampled_tails_idx_bv.size_in_bytes
-//        + components.select_sampled_tails_idx_bv_sd.size_in_bytes
-        + components.marked_sampled_idxs_bv.size_in_bytes;
+  auto sizeRIndexComponents(const RIndexComponents &t_components) const {
+    return t_components.tails_in_text.size_in_bytes
+        + t_components.heads_in_text_bv.size_in_bytes
+        + t_components.rank_heads_in_text_bv.size_in_bytes
+        + t_components.select_heads_in_text_bv.size_in_bytes
+        + t_components.tail_idxs_by_heads_in_text.size_in_bytes
+        + t_components.sampled_tails_idx_bv.size_in_bytes
+        + t_components.rank_sampled_tails_idx_bv.size_in_bytes;
+  }
+
+  auto sizeRIndexComponentsWithTrustedMarks(const RIndexComponents &t_components) const {
+    return sizeRIndexComponents(t_components) + t_components.marked_sampled_idxs_bv.size_in_bytes;
+  }
+
+  auto sizeRIndexComponentsWithTrustedAreas(const RIndexComponents &t_components) const {
+    return sizeRIndexComponents(t_components)
+        + t_components.marked_sampled_idxs_bv.size_in_bytes
+        + t_components.rank_marked_sampled_idxs_bv.size_in_bytes
+        + t_components.head_marked_sample_trusted_areas.size_in_bytes;
   }
 
   std::pair<std::shared_ptr<ri::LocateIndex>, std::size_t> internal_make(const Config &t_config) const {
     switch (t_config.index) {
       case IndexEnum::RIndex: {
         const auto &components = r_index_packs_.at(0);
+
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(),
                                          makeComputeAllValuesWithPhi(),
                                          seq_size_,
-                                         components.tails_in_text.item[components.tails_in_text.item.size() - 1]),
-                bwt_rle_.size_in_bytes + f_.size_in_bytes + sizeRIndexComponents(0)};
+                                         final_sa_value),
+                sizeBasicComponents() + sizeRIndexComponents(components)};
       }
+
       case IndexEnum::RIndexSampled: {
-        const auto &components = r_index_packs_.at(t_config.sampling_size);
+        auto s = t_config.sampling_size;
+        const auto &components = r_index_packs_.at(s);
+
+        auto get_pred_to_run = ri::buildRandomAccessForTwoContainersDefault(
+            std::cref(components.tail_idxs_by_heads_in_text.item), false);
+        auto phi = makePhi(components, get_pred_to_run);
+
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+
         return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastValue(t_config.sampling_size),
-                                         makeComputeAllValuesWithPhiForRange(t_config.sampling_size),
+                                         makeGetLastValue(s),
+                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                          seq_size_,
-                                         components.tails_in_text.item[components.tails_in_text.item.size() - 1]),
-                bwt_rle_.size_in_bytes + f_.size_in_bytes + sizeRIndexComponents(t_config.sampling_size)};
+                                         final_sa_value),
+                sizeBasicComponents() + sizeRIndexComponents(components)};
       }
-    }
+
+      case IndexEnum::RIndexSampledWithTrustedMarks: {
+        auto s = t_config.sampling_size;
+        const auto &components = r_index_packs_.at(s);
+
+        auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(
+            std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
+        auto phi = makePhi(components, get_pred_to_run);
+
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+
+        return {ri::buildSharedPtrRIndex(makeLF(),
+                                         makeGetLastValue(s),
+                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
+                                         seq_size_,
+                                         final_sa_value),
+                sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
+      }
+   }
 
     exit(4);
   }
