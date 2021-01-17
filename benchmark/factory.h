@@ -82,8 +82,12 @@ class Factory {
           decltype(components.rank_sampled_tails_idx_bv.item)(&components.sampled_tails_idx_bv.item);
       components.rank_sampled_tails_idx_bv.computeSize();
 
-      load(components.marked_sampled_idxs_bv, prefix + ri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv_sd");
-//      load(components.marked_sampled_idxs_bv, prefix + ri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv");
+//      load(components.marked_sampled_idxs_bv, prefix + ri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv_sd");
+      load(components.marked_sampled_idxs_bv, prefix + ri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv");
+      components.rank_marked_sampled_idxs_bv.item =
+          decltype(components.rank_marked_sampled_idxs_bv.item)(&components.marked_sampled_idxs_bv.item);
+
+      load(components.head_marked_sample_trusted_areas, prefix + ri::KEY_BWT_HEADS_MARKED_SAMPLED_TRUSTED_AREA_IN_TEXT);
 
     }
   }
@@ -267,7 +271,28 @@ class Factory {
                                          final_sa_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
       }
-   }
+
+      case IndexEnum::RIndexSampledWithTrustedAreas: {
+        auto s = t_config.sampling_size;
+        const auto &components = r_index_packs_.at(s);
+
+        auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(
+            std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
+        auto sample_validator = ri::buildSampleValidator(
+            std::cref(components.rank_marked_sampled_idxs_bv.item),
+            ri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
+        auto phi = makePhi(components, get_pred_to_run, sample_validator);
+
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+
+        return {ri::buildSharedPtrRIndex(makeLF(),
+                                         makeGetLastValue(s),
+                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
+                                         seq_size_,
+                                         final_sa_value),
+                sizeBasicComponents() + sizeRIndexComponentsWithTrustedAreas(components)};
+      }
+    }
 
     exit(4);
   }
@@ -289,6 +314,8 @@ class Factory {
 
   template<typename T>
   void load(Item<T> &t_item, const std::string &t_key) {
+    if (!sdsl::cache_file_exists(t_key, config_))
+      std::cerr << "ERROR: File '" << sdsl::cache_file_name(t_key, config_) << "' not exist!!!";
     sdsl::load_from_cache(t_item.item, t_key, config_);
     t_item.size_in_bytes = sdsl::size_in_bytes(t_item.item);
   }
@@ -314,11 +341,13 @@ class Factory {
 //    using BV2 = sdsl::bit_vector;
     Item<BV2> sampled_tails_idx_bv;
     Item<BV2::rank_1_type> rank_sampled_tails_idx_bv;
-//    Item<sdsl::sd_vector<>::select_1_type> select_sampled_tails_idx_bv_sd;
 
-    using BV3 = sdsl::sd_vector<>;
-//    using BV3 = sdsl::bit_vector;
+//    using BV3 = sdsl::sd_vector<>;
+    using BV3 = sdsl::bit_vector;
     Item<BV3> marked_sampled_idxs_bv;
+    Item<BV3::rank_0_type> rank_marked_sampled_idxs_bv;
+
+    Item<sdsl::int_vector<>> head_marked_sample_trusted_areas;
   };
 
   std::unordered_map<std::size_t, RIndexComponents> r_index_packs_;

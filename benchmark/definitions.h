@@ -22,6 +22,7 @@ const std::string KEY_BWT_TAILS_TEXT_POS_SAMPLED = "bwt_tails_sampled_tpos";
 
 const std::string KEY_BWT_TAILS_SAMPLED_IDX_BY_HEAD_IN_TEXT = "bwt_tails_sampled_idx_by_heads_tpos";
 const std::string KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT = "bwt_tails_marked_sampled_idx_by_heads_tpos";
+const std::string KEY_BWT_HEADS_MARKED_SAMPLED_TRUSTED_AREA_IN_TEXT = "bwt_heads_marked_sampled_trusted_area";
 
 const std::string KEY_BWT_HEADS_TEXT_POS_SORTED_IDX = "bwt_heads_tpos_sorted_idx";
 const std::string KEY_BWT_TAILS_TEXT_POS_SORTED_IDX = "bwt_tails_tpos_sorted_idx";

@@ -390,10 +390,13 @@ auto BM_BuildBWTHeadsSampling = [](benchmark::State &t_state, auto *t_config) {
   std::vector<std::size_t> sampled_tail_idx_by_heads_in_text_vec;
   // Indices of sampled BWT run tails indices, sorted by the text position of its following run heads
   sdsl::int_vector<> sampled_tail_idx_by_heads_in_text;
-  // Marked trustful indices of the sampled BWT run heads: bv[i] = true iff between sampled run heads i and i + 1 none run head was deleted
+  // Marked trustworthy indices of the sampled BWT run heads: bv[i] = true iff between sampled run heads i and i + 1 none run head was deleted
   std::vector<bool> marked_sampled_idxs_vec;
   sdsl::bit_vector marked_sampled_idxs_bv;
   sdsl::sd_vector<> marked_sampled_idxs_bv_sd;
+  // Trusted interval for marked trustworthy indices of the sampled BWT run heads
+  std::vector<std::size_t> trusted_area_for_marked_sampled_idxs_vec;
+  sdsl::int_vector<> trusted_area_for_marked_sampled_idxs;
   sdsl::bit_vector sampled_heads_in_text_bv; // Mark positions of sampled BWT run heads in text (bitvector)
   sdsl::sd_vector<> sampled_heads_in_text_bv_sd; // Mark positions of sampled BWT run heads in text (sparse bitvector)
 
@@ -423,21 +426,31 @@ auto BM_BuildBWTHeadsSampling = [](benchmark::State &t_state, auto *t_config) {
     auto n = heads_in_text_vec[head_idxs_sorted_in_text.back()] + 1;
     sampled_heads_in_text_bv = sdsl::bit_vector(n, 0);
 
+    trusted_area_for_marked_sampled_idxs_vec.clear();
+    trusted_area_for_marked_sampled_idxs_vec.reserve(r_prime / 2);
+
     // Marks sampled BWT run heads indices in text and if they are trustworthy
     {
-      sampled_heads_in_text_bv[heads_in_text_vec[head_idxs_sorted_in_text.front()]] = true;
-      std::size_t prev_idx = 0;
-      auto next_sampled_head_idx = (sampled_tail_idxs_vec[sampled_tail_idx_by_heads_in_text_vec[prev_idx + 1]] + 1) % r;
+      auto sampled_head_idx = head_idxs_sorted_in_text.front();
+      for (std::size_t i = 0, j = 0; i < r_prime - 1; ++i) {
+        auto sampled_head_tpos = heads_in_text_vec[sampled_head_idx];
+        // Marks sampled BWT run heads indices in text
+        sampled_heads_in_text_bv[sampled_head_tpos] = true;
 
-      for (std::size_t i = 1; i < r - 1; ++i) {
-        if (next_sampled_head_idx == head_idxs_sorted_in_text[i]) {
-          sampled_heads_in_text_bv[heads_in_text_vec[next_sampled_head_idx]] = true;
-          ++prev_idx;
-          next_sampled_head_idx = (sampled_tail_idxs_vec[sampled_tail_idx_by_heads_in_text_vec[prev_idx + 1]] + 1) % r;
-        } else {
-          marked_sampled_idxs_vec[prev_idx] = false;
-          marked_sampled_idxs_bv[prev_idx] = false;
+        auto next_sampled_head_idx = (sampled_tail_idxs_vec[sampled_tail_idx_by_heads_in_text_vec[i + 1]] + 1) % r;
+        auto head_idx = head_idxs_sorted_in_text[++j];
+        if (next_sampled_head_idx != head_idx) {
+          // Unmarks untrusted sampled BWT run heads indices
+          marked_sampled_idxs_vec[i] = false;
+          marked_sampled_idxs_bv[i] = false;
+
+          // Store trusted range for untrusted sampled BWT run heads indices
+          trusted_area_for_marked_sampled_idxs_vec.emplace_back(heads_in_text_vec[head_idx] - sampled_head_tpos + 1);
+
+          while (next_sampled_head_idx != head_idxs_sorted_in_text[++j]);
         }
+
+        sampled_head_idx = next_sampled_head_idx;
       }
 
       sampled_heads_in_text_bv[heads_in_text_vec[head_idxs_sorted_in_text.back()]] = true;
@@ -449,6 +462,12 @@ auto BM_BuildBWTHeadsSampling = [](benchmark::State &t_state, auto *t_config) {
     copy(sampled_tail_idx_by_heads_in_text_vec.begin(),
          sampled_tail_idx_by_heads_in_text_vec.end(),
          sampled_tail_idx_by_heads_in_text.begin());
+
+    trusted_area_for_marked_sampled_idxs = sdsl::int_vector<>(trusted_area_for_marked_sampled_idxs_vec.size(), 0);
+    copy(trusted_area_for_marked_sampled_idxs_vec.begin(),
+         trusted_area_for_marked_sampled_idxs_vec.end(),
+         trusted_area_for_marked_sampled_idxs.begin());
+    sdsl::util::bit_compress(trusted_area_for_marked_sampled_idxs);
   }
 
   sdsl::store_to_cache(sampled_tail_idx_by_heads_in_text,
@@ -468,6 +487,9 @@ auto BM_BuildBWTHeadsSampling = [](benchmark::State &t_state, auto *t_config) {
                        *t_config);
   sdsl::store_to_cache(sampled_heads_in_text_bv_sd,
                        std::to_string(s) + "_" + ri::KEY_BWT_HEADS_SAMPLED_TEXT_POS + "_bv_sd",
+                       *t_config);
+  sdsl::store_to_cache(trusted_area_for_marked_sampled_idxs,
+                       std::to_string(s) + "_" + ri::KEY_BWT_HEADS_MARKED_SAMPLED_TRUSTED_AREA_IN_TEXT,
                        *t_config);
 
   SetupCommonCounters(t_state);
