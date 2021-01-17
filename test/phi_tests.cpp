@@ -34,8 +34,9 @@ TEST_P(Phi_Tests, compute) {
 
   const auto &samples = std::get<3>(GetParam());
   auto get_sample = ri::buildRandomAccessForContainer(std::ref(samples));
+  ri::SampleValidatorDefault sampled_tail_validator_default;
 
-  auto phi = ri::buildPhi(predecessor, get_pred_to_run, get_sample, bv.size());
+  auto phi = ri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
 
 //  auto phi = BuildPhi(GetParam());
 
@@ -123,8 +124,9 @@ TEST_P(PhiForRange_Tests, compute) {
 
   const auto &samples = std::get<3>(GetParam());
   auto get_sample = ri::buildRandomAccessForContainer(std::ref(samples));
+  ri::SampleValidatorDefault sampled_tail_validator_default;
 
-  auto phi = ri::buildPhi(predecessor, get_pred_to_run, get_sample, bv.size());
+  auto phi = ri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
 
   // Split in runs
   const auto &bwt = std::get<4>(GetParam());

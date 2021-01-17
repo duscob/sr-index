@@ -74,7 +74,7 @@ std::size_t computeBWT(std::size_t t_n,
 template<typename TGetCRankOnBWT, typename TGetF, typename Range, typename TChar>
 Range computeLF(const TGetCRankOnBWT &get_c_rank_on_bwt,
                 const TGetF &get_f,
-                Range range,
+                const Range &range,
                 TChar c,
                 std::size_t bwt_size,
                 TChar max_c = 255) {
@@ -111,7 +111,7 @@ class LF {
       : get_c_rank_on_bwt_{t_get_c_rank_on_bwt}, f_{t_f}, bwt_size_{t_bwt_size}, max_c_{t_max_c} {
   }
 
-  Range operator()(Range range, TChar c) const {
+  Range operator()(const Range &range, TChar c) const {
     return computeLF(get_c_rank_on_bwt_, f_, range, c, bwt_size_, max_c_);
   }
 
