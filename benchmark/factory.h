@@ -226,7 +226,7 @@ class Factory {
       case IndexEnum::RIndex: {
         const auto &components = r_index_packs_.at(0);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(),
@@ -244,7 +244,7 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), false);
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(s),
@@ -262,7 +262,7 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(s),
@@ -283,7 +283,7 @@ class Factory {
             ri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
         auto phi = makePhi(components, get_pred_to_run, sample_validator);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1];
+        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(s),

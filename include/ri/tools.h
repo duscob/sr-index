@@ -265,14 +265,23 @@ class GetLastValue {
       const TChar &t_c,
       const std::experimental::optional<std::size_t> &t_last_value) const {
 
-    if (!t_last_value || t_next_range.second < t_next_range.first) { return t_last_value; }
+    if (t_next_range.second < t_next_range.first) { return t_last_value; }
 
     if (string_.get()[t_range.second] == t_c) {
-      // last c is at the end of range. Then, we have this sample by induction!
-      assert(0 < *t_last_value);
+      if (t_last_value) {
+        // last c is at the end of range. Then, we have this sample by induction!
+        assert(0 < *t_last_value);
 
-      return *t_last_value - 1;
+        return *t_last_value - 1;
+      } else {
+        if (string_.get()[t_range.second + 1] == t_c) {
+          // last position of the range is not at the end of a BWT run
+          return t_last_value;
+        }
 
+        // last position of the range is also at the end of a BWT run
+        return sample_for_sa_position_(t_range.second);
+      }
     } else {
       //find last c in range (there must be one because range1 is not empty)
       //and get its sample (must be sampled because it is at the end of a run)
@@ -335,7 +344,7 @@ class GetValueForSAPosition {
 
 template<typename TSampleAt, typename TBackwardNav>
 auto buildGetValueForSAPosition(const TSampleAt &t_sample_at, const TBackwardNav &t_lf, std::size_t t_bwt_size) {
-  return GetValueForSAPosition<TSampleAt, TBackwardNav> (t_sample_at, t_lf, t_bwt_size);
+  return GetValueForSAPosition<TSampleAt, TBackwardNav>(t_sample_at, t_lf, t_bwt_size);
 }
 
 }

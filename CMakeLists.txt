@@ -33,6 +33,11 @@ set(COMMON_INCLUDES
 
 include_directories(${COMMON_INCLUDES})
 
+#TODO Verify these compilation flags
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
+
 set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/ri/bwt.h
         ${PROJECT_SOURCE_DIR}/include/ri/predecessor.h
