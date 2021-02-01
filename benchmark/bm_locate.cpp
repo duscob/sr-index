@@ -16,64 +16,86 @@ DEFINE_string(data_name, "data", "Data file basename.");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 void SetupDefaultCounters(benchmark::State &t_state) {
+  t_state.counters["Collection_Size(bytes)"] = 0;
   t_state.counters["Size(bytes)"] = 0;
   t_state.counters["Bits_x_Symbol"] = 0;
   t_state.counters["Patterns"] = 0;
   t_state.counters["Time_x_Pattern"] = 0;
+  t_state.counters["Occurrences"] = 0;
+  t_state.counters["Time_x_Occurrence"] = 0;
 }
 
 // Benchmark Warm-up
 static void BM_WarmUp(benchmark::State &_state) {
   for (auto _ : _state) {
-    std::string empty_string;
+    std::vector<int> empty_vector(1000000, 0);
   }
 
   SetupDefaultCounters(_state);
 }
 BENCHMARK(BM_WarmUp);
 
-// Benchmark Queries on Document Frequency Index
-auto BM_QueryLocate =
-    [](benchmark::State &_state, const auto &_idx, const auto &_patterns, auto _seq_size) {
-      for (auto _ : _state) {
-        for (const auto &pattern: _patterns) {
-          auto occs = _idx.first->Locate(pattern);
-        }
+auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
+  std::size_t total_occs = 0;
+
+  for (auto _ : t_state) {
+    total_occs = 0;
+    for (const auto &pattern: t_patterns) {
+      auto occs = t_idx.first->Locate(pattern);
+      total_occs += occs.size();
+    }
+  }
+
+  SetupDefaultCounters(t_state);
+  t_state.counters["Collection_Size(bytes)"] = t_seq_size;
+  t_state.counters["Size(bytes)"] = t_idx.second;
+  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Patterns"] = t_patterns.size();
+  t_state.counters["Time_x_Pattern"] = benchmark::Counter(
+      t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
+  t_state.counters["Occurrences"] = total_occs;
+  t_state.counters["Time_x_Occurrence"] = benchmark::Counter(
+      total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
+};
+
+auto BM_PrintQueryLocate = [](
+    benchmark::State &t_state,
+    const auto &t_idx_name,
+    const auto &t_idx,
+    const auto &t_patterns,
+    auto t_seq_size) {
+  std::string idx_name = t_idx_name;
+  replace(idx_name.begin(), idx_name.end(), '/', '_');
+  std::string output_filename = "result-" + idx_name + ".txt";
+
+  std::size_t total_occs = 0;
+
+  for (auto _ : t_state) {
+    std::ofstream out(output_filename);
+    total_occs = 0;
+    for (const auto &pattern: t_patterns) {
+      out << pattern << std::endl;
+      auto occs = t_idx.first->Locate(pattern);
+      total_occs += occs.size();
+
+      sort(occs.begin(), occs.end());
+      for (const auto &item  : occs) {
+        out << "  " << item << std::endl;
       }
+    }
+  }
 
-      SetupDefaultCounters(_state);
-      _state.counters["Size(bytes)"] = _idx.second;
-      _state.counters["Bits_x_Symbol"] = _idx.second * 8.0 / _seq_size;
-      _state.counters["Patterns"] = _patterns.size();
-      _state.counters["Time_x_Pattern"] = benchmark::Counter(
-          _patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
-    };
-
-auto BM_PrintQueryLocate =
-    [](benchmark::State &_state, const auto &_idx_name, const auto &_idx, const auto &_patterns, auto _seq_size) {
-      std::string idx_name = _idx_name;
-      replace(idx_name.begin(), idx_name.end(), '/', '_');
-      std::string output_filename = "result-" + idx_name + ".txt";
-
-      for (auto _ : _state) {
-        std::ofstream out(output_filename);
-        for (const auto &pattern: _patterns) {
-          out << pattern << std::endl;
-          auto occs = _idx.first->Locate(pattern);
-
-          for (const auto &item  : occs) {
-            out << "  " << item << std::endl;
-          }
-        }
-      }
-
-      SetupDefaultCounters(_state);
-      _state.counters["Size(bytes)"] = _idx.second;
-      _state.counters["Bits_x_Symbol"] = _idx.second * 8.0 / _seq_size;
-      _state.counters["Patterns"] = _patterns.size();
-      _state.counters["Time_x_Pattern"] = benchmark::Counter(
-          _patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
-    };
+  SetupDefaultCounters(t_state);
+  t_state.counters["Collection_Size(bytes)"] = t_seq_size;
+  t_state.counters["Size(bytes)"] = t_idx.second;
+  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Patterns"] = t_patterns.size();
+  t_state.counters["Time_x_Pattern"] = benchmark::Counter(
+      t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
+  t_state.counters["Occurrences"] = total_occs;
+  t_state.counters["Time_x_Occurrence"] = benchmark::Counter(
+      total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
+};
 
 int main(int argc, char *argv[]) {
   gflags::AllowCommandLineReparsing();
@@ -89,7 +111,7 @@ int main(int argc, char *argv[]) {
   {
     std::ifstream pattern_file(FLAGS_patterns.c_str(), std::ios_base::binary);
     if (!pattern_file) {
-      std::cerr << "ERROR: Failed to open patterns file!" << std::endl;
+      std::cerr << "ERROR: Failed to open patterns file! (" << FLAGS_patterns << ")" << std::endl;
       return 3;
     }
 
@@ -110,16 +132,19 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::pair<const char *, Factory::Config>> index_configs = {
       {"R-Index", Factory::Config{Factory::IndexEnum::RIndex}},
+
       {"R-Index-WS/4", Factory::Config{Factory::IndexEnum::RIndexSampled, 4}},
       {"R-Index-WS/8", Factory::Config{Factory::IndexEnum::RIndexSampled, 8}},
       {"R-Index-WS/16", Factory::Config{Factory::IndexEnum::RIndexSampled, 16}},
       {"R-Index-WS/32", Factory::Config{Factory::IndexEnum::RIndexSampled, 32}},
       {"R-Index-WS/64", Factory::Config{Factory::IndexEnum::RIndexSampled, 64}},
+
       {"R-Index-WS-TM/4", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 4}},
       {"R-Index-WS-TM/8", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 8}},
       {"R-Index-WS-TM/16", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 16}},
       {"R-Index-WS-TM/32", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 32}},
       {"R-Index-WS-TM/64", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedMarks, 64}},
+
       {"R-Index-WS-TA/4", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 4}},
       {"R-Index-WS-TA/8", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 8}},
       {"R-Index-WS-TA/16", Factory::Config{Factory::IndexEnum::RIndexSampledWithTrustedAreas, 16}},
