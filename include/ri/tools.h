@@ -263,6 +263,7 @@ class GetLastValue {
       const TRange &t_range,
       const TRange &t_next_range,
       const TChar &t_c,
+      std::size_t /*t_step*/,
       const std::experimental::optional<std::size_t> &t_last_value) const {
 
     if (t_next_range.second < t_next_range.first) { return t_last_value; }
@@ -346,6 +347,40 @@ template<typename TSampleAt, typename TBackwardNav>
 auto buildGetValueForSAPosition(const TSampleAt &t_sample_at, const TBackwardNav &t_lf, std::size_t t_bwt_size) {
   return GetValueForSAPosition<TSampleAt, TBackwardNav>(t_sample_at, t_lf, t_bwt_size);
 }
+
+template<typename TGetValueForSAPosition>
+class ComputeFinalValueWithLastSampledValue {
+ public:
+  explicit ComputeFinalValueWithLastSampledValue(const TGetValueForSAPosition &t_get_value_for_sa_position)
+      : get_value_for_sa_position_{t_get_value_for_sa_position} {
+  }
+
+  template<typename TRange>
+  auto operator()(const std::experimental::optional<std::size_t> &t_k, const TRange &t_range) const {
+    return t_k ? *t_k : get_value_for_sa_position_(t_range.second);
+  }
+
+ private:
+  TGetValueForSAPosition get_value_for_sa_position_;
+};
+
+template<typename TGetValueForSAPosition>
+auto buildComputeFinalValueWithLastSampledValue(const TGetValueForSAPosition &t_get_value_for_sa_position) {
+  return ComputeFinalValueWithLastSampledValue<TGetValueForSAPosition>(t_get_value_for_sa_position);
+}
+
+class GetOptionalValue {
+ public:
+  explicit GetOptionalValue(std::size_t t_final_value) : final_value_{t_final_value} {
+  }
+
+  auto operator()(std::size_t /*t_step*/) const {
+    return std::experimental::make_optional(final_value_);
+  }
+
+ private:
+  std::size_t final_value_;
+};
 
 }
 

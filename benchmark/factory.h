@@ -192,8 +192,9 @@ class Factory {
     auto lf = ri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
     auto get_value_for_sa_pos = ri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
+    auto compute_final_value = ri::buildComputeFinalValueWithLastSampledValue(get_value_for_sa_pos);
 
-    return ri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, get_value_for_sa_pos);
+    return ri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
   }
 
   auto sizeBasicComponents() const {
@@ -226,13 +227,14 @@ class Factory {
       case IndexEnum::RIndex: {
         const auto &components = r_index_packs_.at(0);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value =
+            ri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(),
                                          makeComputeAllValuesWithPhi(),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -244,13 +246,14 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), false);
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value =
+            ri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(s),
                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -262,13 +265,14 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value =
+            ri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(s),
                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
       }
 
@@ -283,13 +287,14 @@ class Factory {
             ri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
         auto phi = makePhi(components, get_pred_to_run, sample_validator);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value =
+            ri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(s),
                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedAreas(components)};
       }
     }
