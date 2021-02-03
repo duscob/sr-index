@@ -315,6 +315,43 @@ auto buildGetLastValue(const TRLEString &t_string, const TSampleForSAPosition &t
   return GetLastValue<TRLEString, TSampleForSAPosition>(t_string, t_sample_for_sa_position);
 }
 
+template<typename TChar>
+struct DataBackwardSearchStep {
+  TChar c;
+  std::size_t step;
+  std::size_t range_end;
+};
+
+template<typename TRLEString>
+class GetLastSpecialBackwardSearchStep {
+ public:
+  explicit GetLastSpecialBackwardSearchStep(const TRLEString &t_bwt) : bwt_{t_bwt} {
+  }
+
+  template<typename TRange, typename TChar, typename TDataBackwardSearchStep>
+  auto operator()(
+      const TRange &t_range,
+      const TRange &t_next_range,
+      const TChar &t_c,
+      std::size_t t_step,
+      const TDataBackwardSearchStep &t_last_special_step) const {
+
+    if (t_next_range.second < t_next_range.first || bwt_.get()[t_range.second] == t_c) {
+      return t_last_special_step;
+    }
+
+    return TDataBackwardSearchStep{t_c, t_step, t_range.second};
+  }
+
+ private:
+  TRLEString bwt_;
+};
+
+template<typename TRLEString>
+auto buildGetLastSpecialBackwardSearchStep(const TRLEString &t_string) {
+  return GetLastSpecialBackwardSearchStep<TRLEString>(t_string);
+}
+
 template<typename TSampleAt, typename TBackwardNav>
 class GetValueForSAPosition {
  public:
@@ -369,6 +406,48 @@ auto buildComputeFinalValueWithLastSampledValue(const TGetValueForSAPosition &t_
   return ComputeFinalValueWithLastSampledValue<TGetValueForSAPosition>(t_get_value_for_sa_position);
 }
 
+template<typename TRLEString, typename TGetValueForSAPosition>
+class ComputeFinalValueWithLastSpecialBackwardSearchStep {
+ public:
+  ComputeFinalValueWithLastSpecialBackwardSearchStep(const TRLEString &t_bwt,
+                                                     const TGetValueForSAPosition &t_get_value_for_sa_position)
+      : bwt_{t_bwt}, get_value_for_sa_position_{t_get_value_for_sa_position} {
+  }
+
+  template<typename TChar, typename TRange>
+  auto operator()(const DataBackwardSearchStep<TChar> &t_data, const TRange &t_range) const {
+    //find last c in range (there must be one because range1 is not empty)
+    //and get its sample (must be sampled because it is at the end of a run)
+    //note: by previous check, bwt[range.second] != c, so we can use argument range.second
+    auto rnk = bwt_.get().rank(t_data.range_end, t_data.c);
+
+    //there must be at least one c before range.second
+    assert(rnk > 0);
+
+    //this is the rank of the last c
+    rnk--;
+
+    //jump to the corresponding BWT position
+    auto j = bwt_.get().select(rnk, t_data.c);
+
+    //the c must be in the range
+    assert(t_range.first <= j && j < t_range.second);
+
+    return get_value_for_sa_position_(j) - t_data.step - 1;
+  }
+
+ private:
+  TRLEString bwt_;
+  TGetValueForSAPosition get_value_for_sa_position_;
+};
+
+template<typename TRLEString, typename TGetValueForSAPosition>
+auto buildComputeFinalValueWithLastSpecialBackwardSearchStep(
+    const TRLEString &t_bwt, const TGetValueForSAPosition &t_get_value_for_sa_position) {
+  return ComputeFinalValueWithLastSpecialBackwardSearchStep<TRLEString, TGetValueForSAPosition>(
+      t_bwt, t_get_value_for_sa_position);
+}
+
 class GetOptionalValue {
  public:
   explicit GetOptionalValue(std::size_t t_final_value) : final_value_{t_final_value} {
@@ -381,6 +460,26 @@ class GetOptionalValue {
  private:
   std::size_t final_value_;
 };
+
+template<typename TChar>
+class GetDataFirstBackwardSearchStep {
+ public:
+  GetDataFirstBackwardSearchStep(const TChar &t_c, std::size_t t_range_end) : c{t_c}, range_end{t_range_end} {
+  }
+
+  auto operator()(std::size_t t_step) const {
+    return DataBackwardSearchStep<TChar>{c, t_step, range_end};
+  }
+
+ private:
+  TChar c;
+  std::size_t range_end;
+};
+
+template<typename TChar>
+auto buildGetDataFirstBackwardSearchStep(const TChar &t_c, std::size_t t_range_end) {
+  return GetDataFirstBackwardSearchStep<TChar>(t_c, t_range_end);
+}
 
 }
 
