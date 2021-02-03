@@ -75,6 +75,101 @@ auto buildPhi(const TPredecessor &t_predecessor,
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
+class PhiForRangeSimple {
+ public:
+  PhiForRangeSimple(const TPhi &t_phi,
+                    const TSplitInBWTRun &t_split,
+                    const TBackwardNav &t_lf,
+                    const TSampleAt &t_sample_at,
+                    std::size_t t_sampling_size,
+                    std::size_t t_bwt_size)
+      : phi_{t_phi},
+        split_{t_split},
+        lf_{t_lf},
+        sample_at_{t_sample_at},
+        sampling_size_{t_sampling_size},
+        bwt_size_{t_bwt_size} {
+  }
+
+  template<typename TReport, typename TRange>
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport &t_report) const {
+//    auto last_value = phi_(t_prev_value);
+    auto last_value = std::make_pair(t_prev_value, false);
+    compute(t_range, last_value, 0, t_report);
+  }
+
+  template<typename TReporter, typename Range>
+  std::pair<std::size_t, bool> compute(const Range &t_range,
+                                       std::pair<std::size_t, bool> t_last_value,
+                                       std::size_t t_n_jumps,
+                                       TReporter &t_reporter) const {
+
+    auto first = t_range.first;
+    auto last = t_range.second;
+
+    if (last < first) { return {-1, false}; }
+
+    auto last_value = t_last_value;
+    if (sampling_size_ <= t_n_jumps) {
+      // Reach the limits of backward jumps, so phi for the previous value is valid
+      last_value = phi_(last_value.first);
+
+      do {
+        t_reporter(last_value.first);
+
+        last_value = phi_(last_value.first);
+        --last;
+      }while (first <= last);
+
+      return last_value;
+    }
+
+    auto sample = sample_at_(last);
+    if (sample) {
+      // Position last is sampled, so we can use the sampled value
+
+      // NOTE we sampled the position of the i-th BWT char, but here we want the position of SA[i], so we need + 1
+      last_value = {(sample.value() + 1 + t_n_jumps) % bwt_size_, false};
+      t_reporter(last_value.first);
+      --last;
+    }
+
+    if (last < first) { return last_value; }
+
+    // TODO Don't split it in all sub-runs. We can go in depth recursively with only the last remaining sub-run, and continue with the other at the same level.
+    auto runs_in_range = split_(first, last);
+
+    auto it = rbegin(runs_in_range);
+    last_value = compute(lf_(it->range, it->c), last_value, t_n_jumps + 1, t_reporter);
+    while (++it != rend(runs_in_range)) {
+      last_value = compute(it->range, last_value, t_n_jumps, t_reporter);
+    }
+
+    return last_value;
+  }
+
+ private:
+  TPhi phi_;
+  TSplitInBWTRun split_; // Split an interval in its internal BWT runs
+  TBackwardNav lf_; // LF
+  TSampleAt sample_at_; // Access to last value of a BWT run. Note that some tails are not sampled.
+
+  std::size_t sampling_size_;
+  std::size_t bwt_size_;
+};
+
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
+auto buildPhiForRangeSimple(const TPhi &t_phi,
+                      const TSplitInBWTRun &t_split,
+                      const TBackwardNav &t_lf,
+                      const TSampleAt &t_sample_at,
+                      std::size_t t_sampling_size,
+                      std::size_t t_bwt_size) {
+  return PhiForRangeSimple<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
+      t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
+}
+
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 class PhiForRange {
  public:
   PhiForRange(const TPhi &t_phi,
@@ -116,7 +211,7 @@ class PhiForRange {
 
         last_value = phi_(last_value.first);
         --last;
-      }while (first <= last);
+      } while (first <= last);
 
       return last_value;
     }
@@ -148,7 +243,7 @@ class PhiForRange {
 
     auto it = rbegin(runs_in_range);
     last_value = compute(lf_(it->range, it->c), last_value, t_n_jumps + 1, t_reporter);
-    while(++it != rend(runs_in_range)) {
+    while (++it != rend(runs_in_range)) {
       last_value = compute(it->range, last_value, t_n_jumps, t_reporter);
     }
 

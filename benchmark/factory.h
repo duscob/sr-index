@@ -184,6 +184,14 @@ class Factory {
     return ri::buildPhiForRange(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
   }
 
+  template<typename TPhi>
+  auto makePhiForRangeSimple(std::size_t t_s, const TPhi &t_phi) const {
+    // Split in runs
+    auto split_in_runs = ri::buildSplitInRuns(std::cref(bwt_rle_.item));
+
+    return ri::buildPhiForRangeSimple(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
+  }
+
   auto makeComputeAllValuesWithPhi() const {
     return ri::buildComputeAllValuesWithPhi(makePhi());
   }
@@ -256,7 +264,7 @@ class Factory {
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastSpecialBackwardSearchStep(),
-                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
+                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
                                          seq_size_,
                                          sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
