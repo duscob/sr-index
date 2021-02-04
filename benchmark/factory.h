@@ -145,6 +145,10 @@ class Factory {
     return ri::buildGetLastValue(std::cref(bwt_rle_.item), makeGetSampleForSAPosition(t_s));
   }
 
+  auto makeGetLastSpecialBackwardSearchStep() const {
+    return ri::buildGetLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item));
+  }
+
   template<typename TGetPredToRun, typename TSampledTailValidator>
   auto makePhi(const RIndexComponents &t_components,
                const TGetPredToRun &t_get_pred_to_run,
@@ -180,6 +184,14 @@ class Factory {
     return ri::buildPhiForRange(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
   }
 
+  template<typename TPhi>
+  auto makePhiForRangeSimple(std::size_t t_s, const TPhi &t_phi) const {
+    // Split in runs
+    auto split_in_runs = ri::buildSplitInRuns(std::cref(bwt_rle_.item));
+
+    return ri::buildPhiForRangeSimple(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
+  }
+
   auto makeComputeAllValuesWithPhi() const {
     return ri::buildComputeAllValuesWithPhi(makePhi());
   }
@@ -192,8 +204,10 @@ class Factory {
     auto lf = ri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
     auto get_value_for_sa_pos = ri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
+    auto compute_final_value =
+        ri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item), get_value_for_sa_pos);
 
-    return ri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, get_value_for_sa_pos);
+    return ri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
   }
 
   auto sizeBasicComponents() const {
@@ -226,13 +240,14 @@ class Factory {
       case IndexEnum::RIndex: {
         const auto &components = r_index_packs_.at(0);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value =
+            ri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
                                          makeGetLastValue(),
                                          makeComputeAllValuesWithPhi(),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -244,13 +259,14 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), false);
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value = ri::buildGetDataFirstBackwardSearchStep(
+            bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastValue(s),
-                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
+                                         makeGetLastSpecialBackwardSearchStep(),
+                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -262,13 +278,14 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value = ri::buildGetDataFirstBackwardSearchStep(
+            bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastValue(s),
+                                         makeGetLastSpecialBackwardSearchStep(),
                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
       }
 
@@ -283,13 +300,14 @@ class Factory {
             ri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
         auto phi = makePhi(components, get_pred_to_run, sample_validator);
 
-        auto final_sa_value = components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1;
+        auto sa_end_value = ri::buildGetDataFirstBackwardSearchStep(
+            bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastValue(s),
+                                         makeGetLastSpecialBackwardSearchStep(),
                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                          seq_size_,
-                                         final_sa_value),
+                                         sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedAreas(components)};
       }
     }
