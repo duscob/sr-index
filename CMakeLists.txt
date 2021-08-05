@@ -22,7 +22,7 @@ include(ConfigSafeGuards)
 
 
 #Global Setup
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 
 # Set common include folder for module
@@ -48,7 +48,9 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/huff_string.hpp
         ${PROJECT_SOURCE_DIR}/include/sr-index/sparse_sd_vector.hpp
         ${PROJECT_SOURCE_DIR}/include/sr-index/sparse_hyb_vector.hpp
-        ${PROJECT_SOURCE_DIR}/include/sr-index/rle_string.hpp)
+        ${PROJECT_SOURCE_DIR}/include/sr-index/rle_string.hpp
+        ${PROJECT_SOURCE_DIR}/include/sr-index/psi.h
+        )
 
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
@@ -72,6 +74,7 @@ if (sr-index_build_tests)
     cxx_test_with_flags_and_args(predecessor_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/predecessor_tests.cpp)
     cxx_test_with_flags_and_args(rle_string_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/rle_string_tests.cpp)
     cxx_test_with_flags_and_args(phi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/phi_tests.cpp)
+    cxx_test_with_flags_and_args(psi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/psi_tests.cpp)
 endif ()
 
 
