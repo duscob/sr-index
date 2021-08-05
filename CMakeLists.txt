@@ -1,15 +1,15 @@
-option(ri_build_tests "Build all of ri's tests." ON)
+option(sr-index_build_tests "Build all of sr-index's tests." ON)
 
-option(ri_build_tools "Build all of ri's tools." ON)
+option(sr-index_build_tools "Build all of sr-index's tools." ON)
 
-option(ri_build_benchmarks "Build all of ri's benchmarks." ON)
+option(sr-index_build_benchmarks "Build all of sr-index's benchmarks." ON)
 
 
 cmake_minimum_required(VERSION 3.0)
 
 
 #Project Information
-project(ri)
+project(sr-index)
 
 
 # Location of internal cmake modules
@@ -39,25 +39,25 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
 
 set(SOURCE_FILES
-        ${PROJECT_SOURCE_DIR}/include/ri/bwt.h
-        ${PROJECT_SOURCE_DIR}/include/ri/predecessor.h
-        ${PROJECT_SOURCE_DIR}/include/ri/phi.h
-        ${PROJECT_SOURCE_DIR}/include/ri/tools.h
-        ${PROJECT_SOURCE_DIR}/include/ri/r_index.h
-        ${PROJECT_SOURCE_DIR}/include/ri/definitions.hpp
-        ${PROJECT_SOURCE_DIR}/include/ri/huff_string.hpp
-        ${PROJECT_SOURCE_DIR}/include/ri/sparse_sd_vector.hpp
-        ${PROJECT_SOURCE_DIR}/include/ri/sparse_hyb_vector.hpp
-        ${PROJECT_SOURCE_DIR}/include/ri/rle_string.hpp)
+        ${PROJECT_SOURCE_DIR}/include/sr-index/bwt.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/predecessor.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/phi.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/tools.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/r_index.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/definitions.hpp
+        ${PROJECT_SOURCE_DIR}/include/sr-index/huff_string.hpp
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sparse_sd_vector.hpp
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sparse_hyb_vector.hpp
+        ${PROJECT_SOURCE_DIR}/include/sr-index/rle_string.hpp)
 
-add_library(ri INTERFACE)
-target_sources(ri INTERFACE ${SOURCE_FILES})
-target_include_directories(ri INTERFACE ${PROJECT_SOURCE_DIR}/include/ri)
+add_library(sr-index INTERFACE)
+target_sources(sr-index INTERFACE ${SOURCE_FILES})
+target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 
 include(internal_utils)
 
 
-if (ri_build_tests)
+if (sr-index_build_tests)
     enable_testing()
 
     include(ConfigGTest)
@@ -75,11 +75,11 @@ if (ri_build_tests)
 endif ()
 
 
-if (ri_build_tools)
+if (sr-index_build_tools)
 endif ()
 
 
-if (ri_build_benchmarks)
+if (sr-index_build_benchmarks)
     include(ConfigGBenchmark)
 
     find_library(GFLAGS_LIB gflags REQUIRED)
@@ -91,6 +91,6 @@ if (ri_build_benchmarks)
     set(SDSL_LIBS ${SDSL_LIB} ${DIVSUFSORT_LIB} ${DIVSUFSORT64_LIB})
     set(LIBS ${SDSL_LIBS})
 
-    cxx_executable_with_flags(bm_build_ri_items "" "${GFLAGS_LIB};benchmark;ri;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_build_ri_items.cpp)
-    cxx_executable_with_flags(bm_locate "" "${GFLAGS_LIB};benchmark;ri;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_locate.cpp)
+    cxx_executable_with_flags(bm_build_ri_items "" "${GFLAGS_LIB};benchmark;sr-index;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_build_ri_items.cpp)
+    cxx_executable_with_flags(bm_locate "" "${GFLAGS_LIB};benchmark;sr-index;${LIBS};${CMAKE_THREAD_LIBS_INIT}" benchmark/bm_locate.cpp)
 endif ()

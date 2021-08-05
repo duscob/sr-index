@@ -27,7 +27,7 @@
 #include "sparse_sd_vector.hpp"
 #include "sparse_hyb_vector.hpp"
 
-namespace ri {
+namespace sri {
 
 struct StringRun {
   ulint run = 0;

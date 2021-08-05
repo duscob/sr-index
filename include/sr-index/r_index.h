@@ -10,7 +10,7 @@
 #include <memory>
 #include <experimental/optional>
 
-namespace ri {
+namespace sri {
 
 class LocateIndex {
  public:

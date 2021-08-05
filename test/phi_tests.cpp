@@ -7,11 +7,11 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include <ri/phi.h>
-#include <ri/predecessor.h>
-#include <ri/tools.h>
-#include <ri/rle_string.hpp>
-#include <ri/bwt.h>
+#include "sr-index/phi.h"
+#include "sr-index/predecessor.h"
+#include "sr-index/tools.h"
+#include "sr-index/rle_string.hpp"
+#include "sr-index/bwt.h"
 
 using BitVector = sdsl::bit_vector;
 using IntVector = sdsl::int_vector<>;
@@ -26,17 +26,17 @@ TEST_P(Phi_Tests, compute) {
   const auto &bv = std::get<0>(GetParam());
   auto rank = sdsl::bit_vector::rank_1_type(&bv);
   auto select = sdsl::bit_vector::select_1_type(&bv);
-  auto predecessor = ri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
+  auto predecessor = sri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
 
   const auto &pred_to_run = std::get<1>(GetParam());
   const auto &is_trustworthy = std::get<2>(GetParam());
-  auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(std::ref(pred_to_run), std::ref(is_trustworthy));
+  auto get_pred_to_run = sri::buildRandomAccessForTwoContainers(std::ref(pred_to_run), std::ref(is_trustworthy));
 
   const auto &samples = std::get<3>(GetParam());
-  auto get_sample = ri::buildRandomAccessForContainer(std::ref(samples));
-  ri::SampleValidatorDefault sampled_tail_validator_default;
+  auto get_sample = sri::buildRandomAccessForContainer(std::ref(samples));
+  sri::SampleValidatorDefault sampled_tail_validator_default;
 
-  auto phi = ri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
+  auto phi = sri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
 
 //  auto phi = BuildPhi(GetParam());
 
@@ -116,43 +116,43 @@ TEST_P(PhiForRange_Tests, compute) {
   const auto &bv = std::get<0>(GetParam());
   auto rank = sdsl::bit_vector::rank_1_type(&bv);
   auto select = sdsl::bit_vector::select_1_type(&bv);
-  auto predecessor = ri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
+  auto predecessor = sri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
 
   const auto &pred_to_run = std::get<1>(GetParam());
   const auto &is_trustworthy = std::get<2>(GetParam());
-  auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(std::ref(pred_to_run), std::ref(is_trustworthy));
+  auto get_pred_to_run = sri::buildRandomAccessForTwoContainers(std::ref(pred_to_run), std::ref(is_trustworthy));
 
   const auto &samples = std::get<3>(GetParam());
-  auto get_sample = ri::buildRandomAccessForContainer(std::ref(samples));
-  ri::SampleValidatorDefault sampled_tail_validator_default;
+  auto get_sample = sri::buildRandomAccessForContainer(std::ref(samples));
+  sri::SampleValidatorDefault sampled_tail_validator_default;
 
-  auto phi = ri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
+  auto phi = sri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
 
   // Split in runs
   const auto &bwt = std::get<4>(GetParam());
-  ri::rle_string<> bwt_rle(bwt);
-  auto split_in_runs = ri::buildSplitInRuns(std::ref(bwt_rle));
+  sri::rle_string<> bwt_rle(bwt);
+  auto split_in_runs = sri::buildSplitInRuns(std::ref(bwt_rle));
 
   // Backward navigation
-  auto get_rank_of_char = ri::buildRankOfChar(std::ref(bwt_rle));
+  auto get_rank_of_char = sri::buildRankOfChar(std::ref(bwt_rle));
   const auto &f = std::get<5>(GetParam());
-  auto get_f = ri::buildRandomAccessForContainer(std::ref(f));
+  auto get_f = sri::buildRandomAccessForContainer(std::ref(f));
   auto max_c = f.size() - 1;
-  auto lf = ri::buildLF(get_rank_of_char, std::ref(get_f), bwt.size(), max_c);
+  auto lf = sri::buildLF(get_rank_of_char, std::ref(get_f), bwt.size(), max_c);
 
   // Get sample
   const auto &is_run_sampled = std::get<6>(GetParam());
   BitVector::rank_1_type rank_run_tail(&is_run_sampled);
-  auto get_sample_for_bwt_run = ri::buildGetSampleForBWTRun(std::ref(rank_run_tail), get_sample);
+  auto get_sample_for_bwt_run = sri::buildGetSampleForBWTRun(std::ref(rank_run_tail), get_sample);
 
-  auto run_of_sa_pos = ri::buildRunOfSAPosition(std::ref(bwt_rle));
-  auto get_is_run_sampled = ri::buildRandomAccessForContainer(std::ref(is_run_sampled));
+  auto run_of_sa_pos = sri::buildRunOfSAPosition(std::ref(bwt_rle));
+  auto get_is_run_sampled = sri::buildRandomAccessForContainer(std::ref(is_run_sampled));
   auto get_sample_for_sa_pos =
-      ri::buildGetSampleForSAPosition(std::ref(run_of_sa_pos), get_is_run_sampled, get_sample_for_bwt_run);
+      sri::buildGetSampleForSAPosition(std::ref(run_of_sa_pos), get_is_run_sampled, get_sample_for_bwt_run);
 
   const auto &sampling_size = std::get<7>(GetParam());
 
-  auto phi_for_range = ri::buildPhiForRange(phi, split_in_runs, lf, get_sample_for_sa_pos, sampling_size, bwt.size());
+  auto phi_for_range = sri::buildPhiForRange(phi, split_in_runs, lf, get_sample_for_sa_pos, sampling_size, bwt.size());
 
   const auto &input = std::get<8>(GetParam()).first;
   std::vector<std::size_t> sa;

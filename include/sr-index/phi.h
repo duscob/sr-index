@@ -10,7 +10,7 @@
 #include <iterator>
 #include <experimental/optional>
 
-namespace ri {
+namespace sri {
 
 template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail, typename TSampledTailValidator>
 class Phi {

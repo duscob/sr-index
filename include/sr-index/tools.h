@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <experimental/optional>
 
-namespace ri {
+namespace sri {
 
 template<typename TContainer>
 class RandomAccessForContainer {

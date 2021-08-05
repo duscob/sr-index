@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "ri/bwt.h"
-#include <ri/rle_string.hpp>
+#include "sr-index/bwt.h"
+#include "sr-index/rle_string.hpp"
 
 using Sequence = std::string;
 using SA = std::vector<std::size_t>;
@@ -35,12 +35,12 @@ TEST_P(ComputeBWT_Tests, FromSAAndText) {
     bwt_tails.emplace_back(run, idx, symbol, pos);
   };
 
-  auto n_runs = ri::computeBWT(seq.size(),
-                               [&sa](auto idx) { return sa[idx]; },
-                               [&seq](auto idx) { return seq[idx]; },
-                               report_bwt,
-                               report_bwt_head,
-                               report_bwt_tail);
+  auto n_runs = sri::computeBWT(seq.size(),
+                                [&sa](auto idx) { return sa[idx]; },
+                                [&seq](auto idx) { return seq[idx]; },
+                                report_bwt,
+                                report_bwt_head,
+                                report_bwt_tail);
 
   const auto &e_bwt = std::get<2>(GetParam());
   const auto &e_bwt_heads = std::get<3>(GetParam());
@@ -84,7 +84,7 @@ class LFOnBWT_Tests : public testing::TestWithParam<std::tuple<BWT, F, Range, Ch
 TEST_P(LFOnBWT_Tests, compute) {
   const auto &bwt = std::get<0>(GetParam());
 
-  ri::rle_string<> bwt_rle(bwt);
+  sri::rle_string<> bwt_rle(bwt);
   auto get_bwt_rank = [&bwt_rle](auto pos, auto c) {
     return bwt_rle.rank(pos, c);
   };
@@ -98,7 +98,7 @@ TEST_P(LFOnBWT_Tests, compute) {
   Char c = std::get<3>(GetParam());
 //  Char max_c = *std::max_element(bwt.begin(), bwt.end()) + 1;
   Char max_c = bwt.size() - 1;
-  auto new_range = ri::computeLF(get_bwt_rank, get_f, range, c, bwt.size(), max_c);
+  auto new_range = sri::computeLF(get_bwt_rank, get_f, range, c, bwt.size(), max_c);
 
   auto e_range = std::get<4>(GetParam());
   EXPECT_EQ(new_range, e_range);

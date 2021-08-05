@@ -9,12 +9,12 @@
 
 #include <sdsl/config.hpp>
 
-#include <ri/rle_string.hpp>
-#include <ri/r_index.h>
-#include <ri/tools.h>
-#include <ri/bwt.h>
-#include <ri/predecessor.h>
-#include <ri/phi.h>
+#include "sr-index/rle_string.hpp"
+#include "sr-index/r_index.h"
+#include "sr-index/tools.h"
+#include "sr-index/bwt.h"
+#include "sr-index/predecessor.h"
+#include "sr-index/phi.h"
 
 #include "definitions.h"
 
@@ -33,19 +33,19 @@ class Factory {
     breakdown_csv << "BWT" << std::endl;
 
     //Loading run-length encoded BWT
-    load(bwt_rle_, ri::KEY_BWT_RLE);
+    load(bwt_rle_, sri::KEY_BWT_RLE);
     seq_size_ = bwt_rle_.item.size();
 
     // Loading F array
-    load(f_, ri::KEY_F);
+    load(f_, sri::KEY_F);
 
     // Loading original r-index components
     {
       auto &components = r_index_packs_[0];
-      load(components.tails_in_text, ri::KEY_BWT_TAILS_TEXT_POS);
+      load(components.tails_in_text, sri::KEY_BWT_TAILS_TEXT_POS);
 
-      load(components.heads_in_text_bv, ri::KEY_BWT_HEADS_TEXT_POS + "_bv_sd");
-//      load(components.heads_in_text_bv, ri::KEY_BWT_HEADS_TEXT_POS + "_bv");
+      load(components.heads_in_text_bv, sri::KEY_BWT_HEADS_TEXT_POS + "_bv_sd");
+//      load(components.heads_in_text_bv, sri::KEY_BWT_HEADS_TEXT_POS + "_bv");
 
       components.rank_heads_in_text_bv.item =
           decltype(components.rank_heads_in_text_bv.item)(&components.heads_in_text_bv.item);
@@ -54,7 +54,7 @@ class Factory {
           decltype(components.select_heads_in_text_bv.item)(&components.heads_in_text_bv.item);
       components.select_heads_in_text_bv.computeSize();
 
-      load(components.tail_idxs_by_heads_in_text, ri::KEY_BWT_TAILS_SAMPLED_IDX_BY_HEAD_IN_TEXT);
+      load(components.tail_idxs_by_heads_in_text, sri::KEY_BWT_TAILS_SAMPLED_IDX_BY_HEAD_IN_TEXT);
     }
 
     // Loading sampled r-index components
@@ -63,10 +63,10 @@ class Factory {
 
       auto prefix = std::to_string(i) + "_";
 
-      load(components.tails_in_text, prefix + ri::KEY_BWT_TAILS_TEXT_POS_SAMPLED);
+      load(components.tails_in_text, prefix + sri::KEY_BWT_TAILS_TEXT_POS_SAMPLED);
 
-      load(components.heads_in_text_bv, prefix + ri::KEY_BWT_HEADS_SAMPLED_TEXT_POS + "_bv_sd");
-//      load(components.heads_in_text_bv, prefix + ri::KEY_BWT_HEADS_SAMPLED_TEXT_POS + "_bv");
+      load(components.heads_in_text_bv, prefix + sri::KEY_BWT_HEADS_SAMPLED_TEXT_POS + "_bv_sd");
+//      load(components.heads_in_text_bv, prefix + sri::KEY_BWT_HEADS_SAMPLED_TEXT_POS + "_bv");
       components.rank_heads_in_text_bv.item =
           decltype(components.rank_heads_in_text_bv.item)(&components.heads_in_text_bv.item);
       components.rank_heads_in_text_bv.computeSize();
@@ -74,20 +74,20 @@ class Factory {
           decltype(components.select_heads_in_text_bv.item)(&components.heads_in_text_bv.item);
       components.select_heads_in_text_bv.computeSize();
 
-      load(components.tail_idxs_by_heads_in_text, prefix + ri::KEY_BWT_TAILS_SAMPLED_IDX_BY_HEAD_IN_TEXT);
+      load(components.tail_idxs_by_heads_in_text, prefix + sri::KEY_BWT_TAILS_SAMPLED_IDX_BY_HEAD_IN_TEXT);
 
-      load(components.sampled_tails_idx_bv, prefix + ri::KEY_BWT_TAILS_SAMPLED_IDX + "_bv_sd");
-//      load(components.sampled_tails_idx_bv, prefix + ri::KEY_BWT_TAILS_SAMPLED_IDX + "_bv");
+      load(components.sampled_tails_idx_bv, prefix + sri::KEY_BWT_TAILS_SAMPLED_IDX + "_bv_sd");
+//      load(components.sampled_tails_idx_bv, prefix + sri::KEY_BWT_TAILS_SAMPLED_IDX + "_bv");
       components.rank_sampled_tails_idx_bv.item =
           decltype(components.rank_sampled_tails_idx_bv.item)(&components.sampled_tails_idx_bv.item);
       components.rank_sampled_tails_idx_bv.computeSize();
 
-//      load(components.marked_sampled_idxs_bv, prefix + ri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv_sd");
-      load(components.marked_sampled_idxs_bv, prefix + ri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv");
+//      load(components.marked_sampled_idxs_bv, prefix + sri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv_sd");
+      load(components.marked_sampled_idxs_bv, prefix + sri::KEY_BWT_TAILS_MARKED_SAMPLED_IDX_BY_HEAD_IN_TEXT + "_bv");
       components.rank_marked_sampled_idxs_bv.item =
           decltype(components.rank_marked_sampled_idxs_bv.item)(&components.marked_sampled_idxs_bv.item);
 
-      load(components.head_marked_sample_trusted_areas, prefix + ri::KEY_BWT_HEADS_MARKED_SAMPLED_TRUSTED_AREA_IN_TEXT);
+      load(components.head_marked_sample_trusted_areas, prefix + sri::KEY_BWT_HEADS_MARKED_SAMPLED_TRUSTED_AREA_IN_TEXT);
 
     }
   }
@@ -101,7 +101,7 @@ class Factory {
     std::size_t sampling_size;
   };
 
-  std::pair<std::shared_ptr<ri::LocateIndex>, std::size_t> make(const Config &t_config) const {
+  std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) const {
     return internal_make(t_config);
   }
 
@@ -109,68 +109,68 @@ class Factory {
   struct RIndexComponents;
 
   auto makeLF() const {
-    auto get_rank_of_char = ri::buildRankOfChar(std::cref(bwt_rle_.item));
-    auto get_f = ri::buildRandomAccessForContainer(std::cref(f_.item));
+    auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle_.item));
+    auto get_f = sri::buildRandomAccessForContainer(std::cref(f_.item));
     auto max_c = f_.item.size() - 1;
 
-    return ri::buildLF(get_rank_of_char, get_f, seq_size_, max_c);
+    return sri::buildLF(get_rank_of_char, get_f, seq_size_, max_c);
   }
 
   auto makeGetSampleForSAPosition(std::size_t t_s) const {
     const auto &components = r_index_packs_.at(t_s);
 
-    auto get_run_of_sa_pos = ri::buildRunOfSAPosition(std::cref(bwt_rle_.item));
+    auto get_run_of_sa_pos = sri::buildRunOfSAPosition(std::cref(bwt_rle_.item));
 
-    auto get_is_run_sampled = ri::buildRandomAccessForContainer(std::cref(components.sampled_tails_idx_bv.item));
+    auto get_is_run_sampled = sri::buildRandomAccessForContainer(std::cref(components.sampled_tails_idx_bv.item));
 
-    auto get_sample = ri::buildRandomAccessForContainer(std::cref(components.tails_in_text.item));
+    auto get_sample = sri::buildRandomAccessForContainer(std::cref(components.tails_in_text.item));
     auto get_sample_for_bwt_run =
-        ri::buildGetSampleForBWTRun(std::cref(components.rank_sampled_tails_idx_bv.item), get_sample);
+        sri::buildGetSampleForBWTRun(std::cref(components.rank_sampled_tails_idx_bv.item), get_sample);
 
-    return ri::buildGetSampleForSAPosition(get_run_of_sa_pos, get_is_run_sampled, get_sample_for_bwt_run);
+    return sri::buildGetSampleForSAPosition(get_run_of_sa_pos, get_is_run_sampled, get_sample_for_bwt_run);
 
   }
 
   auto makeGetLastValue() const {
-    auto get_run_of_sa_pos = ri::buildRunOfSAPosition(std::cref(bwt_rle_.item));
+    auto get_run_of_sa_pos = sri::buildRunOfSAPosition(std::cref(bwt_rle_.item));
     auto always_is_sampled = [](const auto &p) { return true; };
-    auto get_sample_for_bwt = ri::buildRandomAccessForContainer(std::cref(r_index_packs_.at(0).tails_in_text.item));
+    auto get_sample_for_bwt = sri::buildRandomAccessForContainer(std::cref(r_index_packs_.at(0).tails_in_text.item));
     auto get_sample_for_sa_pos =
-        ri::buildGetSampleForSAPosition(get_run_of_sa_pos, always_is_sampled, get_sample_for_bwt);
+        sri::buildGetSampleForSAPosition(get_run_of_sa_pos, always_is_sampled, get_sample_for_bwt);
 
-    return ri::buildGetLastValue(std::cref(bwt_rle_.item), get_sample_for_sa_pos);
+    return sri::buildGetLastValue(std::cref(bwt_rle_.item), get_sample_for_sa_pos);
   }
 
   auto makeGetLastValue(std::size_t t_s) const {
-    return ri::buildGetLastValue(std::cref(bwt_rle_.item), makeGetSampleForSAPosition(t_s));
+    return sri::buildGetLastValue(std::cref(bwt_rle_.item), makeGetSampleForSAPosition(t_s));
   }
 
   auto makeGetLastSpecialBackwardSearchStep() const {
-    return ri::buildGetLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item));
+    return sri::buildGetLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item));
   }
 
   template<typename TGetPredToRun, typename TSampledTailValidator>
   auto makePhi(const RIndexComponents &t_components,
                const TGetPredToRun &t_get_pred_to_run,
                const TSampledTailValidator &t_sampled_tail_validator) const {
-    auto predecessor = ri::buildCircularPredecessor(std::cref(t_components.rank_heads_in_text_bv.item),
-                                                    std::cref(t_components.select_heads_in_text_bv.item),
-                                                    t_components.heads_in_text_bv.item.size());
-    auto get_sample = ri::buildRandomAccessForContainer(std::cref(t_components.tails_in_text.item));
+    auto predecessor = sri::buildCircularPredecessor(std::cref(t_components.rank_heads_in_text_bv.item),
+                                                     std::cref(t_components.select_heads_in_text_bv.item),
+                                                     t_components.heads_in_text_bv.item.size());
+    auto get_sample = sri::buildRandomAccessForContainer(std::cref(t_components.tails_in_text.item));
 
-    return ri::buildPhi(predecessor, t_get_pred_to_run, get_sample, t_sampled_tail_validator, seq_size_);
+    return sri::buildPhi(predecessor, t_get_pred_to_run, get_sample, t_sampled_tail_validator, seq_size_);
   }
 
   template<typename TGetPredToRun>
   auto makePhi(const RIndexComponents &t_components, const TGetPredToRun &t_get_pred_to_run) const {
-    ri::SampleValidatorDefault sampled_tail_validator_default;
+    sri::SampleValidatorDefault sampled_tail_validator_default;
     return makePhi(t_components, t_get_pred_to_run, sampled_tail_validator_default);
   }
 
   auto makePhi() const {
     const auto &components = r_index_packs_.at(0);
 
-    auto get_pred_to_run = ri::buildRandomAccessForTwoContainersDefault(
+    auto get_pred_to_run = sri::buildRandomAccessForTwoContainersDefault(
         std::cref(components.tail_idxs_by_heads_in_text.item), true);
 
     return makePhi(components, get_pred_to_run);
@@ -179,35 +179,35 @@ class Factory {
   template<typename TPhi>
   auto makePhiForRange(std::size_t t_s, const TPhi &t_phi) const {
     // Split in runs
-    auto split_in_runs = ri::buildSplitInRuns(std::cref(bwt_rle_.item));
+    auto split_in_runs = sri::buildSplitInRuns(std::cref(bwt_rle_.item));
 
-    return ri::buildPhiForRange(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
+    return sri::buildPhiForRange(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
   }
 
   template<typename TPhi>
   auto makePhiForRangeSimple(std::size_t t_s, const TPhi &t_phi) const {
     // Split in runs
-    auto split_in_runs = ri::buildSplitInRuns(std::cref(bwt_rle_.item));
+    auto split_in_runs = sri::buildSplitInRuns(std::cref(bwt_rle_.item));
 
-    return ri::buildPhiForRangeSimple(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
+    return sri::buildPhiForRangeSimple(t_phi, split_in_runs, makeLF(), makeGetSampleForSAPosition(t_s), t_s, seq_size_);
   }
 
   auto makeComputeAllValuesWithPhi() const {
-    return ri::buildComputeAllValuesWithPhi(makePhi());
+    return sri::buildComputeAllValuesWithPhi(makePhi());
   }
 
   template<typename TPhiForRange>
   auto makeComputeAllValuesWithPhiForRange(std::size_t t_s, const TPhiForRange &t_phi_for_range) const {
-    auto get_char = ri::buildRandomAccessForContainer(std::cref(bwt_rle_.item));
-    auto get_rank_of_char = ri::buildRankOfChar(std::cref(bwt_rle_.item));
-    auto get_f = ri::buildRandomAccessForContainer(std::cref(f_.item));
-    auto lf = ri::buildBasicLF(get_char, get_rank_of_char, get_f);
+    auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle_.item));
+    auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle_.item));
+    auto get_f = sri::buildRandomAccessForContainer(std::cref(f_.item));
+    auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
-    auto get_value_for_sa_pos = ri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
+    auto get_value_for_sa_pos = sri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
     auto compute_final_value =
-        ri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item), get_value_for_sa_pos);
+        sri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item), get_value_for_sa_pos);
 
-    return ri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
+    return sri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
   }
 
   auto sizeBasicComponents() const {
@@ -235,19 +235,19 @@ class Factory {
         + t_components.head_marked_sample_trusted_areas.size_in_bytes;
   }
 
-  std::pair<std::shared_ptr<ri::LocateIndex>, std::size_t> internal_make(const Config &t_config) const {
+  std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> internal_make(const Config &t_config) const {
     switch (t_config.index) {
       case IndexEnum::RIndex: {
         const auto &components = r_index_packs_.at(0);
 
         auto sa_end_value =
-            ri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
+            sri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
-        return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastValue(),
-                                         makeComputeAllValuesWithPhi(),
-                                         seq_size_,
-                                         sa_end_value),
+        return {sri::buildSharedPtrRIndex(makeLF(),
+                                          makeGetLastValue(),
+                                          makeComputeAllValuesWithPhi(),
+                                          seq_size_,
+                                          sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -255,18 +255,18 @@ class Factory {
         auto s = t_config.sampling_size;
         const auto &components = r_index_packs_.at(s);
 
-        auto get_pred_to_run = ri::buildRandomAccessForTwoContainersDefault(
+        auto get_pred_to_run = sri::buildRandomAccessForTwoContainersDefault(
             std::cref(components.tail_idxs_by_heads_in_text.item), false);
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto sa_end_value = ri::buildGetDataFirstBackwardSearchStep(
+        auto sa_end_value = sri::buildGetDataFirstBackwardSearchStep(
             bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
-        return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastSpecialBackwardSearchStep(),
-                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
-                                         seq_size_,
-                                         sa_end_value),
+        return {sri::buildSharedPtrRIndex(makeLF(),
+                                          makeGetLastSpecialBackwardSearchStep(),
+                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
+                                          seq_size_,
+                                          sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -274,18 +274,18 @@ class Factory {
         auto s = t_config.sampling_size;
         const auto &components = r_index_packs_.at(s);
 
-        auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(
+        auto get_pred_to_run = sri::buildRandomAccessForTwoContainers(
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto sa_end_value = ri::buildGetDataFirstBackwardSearchStep(
+        auto sa_end_value = sri::buildGetDataFirstBackwardSearchStep(
             bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
-        return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastSpecialBackwardSearchStep(),
-                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
-                                         seq_size_,
-                                         sa_end_value),
+        return {sri::buildSharedPtrRIndex(makeLF(),
+                                          makeGetLastSpecialBackwardSearchStep(),
+                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
+                                          seq_size_,
+                                          sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
       }
 
@@ -293,21 +293,21 @@ class Factory {
         auto s = t_config.sampling_size;
         const auto &components = r_index_packs_.at(s);
 
-        auto get_pred_to_run = ri::buildRandomAccessForTwoContainers(
+        auto get_pred_to_run = sri::buildRandomAccessForTwoContainers(
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
-        auto sample_validator = ri::buildSampleValidator(
+        auto sample_validator = sri::buildSampleValidator(
             std::cref(components.rank_marked_sampled_idxs_bv.item),
-            ri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
+            sri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
         auto phi = makePhi(components, get_pred_to_run, sample_validator);
 
-        auto sa_end_value = ri::buildGetDataFirstBackwardSearchStep(
+        auto sa_end_value = sri::buildGetDataFirstBackwardSearchStep(
             bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
-        return {ri::buildSharedPtrRIndex(makeLF(),
-                                         makeGetLastSpecialBackwardSearchStep(),
-                                         makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
-                                         seq_size_,
-                                         sa_end_value),
+        return {sri::buildSharedPtrRIndex(makeLF(),
+                                          makeGetLastSpecialBackwardSearchStep(),
+                                          makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
+                                          seq_size_,
+                                          sa_end_value),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedAreas(components)};
       }
     }
@@ -340,7 +340,7 @@ class Factory {
 
   std::size_t seq_size_;
 
-  Item<ri::rle_string<>> bwt_rle_; // Run-length encoded BWT
+  Item<sri::rle_string<>> bwt_rle_; // Run-length encoded BWT
 
   Item<std::vector<std::size_t>> f_; // F Array
 
