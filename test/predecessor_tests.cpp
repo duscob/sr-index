@@ -26,7 +26,7 @@ TEST_P(CircularPredecessor_Tests, compute) {
   auto rank = sdsl::bit_vector::rank_1_type(&bv);
   auto select = sdsl::bit_vector::select_1_type(&bv);
 
-  auto predecessor = ri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
+  auto predecessor = sri::buildCircularPredecessor(std::ref(rank), std::ref(select), bv.size());
 
   const auto &value = std::get<1>(GetParam());
   auto p = predecessor(value);

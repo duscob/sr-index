@@ -23,7 +23,7 @@ typedef uint64_t ulint;
 typedef uint32_t uint;
 #endif
 
-namespace ri {
+namespace sri {
 
 class sparse_sd_vector {
 

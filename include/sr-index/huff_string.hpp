@@ -18,7 +18,7 @@
 //using namespace sdsl;
 //using namespace std;
 
-namespace ri {
+namespace sri {
 
 class huff_string {
 

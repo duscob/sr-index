@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace ri {
+namespace sri {
 
 const std::string KEY_BWT_RLE = "bwt_rle";
 

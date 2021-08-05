@@ -9,7 +9,7 @@
 #include <cassert>
 #include <memory>
 
-namespace ri {
+namespace sri {
 
 template<typename TGetSAAt, typename TGetTextAt, typename TReportBWT, typename TReportBWTRunFirst, typename TReportBWTRunLast>
 std::size_t computeBWT(std::size_t t_n,

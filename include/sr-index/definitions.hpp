@@ -30,7 +30,7 @@
 
 //using namespace std;
 
-namespace ri{
+namespace sri{
 
 typedef uint64_t ulint;
 typedef long int lint;

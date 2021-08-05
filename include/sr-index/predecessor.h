@@ -10,7 +10,7 @@
 
 #include <sdsl/rank_support.hpp>
 
-namespace ri {
+namespace sri {
 
 template<typename TRank, typename TSelect>
 class CircularPredecessor {
