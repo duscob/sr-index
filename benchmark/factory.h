@@ -9,12 +9,12 @@
 
 #include <sdsl/config.hpp>
 
-#include <ri/rle_string.hpp>
-#include <ri/r_index.h>
-#include <ri/tools.h>
-#include <ri/bwt.h>
-#include <ri/predecessor.h>
-#include <ri/phi.h>
+#include "sr-index/rle_string.hpp"
+#include "sr-index/r_index.h"
+#include "sr-index/tools.h"
+#include "sr-index/bwt.h"
+#include "sr-index/predecessor.h"
+#include "sr-index/phi.h"
 
 #include "definitions.h"
 

@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "ri/bwt.h"
-#include <ri/rle_string.hpp>
+#include "sr-index/bwt.h"
+#include "sr-index/rle_string.hpp"
 
 using Sequence = std::string;
 using SA = std::vector<std::size_t>;

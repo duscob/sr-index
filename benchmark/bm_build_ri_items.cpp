@@ -12,8 +12,8 @@
 #include <sdsl/config.hpp>
 #include <sdsl/construct.hpp>
 
-#include <ri/bwt.h>
-#include <ri/rle_string.hpp>
+#include "sr-index/bwt.h"
+#include "sr-index/rle_string.hpp"
 #include "definitions.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
@@ -499,7 +499,7 @@ auto BM_BuildBWTHeadsSampling = [](benchmark::State &t_state, auto *t_config) {
 };
 
 int main(int argc, char **argv) {
-  gflags::SetUsageMessage("This program calculates the ri items for the given text.");
+  gflags::SetUsageMessage("This program calculates the sr-index items for the given text.");
   gflags::AllowCommandLineReparsing();
   gflags::ParseCommandLineFlags(&argc, &argv, false);
 

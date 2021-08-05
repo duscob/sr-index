@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include <ri/rle_string.hpp>
+#include "sr-index/rle_string.hpp"
 
 using BWT = std::string;
 using Runs = std::vector<ri::StringRun>;

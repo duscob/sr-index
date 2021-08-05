@@ -8,7 +8,7 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include <ri/predecessor.h>
+#include "sr-index/predecessor.h"
 
 using BitVector = std::vector<bool>;
 using Value = std::size_t;

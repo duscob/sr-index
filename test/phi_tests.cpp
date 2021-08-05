@@ -7,11 +7,11 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include <ri/phi.h>
-#include <ri/predecessor.h>
-#include <ri/tools.h>
-#include <ri/rle_string.hpp>
-#include <ri/bwt.h>
+#include "sr-index/phi.h"
+#include "sr-index/predecessor.h"
+#include "sr-index/tools.h"
+#include "sr-index/rle_string.hpp"
+#include "sr-index/bwt.h"
 
 using BitVector = sdsl::bit_vector;
 using IntVector = sdsl::int_vector<>;
