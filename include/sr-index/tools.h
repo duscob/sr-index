@@ -11,6 +11,24 @@
 namespace sri {
 
 template<typename TContainer>
+class RandomAccessForCRefContainer {
+ public:
+  explicit RandomAccessForCRefContainer(std::reference_wrapper<const TContainer> t_container)
+      : container_{t_container} {}
+
+  auto operator()(std::size_t i) const {
+    return container_.get()[i];
+  }
+
+  auto operator[](std::size_t i) const {
+    return (*this)(i);
+  }
+
+ private:
+  std::reference_wrapper<const TContainer> container_;
+};
+
+template<typename TContainer>
 class RandomAccessForContainer {
  public:
   explicit RandomAccessForContainer(const TContainer &t_container) : container_{t_container} {}

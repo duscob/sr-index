@@ -6,9 +6,11 @@
 #include <gmock/gmock.h>
 
 #include <sdsl/int_vector.hpp>
+#include <sdsl/bit_vectors.hpp>
 #include <sdsl/csa_alphabet_strategy.hpp>
 
 #include "sr-index/psi.h"
+#include "sr-index/tools.h"
 
 using BWT = sdsl::int_vector<8>;
 
@@ -65,6 +67,77 @@ TEST_P(PsiTests, store) {
 
   const auto &e_psi = std::get<1>(GetParam());
   EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
+}
+
+TEST_P(PsiTests, partial_psi) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
+
+  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+  for (int i = 0; i < e_psi.size(); ++i) {
+    EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
+  }
+}
+
+TEST_P(PsiTests, partial_psi_serialize) {
+  const auto &e_psi = std::get<1>(GetParam());
+  auto key = "psi_core";
+
+  {
+    auto tmp_psi_core = sri::PsiCore(alphabet_.C, e_psi);
+    sdsl::store_to_cache(tmp_psi_core, key, config_);
+  }
+
+  sri::PsiCore<> psi_core;
+  sdsl::load_from_cache(psi_core, key, config_);
+
+  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+  for (int i = 0; i < e_psi.size(); ++i) {
+    EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
+  }
+}
+
+TEST_P(PsiTests, partial_psi_sd_vector) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCore<sdsl::sd_vector<>>(alphabet_.C, e_psi);
+
+  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+  for (int i = 0; i < e_psi.size(); ++i) {
+    EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
+  }
+}
+
+TEST_P(PsiTests, partial_psi_rrr_vector) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCore<sdsl::rrr_vector<>>(alphabet_.C, e_psi);
+
+  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+  for (int i = 0; i < e_psi.size(); ++i) {
+    EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(
