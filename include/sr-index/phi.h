@@ -89,7 +89,7 @@ class PhiBackward {
       : predecessor_{t_predecessor}, get_sample_{t_get_sample}, size_{t_size} {
   }
 
-  //! Phi backward function. PhiBackward(SA[0]) is undefinded.
+  //! Phi backward function. PhiBackward(SA[0]) is undefined.
   /**
    * @param t_prev_value Previous value of the Suffix Array.
    * @return <s, v>: next value in SA and its validity.
@@ -112,20 +112,69 @@ class PhiBackward {
   }
 
  private:
-  TPredecessor predecessor_;
+  TPredecessor predecessor_; // Smaller than...
   TGetSample get_sample_;
 
   std::size_t size_;
 };
 
-template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail, typename TSampledTailValidator>
+template<typename TPredecessor, typename TGetSampleIndex, typename TGetSample, typename TSampleValidator>
 auto buildPhiBackward(const TPredecessor &t_predecessor,
-                      const TPredecessorToTailRun &predecessor_to_tail_run,
-                      const TSampledTail &t_sampled_tail,
-                      const TSampledTailValidator &t_sampled_tail_validator,
+                      const TGetSampleIndex &t_get_sample_index,
+                      const TGetSample &t_get_sample,
+                      const TSampleValidator &t_sample_validator,
                       std::size_t t_bwt_size) {
-  auto get_sample = GetSampleForPhi(predecessor_to_tail_run, t_sampled_tail, t_sampled_tail_validator);
+  auto get_sample = GetSampleForPhi(t_get_sample_index, t_get_sample, t_sample_validator);
   return PhiBackward<TPredecessor, decltype(get_sample)>(t_predecessor, get_sample, t_bwt_size);
+}
+
+//! Phi function based on forward search using soft-successor data structure.
+/**
+ * @tparam TSoftSuccessor Get soft-successor (circular) for a given value. The returned value is greater or equal than the given value.
+ * @tparam TGetSample Get sample associated to related value found.
+ */
+template<typename TSoftSuccessor, typename TGetSample>
+class PhiForward {
+ public:
+  PhiForward(const TSoftSuccessor &t_soft_successor, const TGetSample &t_get_sample, std::size_t t_size)
+      : soft_successor_{t_soft_successor}, get_sample_{t_get_sample}, size_{t_size} {
+  }
+
+  //! Phi forward function. PhiForward(SA[n-1]) is undefined.
+  /**
+   * @param t_prev_value Previous value of the Suffix Array.
+   * @return <s, v>: next value in SA and its validity.
+   * @note Cannot fall on last tail run: this can happen only if I call PhiForward(SA[n-1])
+   */
+  std::pair<std::size_t, bool> operator()(std::size_t t_prev_value) const {
+    // Distance between the previous value and its related value
+    auto get_delta = [](std::size_t t_prev_value, std::size_t t_related_value) {
+      return t_related_value - t_prev_value;
+    };
+
+    // Next value using sample and delta
+    auto get_next_value = [](std::size_t t_sample, std::size_t t_delta) {
+      return t_sample - t_delta;
+    };
+
+    return Phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
+  }
+
+ private:
+  TSoftSuccessor soft_successor_; // Greater or equal than...
+  TGetSample get_sample_;
+
+  std::size_t size_;
+};
+
+template<typename TSoftSuccessor, typename TGetSampleIndex, typename TGetSample, typename TSampleValidator>
+auto buildPhiForward(const TSoftSuccessor &t_soft_successor,
+                     const TGetSampleIndex &t_get_sample_index,
+                     const TGetSample &t_get_sample,
+                     const TSampleValidator &t_sample_validator,
+                     std::size_t t_bwt_size) {
+  auto get_sample = GetSampleForPhi(t_get_sample_index, t_get_sample, t_sample_validator);
+  return PhiForward<TSoftSuccessor, decltype(get_sample)>(t_soft_successor, get_sample, t_bwt_size);
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>

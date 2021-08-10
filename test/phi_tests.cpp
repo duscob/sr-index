@@ -91,15 +91,65 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+//INSTANTIATE_TEST_SUITE_P(
+//    PhiInvWithoutSampling,
+//    Phi_Tests,
+//    testing::Combine(
+//        testing::Values(BitVector{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}), // BWT tails
+//        testing::Values(IntVector{5, 0, 3, 1, 2, 4}), // Predecessor to sample
+//        testing::Values(BitVector{1, 1, 1, 1, 1, 1}), // Trustworthy sample?
+//        testing::Values(IntVector{10, 7, 2, 11, 6, 9}), // Sampled heads
+//        testing::Values(//ParamResult{11, {6, true}},
+//            ParamResult{6, {8, true}},
+//            ParamResult{8, {3, true}},
+//            ParamResult{3, {0, true}},
+//            ParamResult{0, {7, true}},
+//            ParamResult{7, {9, true}},
+//            ParamResult{9, {4, true}},
+//            ParamResult{4, {1, true}},
+//            ParamResult{1, {10, true}},
+//            ParamResult{10, {5, true}},
+//            ParamResult{5, {2, true}}
+//        )
+//    )
+//);
+
+class PhiForward_Tests
+    : public testing::TestWithParam<std::tuple<BitVector, IntVector, BitVector, IntVector, ParamResult>> {
+};
+
+TEST_P(PhiForward_Tests, compute) {
+  const auto &bv = std::get<0>(GetParam());
+  auto rank = sdsl::bit_vector::rank_1_type(&bv);
+  auto select = sdsl::bit_vector::select_1_type(&bv);
+  auto successor = sri::CircularSoftSuccessor(std::ref(rank), std::ref(select), bv.size());
+
+  const auto &sample_index = std::get<1>(GetParam());
+  const auto &is_trustworthy = std::get<2>(GetParam());
+  auto get_sample_index = sri::buildRandomAccessForTwoContainers(std::ref(sample_index), std::ref(is_trustworthy));
+
+  const auto &samples = std::get<3>(GetParam());
+  auto get_sample = sri::buildRandomAccessForContainer(std::ref(samples));
+  sri::SampleValidatorDefault sampled_tail_validator_default;
+
+  auto phi = sri::buildPhiForward(successor, get_sample_index, get_sample, sampled_tail_validator_default, bv.size());
+
+  const auto &prev_value = std::get<4>(GetParam()).first;
+  auto value = phi(prev_value);
+
+  const auto &e_value = std::get<4>(GetParam()).second;
+  EXPECT_EQ(value, e_value);
+}
+
 INSTANTIATE_TEST_SUITE_P(
-    PhiInvWithoutSampling,
-    Phi_Tests,
+    PhiForwardWithoutSampling,
+    PhiForward_Tests,
     testing::Combine(
         testing::Values(BitVector{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}), // BWT tails
-        testing::Values(IntVector{5, 0, 3, 1, 2, 4}), // Predecessor to sample
+        testing::Values(IntVector{1, 0, 3, 2, 5, 4}), // Successor to sample
         testing::Values(BitVector{1, 1, 1, 1, 1, 1}), // Trustworthy sample?
         testing::Values(IntVector{10, 7, 2, 11, 6, 9}), // Sampled heads
-        testing::Values(//ParamResult{11, {6, true}},
+        testing::Values(ParamResult{11, {6, true}},
                         ParamResult{6, {8, true}},
                         ParamResult{8, {3, true}},
                         ParamResult{3, {0, true}},
