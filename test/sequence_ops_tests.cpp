@@ -8,7 +8,7 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include "sr-index/predecessor.h"
+#include "sr-index/sequence_ops.h"
 
 using BitVector = std::vector<bool>;
 using Value = std::size_t;
@@ -55,4 +55,44 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+using Successor = std::pair<std::size_t, std::size_t>;
 
+class CircularSoftSuccessor_Tests : public testing::TestWithParam<std::tuple<BitVector, Value, Successor>> {};
+
+TEST_P(CircularSoftSuccessor_Tests, compute) {
+  const auto &raw_bv = std::get<0>(GetParam());
+
+  auto bv = sdsl::bit_vector(raw_bv.size());
+  copy(raw_bv.begin(), raw_bv.end(), bv.begin());
+
+  auto rank = sdsl::bit_vector::rank_1_type(&bv);
+  auto select = sdsl::bit_vector::select_1_type(&bv);
+
+  auto successor = sri::CircularSoftSuccessor(std::ref(rank), std::ref(select), bv.size());
+
+  const auto &value = std::get<1>(GetParam());
+  auto s = successor(value);
+
+  const auto &e_s = std::get<2>(GetParam());
+  EXPECT_EQ(e_s, s);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Successor,
+    CircularSoftSuccessor_Tests,
+    testing::Values(
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 0, Predecessor{0, 2}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 1, Predecessor{0, 2}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 2, Predecessor{0, 2}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 3, Predecessor{1, 6}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 4, Predecessor{1, 6}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 5, Predecessor{1, 6}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 6, Predecessor{1, 6}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 7, Predecessor{2, 7}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 8, Predecessor{3, 9}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 9, Predecessor{3, 9}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 10, Predecessor{4, 10}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}, 11, Predecessor{5, 11}),
+        std::make_tuple(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0}, 11, Predecessor{0, 2})
+    )
+);
