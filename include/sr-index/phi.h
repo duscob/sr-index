@@ -177,6 +177,35 @@ auto buildPhiForward(const TSoftSuccessor &t_soft_successor,
   return PhiForward<TSoftSuccessor, decltype(get_sample)>(t_soft_successor, get_sample, t_bwt_size);
 }
 
+//! Compute the links between marked positions (BWT tails) and its corresponding samples (BWT heads) to be used in PhiForward function.
+/**
+ * @param t_n Number of symbols in the sequence
+ * @param t_r Number of BWT runs
+ * @param t_select_mark_sa_pos Select function over position of marked values (BWT run tails)
+ * @param t_rank_sample_sa_pos Rank function over position of sampled values (BWT run heads)
+ * @param t_lf LF function
+ * @param t_psi Psi function
+ * @param t_report Reporter for the links
+ */
+template<typename TSelectMarkSAPos, typename TRankSampleSAPos, typename TLF, typename TPsi, typename TReport>
+void ComputeMarkToSampleLinkForPhiForward(std::size_t t_n,
+                                          std::size_t t_r,
+                                          const TSelectMarkSAPos &t_select_mark_sa_pos,
+                                          const TRankSampleSAPos &t_rank_sample_sa_pos,
+                                          const TLF &t_lf,
+                                          const TPsi &t_psi,
+                                          TReport &t_report) {
+  for (std::size_t i = 1; i <= t_r; ++i) {
+    // Current BWT run tail could travel together its following symbol until previous LF step
+    auto j = t_lf(t_select_mark_sa_pos(i)); // Position of previous symbol
+
+    // Psi value of the following symbol (ISA[SA[j + 1] + 1]) is the BWT run head (sample) associated to current BWT run tail (mark value)
+    auto k = t_psi((j + 1) % t_n); // Psi position of next symbol in SA
+
+    t_report(i - 1, t_rank_sample_sa_pos(k + 1) - 1);
+  }
+}
+
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 class PhiForRangeSimple {
  public:
