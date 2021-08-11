@@ -13,7 +13,7 @@
 #include "sr-index/r_index.h"
 #include "sr-index/tools.h"
 #include "sr-index/bwt.h"
-#include "sr-index/predecessor.h"
+#include "sr-index/sequence_ops.h"
 #include "sr-index/phi.h"
 
 #include "definitions.h"
@@ -158,7 +158,7 @@ class Factory {
                                                      t_components.heads_in_text_bv.item.size());
     auto get_sample = sri::buildRandomAccessForContainer(std::cref(t_components.tails_in_text.item));
 
-    return sri::buildPhi(predecessor, t_get_pred_to_run, get_sample, t_sampled_tail_validator, seq_size_);
+    return sri::buildPhiBackward(predecessor, t_get_pred_to_run, get_sample, t_sampled_tail_validator, seq_size_);
   }
 
   template<typename TGetPredToRun>

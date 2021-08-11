@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/27/20.
 //
 
-#ifndef RI_PHI_H_
-#define RI_PHI_H_
+#ifndef SRI_PHI_H_
+#define SRI_PHI_H_
 
 #include <cstddef>
 #include <cassert>
@@ -12,66 +12,198 @@
 
 namespace sri {
 
-template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail, typename TSampledTailValidator>
-class Phi {
+//! Get the sample associated to a marked value position.
+/**
+ * @tparam TGetSampleIndex Get the index of the sample associated to the given marked value.
+ * @tparam TGetSample Get the sample value for the given index.
+ * @tparam TSampleValidator Validate the given sample.
+ */
+template<typename TGetSampleIndex, typename TGetSample, typename TSampleValidator>
+class GetSampleForPhi {
  public:
-  Phi(const TPredecessor &t_predecessor,
-      const TPredecessorToTailRun &t_predecessor_to_tail_run,
-      const TSampledTail &t_sampled_tail,
-      const TSampledTailValidator &t_is_sampled_tail_valid,
-      std::size_t t_bwt_size)
-      : predecessor_{t_predecessor},
-        predecessor_to_tail_run_{t_predecessor_to_tail_run},
-        sampled_tail_{t_sampled_tail},
-        is_sampled_tail_valid_{t_is_sampled_tail_valid},
-        bwt_size_{t_bwt_size} {
+  GetSampleForPhi(const TGetSampleIndex &t_get_sample_index,
+                  const TGetSample &t_get_sample,
+                  const TSampleValidator &t_is_sample_valid)
+      : get_sample_index_{t_get_sample_index}, get_sample_{t_get_sample}, is_sample_valid_{t_is_sample_valid} {
   }
 
-/*
- * Phi function. Phi(SA[0]) is undefined
- */
-  std::pair<std::size_t, bool> operator()(std::size_t t_prev_value) const {
+  //! Get sample
+  /**
+   * @param t_marked_value_pos Position of the marked value.
+   * @param t_delta Difference between original value and marked value.
+   * @return <s, v>: sample value and its validity.
+   */
+  auto operator()(std::size_t t_marked_value_pos, std::size_t t_delta) const {
+    //cannot fall on first head run: this can happen only if I call PhiBackward(SA[0])
+    auto[sample_index, initial_sample_validity] = get_sample_index_(t_marked_value_pos);
 
-    assert(t_prev_value != bwt_size_ - 1);
+    auto sample = get_sample_(sample_index);
 
-    auto p = predecessor_(t_prev_value);
+    auto sample_validity = is_sample_valid_(t_marked_value_pos, t_delta, initial_sample_validity);
 
-    //pred_pos is the rank of the predecessor of t_prev_value (circular)
-    auto pred_pos = p.first;
-
-    //the actual predecessor
-    auto pred_value = p.second;
-
-    //distance from predecessor
-    auto delta = pred_value < t_prev_value ? t_prev_value - pred_value : t_prev_value + 1;
-
-    //cannot fall on first head run: this can happen only if I call Phi(SA[0])
-    auto run = predecessor_to_tail_run_(pred_pos);
-
-    //sample at the end of previous run
-    auto prev_sample = sampled_tail_(run.first);
-
-    auto sampled_tail_validity = is_sampled_tail_valid_(pred_pos, delta, run.second);
-    return {(prev_sample + delta) % bwt_size_, sampled_tail_validity};
+    return std::make_pair(sample, sample_validity);
   }
 
  private:
-  TPredecessor predecessor_;
-  TPredecessorToTailRun predecessor_to_tail_run_;
-  TSampledTail sampled_tail_;
-  TSampledTailValidator is_sampled_tail_valid_;
-
-  std::size_t bwt_size_;
+  TGetSampleIndex get_sample_index_;
+  TGetSample get_sample_;
+  TSampleValidator is_sample_valid_;
 };
 
-template<typename TPredecessor, typename TPredecessorToTailRun, typename TSampledTail, typename TSampledTailValidator>
-auto buildPhi(const TPredecessor &t_predecessor,
-              const TPredecessorToTailRun &predecessor_to_tail_run,
-              const TSampledTail &t_sampled_tail,
-              const TSampledTailValidator &t_sampled_tail_validator,
-              std::size_t t_bwt_size) {
-  return Phi<TPredecessor, TPredecessorToTailRun, TSampledTail, TSampledTailValidator>(
-      t_predecessor, predecessor_to_tail_run, t_sampled_tail, t_sampled_tail_validator, t_bwt_size);
+//! Phi function
+/**
+ * @param t_prev_value Previous value of the Suffix Array.
+ * @param t_get_related_value Get value related to given SA value.
+ * @param t_get_sample Get sample associated to related value.
+ * @param t_get_delta Get difference between SA given value and related marked value.
+ * @param t_get_next_value Get next value using sample and delta.
+ * @return <s, v>: next value in SA and its validity.
+ */
+template<typename TGetRelatedValue, typename TGetSample, typename TGetDelta, typename TGetNextValue>
+auto Phi(std::size_t t_prev_value,
+         const TGetRelatedValue &t_get_related_value,
+         const TGetSample &t_get_sample,
+         const TGetDelta &t_get_delta,
+         const TGetNextValue &t_get_next_value) {
+  // { Related value position/rank (circular); Actual related value }
+  auto[related_value_pos, related_value] = t_get_related_value(t_prev_value);
+
+  // Distance between the previous value and its related value
+  auto delta = t_get_delta(t_prev_value, related_value);
+
+  // Sample associated with related value and its validity
+  auto[sample, sample_validity] = t_get_sample(related_value_pos, delta);
+
+  return std::make_pair(t_get_next_value(sample, delta), sample_validity);
+}
+
+//! Phi function based on backward search using predecessor data structure.
+/**
+ * @tparam TPredecessor Get predecessor (circular) for a given value.
+ * @tparam TGetSample Get sample associated to related value found.
+ */
+template<typename TPredecessor, typename TGetSample>
+class PhiBackward {
+ public:
+  PhiBackward(const TPredecessor &t_predecessor, const TGetSample &t_get_sample, std::size_t t_size)
+      : predecessor_{t_predecessor}, get_sample_{t_get_sample}, size_{t_size} {
+  }
+
+  //! Phi backward function. PhiBackward(SA[0]) is undefined.
+  /**
+   * @param t_prev_value Previous value of the Suffix Array.
+   * @return <s, v>: next value in SA and its validity.
+   * @note Cannot fall on first head run: this can happen only if I call PhiBackward(SA[0])
+   */
+  auto operator()(std::size_t t_prev_value) const {
+    assert(t_prev_value != this->size_ - 1);
+
+    // Distance between the previous value and its related value
+    auto get_delta = [](std::size_t t_prev_value, std::size_t t_related_value) {
+      return t_related_value < t_prev_value ? t_prev_value - t_related_value : t_prev_value + 1;
+    };
+
+    // Next value using sample and delta
+    auto get_next_value = [size = this->size_](std::size_t t_sample, std::size_t t_delta) {
+      return (t_sample + t_delta) % size;
+    };
+
+    return Phi(t_prev_value, predecessor_, get_sample_, get_delta, get_next_value);
+  }
+
+ private:
+  TPredecessor predecessor_; // Smaller than...
+  TGetSample get_sample_;
+
+  std::size_t size_;
+};
+
+template<typename TPredecessor, typename TGetSampleIndex, typename TGetSample, typename TSampleValidator>
+auto buildPhiBackward(const TPredecessor &t_predecessor,
+                      const TGetSampleIndex &t_get_sample_index,
+                      const TGetSample &t_get_sample,
+                      const TSampleValidator &t_sample_validator,
+                      std::size_t t_bwt_size) {
+  auto get_sample = GetSampleForPhi(t_get_sample_index, t_get_sample, t_sample_validator);
+  return PhiBackward<TPredecessor, decltype(get_sample)>(t_predecessor, get_sample, t_bwt_size);
+}
+
+//! Phi function based on forward search using soft-successor data structure.
+/**
+ * @tparam TSoftSuccessor Get soft-successor (circular) for a given value. The returned value is greater or equal than the given value.
+ * @tparam TGetSample Get sample associated to related value found.
+ */
+template<typename TSoftSuccessor, typename TGetSample>
+class PhiForward {
+ public:
+  PhiForward(const TSoftSuccessor &t_soft_successor, const TGetSample &t_get_sample, std::size_t t_size)
+      : soft_successor_{t_soft_successor}, get_sample_{t_get_sample}, size_{t_size} {
+  }
+
+  //! Phi forward function. PhiForward(SA[n-1]) is undefined.
+  /**
+   * @param t_prev_value Previous value of the Suffix Array.
+   * @return <s, v>: next value in SA and its validity.
+   * @note Cannot fall on last tail run: this can happen only if I call PhiForward(SA[n-1])
+   */
+  std::pair<std::size_t, bool> operator()(std::size_t t_prev_value) const {
+    // Distance between the previous value and its related value
+    auto get_delta = [](std::size_t t_prev_value, std::size_t t_related_value) {
+      return t_related_value - t_prev_value;
+    };
+
+    // Next value using sample and delta
+    auto get_next_value = [](std::size_t t_sample, std::size_t t_delta) {
+      return t_sample - t_delta;
+    };
+
+    return Phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
+  }
+
+ private:
+  TSoftSuccessor soft_successor_; // Greater or equal than...
+  TGetSample get_sample_;
+
+  std::size_t size_;
+};
+
+template<typename TSoftSuccessor, typename TGetSampleIndex, typename TGetSample, typename TSampleValidator>
+auto buildPhiForward(const TSoftSuccessor &t_soft_successor,
+                     const TGetSampleIndex &t_get_sample_index,
+                     const TGetSample &t_get_sample,
+                     const TSampleValidator &t_sample_validator,
+                     std::size_t t_bwt_size) {
+  auto get_sample = GetSampleForPhi(t_get_sample_index, t_get_sample, t_sample_validator);
+  return PhiForward<TSoftSuccessor, decltype(get_sample)>(t_soft_successor, get_sample, t_bwt_size);
+}
+
+//! Compute the links between marked positions (BWT tails) and its corresponding samples (BWT heads) to be used in PhiForward function.
+/**
+ * @param t_n Number of symbols in the sequence
+ * @param t_r Number of BWT runs
+ * @param t_select_mark_sa_pos Select function over position of marked values (BWT run tails)
+ * @param t_rank_sample_sa_pos Rank function over position of sampled values (BWT run heads)
+ * @param t_lf LF function
+ * @param t_psi Psi function
+ * @param t_report Reporter for the links
+ */
+template<typename TSelectMarkSAPos, typename TRankSampleSAPos, typename TLF, typename TPsi, typename TReport>
+void ComputeMarkToSampleLinkForPhiForward(std::size_t t_n,
+                                          std::size_t t_r,
+                                          const TSelectMarkSAPos &t_select_mark_sa_pos,
+                                          const TRankSampleSAPos &t_rank_sample_sa_pos,
+                                          const TLF &t_lf,
+                                          const TPsi &t_psi,
+                                          TReport &t_report) {
+  for (std::size_t i = 1; i <= t_r; ++i) {
+    // Current BWT run tail could travel together its following symbol until previous LF step
+    auto j = t_lf(t_select_mark_sa_pos(i)); // Position of previous symbol
+
+    // Psi value of the following symbol (ISA[SA[j + 1] + 1]) is the BWT run head (sample) associated to current BWT run tail (mark value)
+    auto k = t_psi((j + 1) % t_n); // Psi position of next symbol in SA
+
+    t_report(i - 1, t_rank_sample_sa_pos(k + 1) - 1);
+  }
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
@@ -119,7 +251,7 @@ class PhiForRangeSimple {
 
         last_value = phi_(last_value.first);
         --last;
-      }while (first <= last);
+      } while (first <= last);
 
       return last_value;
     }
@@ -160,11 +292,11 @@ class PhiForRangeSimple {
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 auto buildPhiForRangeSimple(const TPhi &t_phi,
-                      const TSplitInBWTRun &t_split,
-                      const TBackwardNav &t_lf,
-                      const TSampleAt &t_sample_at,
-                      std::size_t t_sampling_size,
-                      std::size_t t_bwt_size) {
+                            const TSplitInBWTRun &t_split,
+                            const TBackwardNav &t_lf,
+                            const TSampleAt &t_sample_at,
+                            std::size_t t_sampling_size,
+                            std::size_t t_bwt_size) {
   return PhiForRangeSimple<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
@@ -330,4 +462,4 @@ auto buildComputeAllValuesWithPhiForRange(const TPhiForRange &t_phi_for_range,
 }
 
 }
-#endif //RI_PHI_H_
+#endif //SRI_PHI_H_

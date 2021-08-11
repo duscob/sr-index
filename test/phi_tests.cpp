@@ -6,9 +6,10 @@
 #include <gmock/gmock.h>
 
 #include <sdsl/bit_vectors.hpp>
+#include <sdsl/int_vector.hpp>
 
 #include "sr-index/phi.h"
-#include "sr-index/predecessor.h"
+#include "sr-index/sequence_ops.h"
 #include "sr-index/tools.h"
 #include "sr-index/rle_string.hpp"
 #include "sr-index/bwt.h"
@@ -36,7 +37,7 @@ TEST_P(Phi_Tests, compute) {
   auto get_sample = sri::buildRandomAccessForContainer(std::ref(samples));
   sri::SampleValidatorDefault sampled_tail_validator_default;
 
-  auto phi = sri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
+  auto phi = sri::buildPhiBackward(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
 
 //  auto phi = BuildPhi(GetParam());
 
@@ -51,10 +52,10 @@ INSTANTIATE_TEST_SUITE_P(
     PhiWithoutSampling,
     Phi_Tests,
     testing::Combine(
-        testing::Values(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}),
-        testing::Values(IntVector{1, 3, 0, 4, 5, 2}),
-        testing::Values(BitVector{1, 1, 1, 1, 1, 1}),
-        testing::Values(IntVector{5, 7, 2, 11, 0, 1}),
+        testing::Values(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}), // BWT heads
+        testing::Values(IntVector{1, 3, 0, 4, 5, 2}), // Predecessor to sample
+        testing::Values(BitVector{1, 1, 1, 1, 1, 1}), // Trustworthy sample?
+        testing::Values(IntVector{5, 7, 2, 11, 0, 1}), // Sampled tails
         testing::Values(ParamResult{2, {5, true}},
                         ParamResult{5, {10, true}},
                         ParamResult{10, {1, true}},
@@ -73,10 +74,10 @@ INSTANTIATE_TEST_SUITE_P(
     PhiWithSampling,
     Phi_Tests,
     testing::Combine(
-        testing::Values(BitVector{0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1}),
-        testing::Values(IntVector{0, 2, 1}),
-        testing::Values(BitVector{1, 0, 1}),
-        testing::Values(IntVector{7, 2, 11}),
+        testing::Values(BitVector{0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1}), // BWT heads
+        testing::Values(IntVector{0, 2, 1}), // Predecessor to sample
+        testing::Values(BitVector{1, 0, 1}), // Trustworthy sample?
+        testing::Values(IntVector{7, 2, 11}), // Sampled tails
         testing::Values(ParamResult{2, {5, true}},
                         ParamResult{5, {10, true}},
                         ParamResult{10, {3, false}},
@@ -91,8 +92,135 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+//INSTANTIATE_TEST_SUITE_P(
+//    PhiInvWithoutSampling,
+//    Phi_Tests,
+//    testing::Combine(
+//        testing::Values(BitVector{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}), // BWT tails
+//        testing::Values(IntVector{5, 0, 3, 1, 2, 4}), // Predecessor to sample
+//        testing::Values(BitVector{1, 1, 1, 1, 1, 1}), // Trustworthy sample?
+//        testing::Values(IntVector{10, 7, 2, 11, 6, 9}), // Sampled heads
+//        testing::Values(//ParamResult{11, {6, true}},
+//            ParamResult{6, {8, true}},
+//            ParamResult{8, {3, true}},
+//            ParamResult{3, {0, true}},
+//            ParamResult{0, {7, true}},
+//            ParamResult{7, {9, true}},
+//            ParamResult{9, {4, true}},
+//            ParamResult{4, {1, true}},
+//            ParamResult{1, {10, true}},
+//            ParamResult{10, {5, true}},
+//            ParamResult{5, {2, true}}
+//        )
+//    )
+//);
+
+class PhiForward_Tests
+    : public testing::TestWithParam<std::tuple<BitVector, IntVector, BitVector, IntVector, ParamResult>> {
+};
+
+TEST_P(PhiForward_Tests, compute) {
+  const auto &bv = std::get<0>(GetParam());
+  auto rank = sdsl::bit_vector::rank_1_type(&bv);
+  auto select = sdsl::bit_vector::select_1_type(&bv);
+  auto successor = sri::CircularSoftSuccessor(std::ref(rank), std::ref(select), bv.size());
+
+  const auto &sample_index = std::get<1>(GetParam());
+  const auto &is_trustworthy = std::get<2>(GetParam());
+  auto get_sample_index = sri::buildRandomAccessForTwoContainers(std::ref(sample_index), std::ref(is_trustworthy));
+
+  const auto &samples = std::get<3>(GetParam());
+  auto get_sample = sri::buildRandomAccessForContainer(std::ref(samples));
+  sri::SampleValidatorDefault sampled_tail_validator_default;
+
+  auto phi = sri::buildPhiForward(successor, get_sample_index, get_sample, sampled_tail_validator_default, bv.size());
+
+  const auto &prev_value = std::get<4>(GetParam()).first;
+  auto value = phi(prev_value);
+
+  const auto &e_value = std::get<4>(GetParam()).second;
+  EXPECT_EQ(value, e_value);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    PhiForwardWithoutSampling,
+    PhiForward_Tests,
+    testing::Combine(
+        testing::Values(BitVector{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}), // BWT tails
+        testing::Values(IntVector{1, 0, 3, 2, 5, 4}), // Successor to sample
+        testing::Values(BitVector{1, 1, 1, 1, 1, 1}), // Trustworthy sample?
+        testing::Values(IntVector{10, 7, 2, 11, 6, 9}), // Sampled heads
+        testing::Values(ParamResult{11, {6, true}},
+                        ParamResult{6, {8, true}},
+                        ParamResult{8, {3, true}},
+                        ParamResult{3, {0, true}},
+                        ParamResult{0, {7, true}},
+                        ParamResult{7, {9, true}},
+                        ParamResult{9, {4, true}},
+                        ParamResult{4, {1, true}},
+                        ParamResult{1, {10, true}},
+                        ParamResult{10, {5, true}},
+                        ParamResult{5, {2, true}}
+        )
+    )
+);
+
 using BWT = std::string;
 using F = sdsl::int_vector<>;
+using Psi = IntVector;
+using BWTHeadsPos = BitVector;
+using BWTTailsPos = BitVector;
+using Links = IntVector;
+
+class ComputeMarkToSampleLinkForPhiForward_Tests
+    : public testing::TestWithParam<std::tuple<BWT, F, Psi, std::size_t, BWTHeadsPos, BWTTailsPos, Links>> {
+};
+
+TEST_P(ComputeMarkToSampleLinkForPhiForward_Tests, compute) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::rle_string<> bwt_rle(bwt);
+  auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle));
+  auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle));
+
+  const auto &f = std::get<1>(GetParam());
+  auto get_f = sri::buildRandomAccessForContainer(std::cref(f));
+  auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
+
+  auto psi = sri::RandomAccessForCRefContainer(std::cref(std::get<2>(GetParam())));
+
+  auto r = std::get<3>(GetParam());
+
+  const auto &bwt_heads_pos = std::get<4>(GetParam());
+  auto heads_rank = BWTHeadsPos::rank_1_type(&bwt_heads_pos);
+
+  const auto &bwt_tails_pos = std::get<5>(GetParam());
+  auto tails_select = BWTTailsPos::select_1_type(&bwt_tails_pos);
+
+  const auto &e_links = std::get<6>(GetParam());
+  IntVector links(r, 0);
+  auto report_link = [&links](auto tt_i, auto tt_l) { links[tt_i] = tt_l; };
+
+  sri::ComputeMarkToSampleLinkForPhiForward(bwt.size(), r, tails_select, heads_rank, lf, psi, report_link);
+
+  EXPECT_THAT(links, testing::ElementsAreArray(e_links));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Links,
+    ComputeMarkToSampleLinkForPhiForward_Tests,
+    testing::Values(
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+            F{0, 0, 1, 5, 9, 12},
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+            6,
+            BWTHeadsPos{1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0},
+            BWTTailsPos{0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1},
+            Links{2, 5, 3, 4, 1, 0}
+        )
+    )
+);
+
 using SamplingSize = std::size_t;
 using Range = std::pair<std::size_t, std::size_t>;
 using RangeXPrevValue = std::pair<Range, std::size_t>;
@@ -112,7 +240,7 @@ class PhiForRange_Tests
 };
 
 TEST_P(PhiForRange_Tests, compute) {
-  // Phi
+  // PhiBackward
   const auto &bv = std::get<0>(GetParam());
   auto rank = sdsl::bit_vector::rank_1_type(&bv);
   auto select = sdsl::bit_vector::select_1_type(&bv);
@@ -126,7 +254,7 @@ TEST_P(PhiForRange_Tests, compute) {
   auto get_sample = sri::buildRandomAccessForContainer(std::ref(samples));
   sri::SampleValidatorDefault sampled_tail_validator_default;
 
-  auto phi = sri::buildPhi(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
+  auto phi = sri::buildPhiBackward(predecessor, get_pred_to_run, get_sample, sampled_tail_validator_default, bv.size());
 
   // Split in runs
   const auto &bwt = std::get<4>(GetParam());

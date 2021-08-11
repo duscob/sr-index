@@ -40,7 +40,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=nat
 
 set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/bwt.h
-        ${PROJECT_SOURCE_DIR}/include/sr-index/predecessor.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sequence_ops.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/phi.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/tools.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_index.h
@@ -71,7 +71,7 @@ if (sr-index_build_tests)
     set(LIBS ${SDSL_LIBS})
 
     cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
-    cxx_test_with_flags_and_args(predecessor_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/predecessor_tests.cpp)
+    cxx_test_with_flags_and_args(sequence_ops_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sequence_ops_tests.cpp)
     cxx_test_with_flags_and_args(rle_string_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/rle_string_tests.cpp)
     cxx_test_with_flags_and_args(phi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/phi_tests.cpp)
     cxx_test_with_flags_and_args(psi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/psi_tests.cpp)
