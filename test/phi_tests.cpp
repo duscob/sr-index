@@ -200,7 +200,7 @@ TEST_P(ComputeMarkToSampleLinkForPhiForward_Tests, compute) {
   IntVector links(r, 0);
   auto report_link = [&links](auto tt_i, auto tt_l) { links[tt_i] = tt_l; };
 
-  sri::ComputeMarkToSampleLinkForPhiForward(bwt.size(), r, tails_select, heads_rank, lf, psi, report_link);
+  sri::computeMarkToSampleLinkForPhiForward(bwt.size(), r, tails_select, heads_rank, lf, psi, report_link);
 
   EXPECT_THAT(links, testing::ElementsAreArray(e_links));
 }

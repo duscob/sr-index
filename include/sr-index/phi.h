@@ -60,7 +60,7 @@ class GetSampleForPhi {
  * @return <s, v>: next value in SA and its validity.
  */
 template<typename TGetRelatedValue, typename TGetSample, typename TGetDelta, typename TGetNextValue>
-auto Phi(std::size_t t_prev_value,
+auto phi(std::size_t t_prev_value,
          const TGetRelatedValue &t_get_related_value,
          const TGetSample &t_get_sample,
          const TGetDelta &t_get_delta,
@@ -108,7 +108,7 @@ class PhiBackward {
       return (t_sample + t_delta) % size;
     };
 
-    return Phi(t_prev_value, predecessor_, get_sample_, get_delta, get_next_value);
+    return phi(t_prev_value, predecessor_, get_sample_, get_delta, get_next_value);
   }
 
  private:
@@ -157,7 +157,7 @@ class PhiForward {
       return t_sample - t_delta;
     };
 
-    return Phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
+    return phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
   }
 
  private:
@@ -188,7 +188,7 @@ auto buildPhiForward(const TSoftSuccessor &t_soft_successor,
  * @param t_report Reporter for the links
  */
 template<typename TSelectMarkSAPos, typename TRankSampleSAPos, typename TLF, typename TPsi, typename TReport>
-void ComputeMarkToSampleLinkForPhiForward(std::size_t t_n,
+void computeMarkToSampleLinkForPhiForward(std::size_t t_n,
                                           std::size_t t_r,
                                           const TSelectMarkSAPos &t_select_mark_sa_pos,
                                           const TRankSampleSAPos &t_rank_sample_sa_pos,

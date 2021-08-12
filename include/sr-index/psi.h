@@ -2,14 +2,14 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/5/21.
 //
 
-#ifndef SR_INDEX_PSI_H_
-#define SR_INDEX_PSI_H_
+#ifndef SRI_PSI_H_
+#define SRI_PSI_H_
 
 namespace sri {
 
 //! Constructs the Psi function using BWT for text.
 template<typename TBwt, typename TAlphabet>
-auto ConstructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
+auto constructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
   const auto &n = t_bwt.size();
   const auto &sigma = t_alphabet.sigma;
   sdsl::int_vector<> cnt_chr(sigma, 0, sdsl::bits::hi(n) + 1);
@@ -28,9 +28,9 @@ auto ConstructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
 
 //! Constructs and stores the Psi function using BWT for text.
 template<typename TBwt, typename TAlphabet>
-void ConstructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
+void constructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
   // Store psi
-  store_to_cache(ConstructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
+  store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
 }
 
 //! Psi function core-representation based on partial psis.
@@ -121,7 +121,7 @@ class PsiCore {
  * @return Character corresponding to index
  */
 template<typename TCumulativeC>
-auto GetCForSAIndex(const TCumulativeC &t_cumulative_c, std::size_t t_index) {
+auto computeCForSAIndex(const TCumulativeC &t_cumulative_c, std::size_t t_index) {
   auto upper_bound = std::upper_bound(t_cumulative_c.begin(), t_cumulative_c.end(), t_index);
   return std::distance(t_cumulative_c.begin(), upper_bound) - 1;
 }
@@ -159,7 +159,7 @@ template<typename TRankPartialPsi, typename TCumulativeC>
 class LFOnPsi {
  public:
   LFOnPsi(const TRankPartialPsi &t_rank_partial_psi, const TCumulativeC &t_cumulative_c)
-  : rank_partial_psi_{t_rank_partial_psi}, cumulative_c_{t_cumulative_c} {
+      : rank_partial_psi_{t_rank_partial_psi}, cumulative_c_{t_cumulative_c} {
   }
 
   //! LFOnPsi function
@@ -196,4 +196,4 @@ class LFOnPsi {
 };
 }
 
-#endif //SR_INDEX_PSI_H_
+#endif //SRI_PSI_H_

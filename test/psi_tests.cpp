@@ -51,7 +51,7 @@ class PsiTests : public BasePsiTests, public testing::WithParamInterface<std::tu
 TEST_P(PsiTests, construct) {
   const auto &bwt = std::get<0>(GetParam());
 
-  auto psi = sri::ConstructPsi(bwt, alphabet_);
+  auto psi = sri::constructPsi(bwt, alphabet_);
 
   const auto &e_psi = std::get<1>(GetParam());
   EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
@@ -60,7 +60,7 @@ TEST_P(PsiTests, construct) {
 TEST_P(PsiTests, store) {
   const auto &bwt = std::get<0>(GetParam());
 
-  sri::ConstructPsi(bwt, alphabet_, config_);
+  sri::constructPsi(bwt, alphabet_, config_);
 
   sdsl::int_vector<> psi;
   sdsl::load_from_cache(psi, sdsl::conf::KEY_PSI, config_);
@@ -75,7 +75,7 @@ TEST_P(PsiTests, partial_psi) {
   auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -98,7 +98,7 @@ TEST_P(PsiTests, partial_psi_serialize) {
   sdsl::load_from_cache(psi_core, key, config_);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -114,7 +114,7 @@ TEST_P(PsiTests, partial_psi_sd_vector) {
   auto psi_core = sri::PsiCore<sdsl::sd_vector<>>(alphabet_.C, e_psi);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -130,7 +130,7 @@ TEST_P(PsiTests, partial_psi_rrr_vector) {
   auto psi_core = sri::PsiCore<sdsl::rrr_vector<>>(alphabet_.C, e_psi);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
