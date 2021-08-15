@@ -195,15 +195,38 @@ void computeMarkToSampleLinkForPhiForward(std::size_t t_n,
                                           const TLF &t_lf,
                                           const TPsi &t_psi,
                                           TReport &t_report) {
+  auto rank_sample = [&t_rank_sample_sa_pos](const auto &tt_k) {
+    return t_rank_sample_sa_pos(tt_k + 1) - 1;
+  };
+
   for (std::size_t i = 1; i <= t_r; ++i) {
-    // Current BWT run tail could travel together its following symbol until previous LF step
-    auto j = t_lf(t_select_mark_sa_pos(i)); // Position of previous symbol
-
-    // Psi value of the following symbol (ISA[SA[j + 1] + 1]) is the BWT run head (sample) associated to current BWT run tail (mark value)
-    auto k = t_psi((j + 1) % t_n); // Psi position of next symbol in SA
-
-    t_report(i - 1, t_rank_sample_sa_pos(k + 1) - 1);
+    t_report(i - 1, computeMarkToSampleLinkForPhiForward(t_select_mark_sa_pos(i), t_n, t_lf, t_psi, rank_sample));
   }
+}
+
+//! Compute link between a marked position (BWT tail) and its corresponding sample (BWT heads) to be used in PhiForward function.
+/**
+ * @param t_mark_pos Marked position or position of the last letter of a BWT run
+ * @param t_n Number of symbols in the sequence
+ * @param t_lf LF function
+ * @param t_psi Psi function
+ * @param t_rank_sample Compute index (rank) for sample position in BWT
+ * @param t_report Reporter for the links
+ * @return Index of sample associated to given mark position
+ */
+template<typename TLF, typename TPsi, typename TRankSample>
+auto computeMarkToSampleLinkForPhiForward(std::size_t t_mark_pos,
+                                          std::size_t t_n,
+                                          const TLF &t_lf,
+                                          const TPsi &t_psi,
+                                          const TRankSample &t_rank_sample) {
+  // Current BWT run tail could travel together its following symbol until previous LF step
+  auto j = t_lf(t_mark_pos); // Position of previous symbol
+
+  // Psi value of the following symbol (ISA[SA[j + 1] + 1]) is the BWT run head (sample) associated to current BWT run tail (mark value)
+  auto k = t_psi((j + 1) % t_n); // Psi position of next symbol in SA
+
+  return t_rank_sample(k);
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
