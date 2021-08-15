@@ -38,6 +38,39 @@ class BasePsiTests : public testing::Test {
   sdsl::byte_alphabet alphabet_;
 };
 
+using Cumulative = sdsl::int_vector<64>;
+
+class AlphabetTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Cumulative>> {
+ protected:
+  void SetUp() override {
+    const auto &bwt = std::get<0>(GetParam());
+    BasePsiTests::SetUp(bwt);
+  }
+};
+
+TEST_P(AlphabetTests, construct) {
+  const auto &cumulative = this->alphabet_.C;
+
+  const auto &e_cumulative = std::get<1>(GetParam());
+  EXPECT_THAT(cumulative, testing::ElementsAreArray(e_cumulative));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Alphabet,
+    AlphabetTests,
+    testing::Values(
+        std::make_tuple(
+            BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
+            Cumulative {0, 1, 5, 9, 12}),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+            Cumulative {0, 1, 5, 9, 12}),
+        std::make_tuple(
+            BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 'a', 'b', 'd', 'b', 'd', 'c', 'd'},
+            Cumulative {0, 1, 5, 6, 12, 16})
+    )
+);
+
 using Psi = sdsl::int_vector<>;
 
 class PsiTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi>> {
