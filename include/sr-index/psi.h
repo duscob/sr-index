@@ -9,7 +9,7 @@ namespace sri {
 
 //! Constructs the Psi function using BWT for text.
 template<typename TBwt, typename TAlphabet>
-auto constructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
+auto constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet) {
   const auto &n = t_bwt.size();
   const auto &sigma = t_alphabet.sigma;
   sdsl::int_vector<> cnt_chr(sigma, 0, sdsl::bits::hi(n) + 1);
@@ -28,7 +28,7 @@ auto constructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
 
 //! Constructs and stores the Psi function using BWT for text.
 template<typename TBwt, typename TAlphabet>
-void constructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
+void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
   // Store psi
   store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
 }
