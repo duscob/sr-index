@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <experimental/optional>
 
+#include "toehold.h"
+
 namespace sri {
 
 template<typename TContainer>
@@ -333,43 +335,6 @@ auto buildGetLastValue(const TRLEString &t_string, const TSampleForSAPosition &t
   return GetLastValue<TRLEString, TSampleForSAPosition>(t_string, t_sample_for_sa_position);
 }
 
-template<typename TChar>
-struct DataBackwardSearchStep {
-  TChar c;
-  std::size_t step;
-  std::size_t range_end;
-};
-
-template<typename TRLEString>
-class GetLastSpecialBackwardSearchStep {
- public:
-  explicit GetLastSpecialBackwardSearchStep(const TRLEString &t_bwt) : bwt_{t_bwt} {
-  }
-
-  template<typename TRange, typename TChar, typename TDataBackwardSearchStep>
-  auto operator()(
-      const TRange &t_range,
-      const TRange &t_next_range,
-      const TChar &t_c,
-      std::size_t t_step,
-      const TDataBackwardSearchStep &t_last_special_step) const {
-
-    if (t_next_range.second < t_next_range.first || bwt_.get()[t_range.second] == t_c) {
-      return t_last_special_step;
-    }
-
-    return TDataBackwardSearchStep{t_c, t_step, t_range.second};
-  }
-
- private:
-  TRLEString bwt_;
-};
-
-template<typename TRLEString>
-auto buildGetLastSpecialBackwardSearchStep(const TRLEString &t_string) {
-  return GetLastSpecialBackwardSearchStep<TRLEString>(t_string);
-}
-
 template<typename TSampleAt, typename TBackwardNav>
 class GetValueForSAPosition {
  public:
@@ -486,7 +451,7 @@ class GetDataFirstBackwardSearchStep {
   }
 
   auto operator()(std::size_t t_step) const {
-    return DataBackwardSearchStep<TChar>{c, t_step, range_end};
+    return DataBackwardSearchStep<TChar>{c, t_step, 0, range_end};
   }
 
  private:
