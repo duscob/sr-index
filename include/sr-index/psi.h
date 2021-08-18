@@ -5,6 +5,9 @@
 #ifndef SRI_PSI_H_
 #define SRI_PSI_H_
 
+#include <sdsl/bits.hpp>
+#include <sdsl/int_vector.hpp>
+
 namespace sri {
 
 //! Constructs the Psi function using BWT for text.

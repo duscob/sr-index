@@ -5,6 +5,10 @@
 #ifndef SRI_TOEHOLD_H_
 #define SRI_TOEHOLD_H_
 
+#include <functional>
+
+#include "psi.h"
+
 namespace sri {
 
 template<typename TChar>
@@ -52,6 +56,14 @@ auto buildGetLastSpecialBackwardSearchStepForPhiBackward(const std::reference_wr
   return GetLastSpecialBackwardSearchStep(is_lf_trivial_with_bwt);
 }
 
+template<typename TBitVector>
+auto buildGetLastSpecialBackwardSearchStepForPhiForward(const std::reference_wrapper<const PsiCore<TBitVector>> &t_psi) {
+  auto is_lf_trivial_with_psi = [t_psi](const auto &tt_range, const auto &tt_c) {
+    return t_psi.get().partial_psi[tt_c][tt_range.first] == 1;
+  };
+
+  return GetLastSpecialBackwardSearchStep(is_lf_trivial_with_psi);
+}
 }
 
 #endif //SRI_TOEHOLD_H_

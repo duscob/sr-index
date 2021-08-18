@@ -8,6 +8,7 @@
 
 #include "sr-index/toehold.h"
 #include "sr-index/rle_string.hpp"
+#include "sr-index/psi.h"
 
 using BWT = std::string;
 using Range = std::pair<std::size_t, std::size_t>;
@@ -19,17 +20,17 @@ auto tie(const Data &t_data) {
   return std::tie(t_data.c, t_data.step, t_data.range_start, t_data.range_end);
 }
 
-class GetLastSpecialBackwardSearchStep_Test
+class GetLastSpecialBackwardSearchStepForPhiBackward_Test
     : public testing::TestWithParam<std::tuple<BWT, std::tuple<Range, Range, Char, Step, Data>, Data>> {
 };
 
-TEST_P(GetLastSpecialBackwardSearchStep_Test, execute) {
+TEST_P(GetLastSpecialBackwardSearchStepForPhiBackward_Test, execute) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
 
   const auto &[range, next_range, c, step, prev_data] = std::get<1>(GetParam());
 
-  auto get_data = sri::buildGetLastSpecialBackwardSearchStepForPhiBackward(std::cref(bwt));
+  auto get_data = sri::buildGetLastSpecialBackwardSearchStepForPhiBackward(std::cref(bwt_rle));
   auto data = get_data(range, next_range, c, step, prev_data);
 
   const auto &e_data = std::get<2>(GetParam());
@@ -38,27 +39,27 @@ TEST_P(GetLastSpecialBackwardSearchStep_Test, execute) {
 
 INSTANTIATE_TEST_SUITE_P(
     Toehold,
-    GetLastSpecialBackwardSearchStep_Test,
+    GetLastSpecialBackwardSearchStepForPhiBackward_Test,
     testing::Values(
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
-            std::make_tuple(Range{0, 11}, Range{0, 0}, 1, 0, Data{3, 0, 0, 11}), // Input
-            Data{1, 0, 0, 11} // Next data
+            std::make_tuple(Range{0, 11}, Range{0, 0}, 1, 4, Data{3, 5, 0, 11}), // Input
+            Data{1, 4, 0, 11} // Next data
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
-            std::make_tuple(Range{0, 11}, Range{1, 5}, 2, 0, Data{3, 0, 0, 11}), // Input
-            Data{2, 0, 0, 11} // Next data
+            std::make_tuple(Range{0, 11}, Range{1, 4}, 2, 4, Data{3, 5, 0, 11}), // Input
+            Data{2, 4, 0, 11} // Next data
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
-            std::make_tuple(Range{0, 11}, Range{9, 11}, 4, 0, Data{3, 0, 0, 11}), // Input
-            Data{4, 0, 0, 11} // Next data
+            std::make_tuple(Range{0, 11}, Range{5, 8}, 3, 4, Data{3, 5, 0, 11}), // Input
+            Data{3, 5, 0, 11} // Next data
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
-            std::make_tuple(Range{0, 11}, Range{9, 11}, 4, 2, Data{3, 2, 0, 11}), // Input
-            Data{4, 2, 0, 11} // Next data
+            std::make_tuple(Range{0, 11}, Range{9, 11}, 4, 4, Data{3, 5, 0, 11}), // Input
+            Data{4, 4, 0, 11} // Next data
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
@@ -69,6 +70,71 @@ INSTANTIATE_TEST_SUITE_P(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             std::make_tuple(Range{9, 11}, Range{1, 0}, 1, 1, Data{4, 2, 0, 11}), // Input
             Data{4, 2, 0, 11} // Next data
+        )
+    )
+);
+
+using Psi = sdsl::int_vector<>;
+using Cumulative = sdsl::int_vector<64>;
+
+class GetLastSpecialBackwardSearchStepForPhiForward_Test
+    : public testing::TestWithParam<std::tuple<Psi, Cumulative, std::tuple<Range, Range, Char, Step, Data>, Data>> {
+};
+
+TEST_P(GetLastSpecialBackwardSearchStepForPhiForward_Test, execute) {
+  const auto &psi_raw = std::get<0>(GetParam());
+  const auto &cum_c = std::get<1>(GetParam());
+  auto psi_core = sri::PsiCore(cum_c, psi_raw);
+
+  const auto &[range, next_range, c, step, prev_data] = std::get<2>(GetParam());
+
+  auto get_data = sri::buildGetLastSpecialBackwardSearchStepForPhiForward(std::cref(psi_core));
+  auto data = get_data(range, next_range, c, step, prev_data);
+
+  const auto &e_data = std::get<3>(GetParam());
+  EXPECT_EQ(tie(data), tie(e_data));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Toehold,
+    GetLastSpecialBackwardSearchStepForPhiForward_Test,
+    testing::Values(
+        // Symbols for Psi are in [0..sigma)
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            std::make_tuple(Range{0, 11}, Range{0, 0}, 0, 4, Data{3, 5, 0, 11}), // Input
+            Data{0, 4, 0, 11} // Next data
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            std::make_tuple(Range{0, 11}, Range{1, 4}, 1, 4, Data{3, 5, 0, 11}), // Input
+            Data{1, 4, 0, 11} // Next data
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            std::make_tuple(Range{0, 11}, Range{5, 8}, 2, 4, Data{3, 5, 0, 11}), // Input
+            Data{2, 4, 0, 11} // Next data
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            std::make_tuple(Range{0, 11}, Range{9, 11}, 3, 4, Data{3, 5, 0, 11}), // Input
+            Data{3, 5, 0, 11} // Next data
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            std::make_tuple(Range{9, 11}, Range{6, 8}, 2, 1, Data{3, 2, 0, 11}), // Input
+            Data{3, 2, 0, 11} // Next data
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            std::make_tuple(Range{9, 11}, Range{1, 0}, 1, 1, Data{3, 2, 0, 11}), // Input
+            Data{3, 2, 0, 11} // Next data
         )
     )
 );
