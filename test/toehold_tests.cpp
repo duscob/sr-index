@@ -178,12 +178,12 @@ INSTANTIATE_TEST_SUITE_P(
             Data{2, 0, 0, 11}, // Next data
             0 // SA value
         ),
-//        std::make_tuple(
-//            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
-//            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-//            Data{3, 0, 0, 11}, // Next data
-//            1 // SA value
-//        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 0, 0, 11}, // Next data
+            1 // SA value
+        ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
@@ -208,12 +208,12 @@ INSTANTIATE_TEST_SUITE_P(
             Data{3, 1, 1, 4}, // Next data
             6 // SA value
         ),
-//        std::make_tuple(
-//            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
-//            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-//            Data{3, 1, 0, 11}, // Next data
-//            0 // SA value
-//        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 1, 0, 11}, // Next data
+            0 // SA value
+        ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA

@@ -81,10 +81,11 @@ class ComputeToeholdValueForPhiBackward {
 
   template<typename TChar, typename TRange>
   auto operator()(const DataBackwardSearchStep<TChar> &t_data, const TRange &t_range) const {
-    //find last c in range (there must be one because range1 is not empty)
-    //and get its sample (must be sampled because it is at the end of a run)
-    //note: by previous check, bwt[range.second] != c, so we can use argument range.second
-    auto rnk = bwt_.get().rank(t_data.range_end, t_data.c); // Fixme It is posible that bwt[t_data.range_second] == t_data.c, so previous condition could be false and we need bwt_rank(t_data.range_end + 1, t_data.c)
+    // Find last c in range [t_data.range_start..t_data.range_end] (there must be one because final range is not empty)
+    // and get its sample (must be sampled because it is at the end of a run).
+
+    // Notice that it could bwt[t_data.range_end] == c, so we must use t_data.range_end + 1 as argument of bwt rank.
+    auto rnk = bwt_.get().rank(t_data.range_end + 1, t_data.c);
 
     //there must be at least one c before range.second
     assert(rnk > 0);
@@ -96,7 +97,7 @@ class ComputeToeholdValueForPhiBackward {
     auto j = bwt_.get().select(rnk, t_data.c);
 
     //the c must be in the range
-    assert(t_range.first <= j && j < t_range.second); // FIXME False since t_data.step >= 0, so we need LF steps t_data.step-times to reach t_range
+    assert(t_data.range_start <= j && j <= t_data.range_end);
 
     return (get_value_for_sa_position_(j) + bwt_.get().size() - t_data.step - 1) % bwt_.get().size();
   }
