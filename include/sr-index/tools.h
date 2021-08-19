@@ -389,47 +389,6 @@ auto buildComputeFinalValueWithLastSampledValue(const TGetValueForSAPosition &t_
   return ComputeFinalValueWithLastSampledValue<TGetValueForSAPosition>(t_get_value_for_sa_position);
 }
 
-template<typename TRLEString, typename TGetValueForSAPosition>
-class ComputeFinalValueWithLastSpecialBackwardSearchStep {
- public:
-  ComputeFinalValueWithLastSpecialBackwardSearchStep(const TRLEString &t_bwt,
-                                                     const TGetValueForSAPosition &t_get_value_for_sa_position)
-      : bwt_{t_bwt}, get_value_for_sa_position_{t_get_value_for_sa_position} {
-  }
-
-  template<typename TChar, typename TRange>
-  auto operator()(const DataBackwardSearchStep<TChar> &t_data, const TRange &t_range) const {
-    //find last c in range (there must be one because range1 is not empty)
-    //and get its sample (must be sampled because it is at the end of a run)
-    //note: by previous check, bwt[range.second] != c, so we can use argument range.second
-    auto rnk = bwt_.get().rank(t_data.range_end, t_data.c);
-
-    //there must be at least one c before range.second
-    assert(rnk > 0);
-
-    //this is the rank of the last c
-    rnk--;
-
-    //jump to the corresponding BWT position
-    auto j = bwt_.get().select(rnk, t_data.c);
-
-    //the c must be in the range
-    assert(t_range.first <= j && j < t_range.second);
-
-    return get_value_for_sa_position_(j) - t_data.step - 1;
-  }
-
- private:
-  TRLEString bwt_;
-  TGetValueForSAPosition get_value_for_sa_position_;
-};
-
-template<typename TRLEString, typename TGetValueForSAPosition>
-auto buildComputeFinalValueWithLastSpecialBackwardSearchStep(
-    const TRLEString &t_bwt, const TGetValueForSAPosition &t_get_value_for_sa_position) {
-  return ComputeFinalValueWithLastSpecialBackwardSearchStep<TRLEString, TGetValueForSAPosition>(
-      t_bwt, t_get_value_for_sa_position);
-}
 
 class GetOptionalValue {
  public:

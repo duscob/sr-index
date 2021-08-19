@@ -138,3 +138,87 @@ INSTANTIATE_TEST_SUITE_P(
         )
     )
 );
+
+using SA = sdsl::int_vector<>;
+using SAValue = std::size_t;
+
+class ComputeToeholdValueForPhiBackward_Test : public testing::TestWithParam<std::tuple<BWT, SA, Data, SAValue>> {
+};
+
+TEST_P(ComputeToeholdValueForPhiBackward_Test, execute) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::rle_string<> bwt_rle(bwt);
+
+  const auto &sa = std::get<1>(GetParam());
+  auto get_sa = [&sa](auto tt_i) { return sa[tt_i]; };
+
+  auto get_toehold_value = sri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle), get_sa);
+
+  const auto &data = std::get<2>(GetParam());
+  Range range{data.range_start, data.range_end};
+  auto sa_value = get_toehold_value(data, range);
+
+  const auto &e_sa_value = std::get<3>(GetParam());
+  EXPECT_EQ(sa_value, e_sa_value);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Toehold,
+    ComputeToeholdValueForPhiBackward_Test,
+    testing::Values(
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{1, 0, 0, 11}, // Data
+            11 // SA value
+        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{2, 0, 0, 11}, // Next data
+            0 // SA value
+        ),
+//        std::make_tuple(
+//            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+//            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+//            Data{3, 0, 0, 11}, // Next data
+//            1 // SA value
+//        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{4, 0, 0, 11}, // Next data
+            2 // SA value
+        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{4, 2, 0, 11}, // Next data
+            0 // SA value
+        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 0, 1, 4}, // Next data
+            7 // SA value
+        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 1, 1, 4}, // Next data
+            6 // SA value
+        ),
+//        std::make_tuple(
+//            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+//            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+//            Data{3, 1, 0, 11}, // Next data
+//            0 // SA value
+//        ),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{4, 2, 0, 11}, // Next data
+            0 // SA value
+        )
+    )
+);
