@@ -205,7 +205,7 @@ class Factory {
 
     auto get_value_for_sa_pos = sri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
     auto compute_final_value =
-        sri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item), get_value_for_sa_pos);
+        sri::buildComputeToeholdValueForPhiBackward(std::cref(bwt_rle_.item), get_value_for_sa_pos);
 
     return sri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
   }

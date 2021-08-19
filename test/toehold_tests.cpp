@@ -152,7 +152,7 @@ TEST_P(ComputeToeholdValueForPhiBackward_Test, execute) {
   const auto &sa = std::get<1>(GetParam());
   auto get_sa = [&sa](auto tt_i) { return sa[tt_i]; };
 
-  auto get_toehold_value = sri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle), get_sa);
+  auto get_toehold_value = sri::buildComputeToeholdValueForPhiBackward(std::cref(bwt_rle), get_sa);
 
   const auto &data = std::get<2>(GetParam());
   Range range{data.range_start, data.range_end};

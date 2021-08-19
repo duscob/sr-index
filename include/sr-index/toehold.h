@@ -71,47 +71,53 @@ auto buildGetLastSpecialBackwardSearchStepForPhiForward(const std::reference_wra
 }
 
 //! Compute toehold value for PhiBackward using BWT rank and select.
-template<typename TRLEString, typename TGetValueForSAPosition>
+template<typename TBWTRank, typename TBWTSelect, typename TGetSAValue>
 class ComputeToeholdValueForPhiBackward {
  public:
-  ComputeToeholdValueForPhiBackward(const TRLEString &t_bwt,
-                                    const TGetValueForSAPosition &t_get_value_for_sa_position)
-      : bwt_{t_bwt}, get_value_for_sa_position_{t_get_value_for_sa_position} {
+  ComputeToeholdValueForPhiBackward(
+      std::size_t t_n, const TBWTRank &t_bwt_rank, const TBWTSelect &t_bwt_select, const TGetSAValue &t_get_sa_value)
+      : n_{t_n}, bwt_rank_{t_bwt_rank}, bwt_select_{t_bwt_select}, get_sa_value_{t_get_sa_value} {
   }
 
   template<typename TChar, typename TRange>
-  auto operator()(const DataBackwardSearchStep<TChar> &t_data, const TRange &t_range) const {
+  auto operator()(const DataBackwardSearchStep<TChar> &t_data, const TRange &) const {
     // Find last c in range [t_data.range_start..t_data.range_end] (there must be one because final range is not empty)
     // and get its sample (must be sampled because it is at the end of a run).
 
     // Notice that it could bwt[t_data.range_end] == c, so we must use t_data.range_end + 1 as argument of bwt rank.
-    auto rnk = bwt_.get().rank(t_data.range_end + 1, t_data.c);
+    auto rnk = bwt_rank_(t_data.range_end + 1, t_data.c);
 
     //there must be at least one c before range.second
     assert(rnk > 0);
 
     //this is the rank of the last c
-    rnk--;
+    --rnk;
 
     //jump to the corresponding BWT position
-    auto j = bwt_.get().select(rnk, t_data.c);
+    auto j = bwt_select_(rnk, t_data.c);
 
     //the c must be in the range
     assert(t_data.range_start <= j && j <= t_data.range_end);
 
-    return (get_value_for_sa_position_(j) + bwt_.get().size() - t_data.step - 1) % bwt_.get().size();
+    return (get_sa_value_(j) + n_ - t_data.step - 1) % n_;
   }
 
  private:
-  TRLEString bwt_;
-  TGetValueForSAPosition get_value_for_sa_position_;
+  std::size_t n_;
+
+  TBWTRank bwt_rank_;
+  TBWTSelect bwt_select_;
+
+  TGetSAValue get_sa_value_;
 };
 
-template<typename TRLEString, typename TGetValueForSAPosition>
-auto buildComputeFinalValueWithLastSpecialBackwardSearchStep(
-    const TRLEString &t_bwt, const TGetValueForSAPosition &t_get_value_for_sa_position) {
-  return ComputeToeholdValueForPhiBackward<TRLEString, TGetValueForSAPosition>(
-      t_bwt, t_get_value_for_sa_position);
+template<typename TRLEString, typename TGetSAValue>
+auto buildComputeToeholdValueForPhiBackward(const std::reference_wrapper<const TRLEString> &t_bwt,
+                                            const TGetSAValue &t_get_sa_value) {
+  auto bwt_rank = [t_bwt](auto tt_pos, auto tt_c) { return t_bwt.get().rank(tt_pos, tt_c); };
+  auto bwt_select = [t_bwt](auto tt_rnk, auto tt_c) { return t_bwt.get().select(tt_rnk, tt_c); };
+
+  return ComputeToeholdValueForPhiBackward(t_bwt.get().size(), bwt_rank, bwt_select, t_get_sa_value);
 }
 
 }
