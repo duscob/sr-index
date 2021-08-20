@@ -71,28 +71,33 @@ auto buildGetLastSpecialBackwardSearchStepForPhiForward(const std::reference_wra
   return GetLastSpecialBackwardSearchStep(is_lf_trivial_with_psi);
 }
 
-//! Compute toehold value for PhiBackward using BWT rank and select.
+//! Compute toehold value for Phi Backward/Forward using BWT rank and select.
 template<typename TBWTRank, typename TBWTSelect, typename TGetSAValue>
-class ComputeToeholdValueForPhiBackward {
+class ComputeToeholdValue {
  public:
-  ComputeToeholdValueForPhiBackward(
+  ComputeToeholdValue(
       std::size_t t_n, const TBWTRank &t_bwt_rank, const TBWTSelect &t_bwt_select, const TGetSAValue &t_get_sa_value)
       : n_{t_n}, bwt_rank_{t_bwt_rank}, bwt_select_{t_bwt_select}, get_sa_value_{t_get_sa_value} {
   }
 
+  //! Find first/last symbol c in range (there must be one because final range is not empty)
+  //! and get its sample (there must be sampled because it is at the start/end of a run).
+  //! \param t_data Data associated to last special (no trivial) backward search step.
+  //! \return Toehold value for final range.
   template<typename TChar>
   auto operator()(const DataBackwardSearchStep<TChar> &t_data) const {
-    // Find last c in range [t_data.range_start..t_data.range_end] (there must be one because final range is not empty)
-    // and get its sample (there must be sampled because it is at the end of a run).
+    // Find first/last symbol c in range (there must be one because final range is not empty)
+    // and get its sample (there must be sampled because it is at the start/end of a run).
 
-    // Note that bwt[t_data.range_end] == c could be true, so we must use t_data.range_end + 1 as argument of bwt rank.
-    auto rnk = bwt_rank_(t_data.range_end + 1, t_data.c); // Rank of the last symbol c in range
+    const auto &[c, n_steps, sp, ep] = t_data;
+
+    auto rnk = bwt_rank_(sp, ep, c); // Rank of the first/last symbol c in range
     assert(("There must be at least one symbol c in the range", rnk > 0));
 
-    auto j = bwt_select_(rnk, t_data.c); // Corresponding BWT position for last symbol c in range
-    assert(("Symbol c must be in the range", t_data.range_start <= j && j <= t_data.range_end));
+    auto j = bwt_select_(rnk, c); // Corresponding BWT position for first/last symbol c in range
+    assert(("Symbol c must be in the range", sp <= j && j <= ep));
 
-    return (get_sa_value_(j) + n_ - t_data.step - 1) % n_;
+    return (get_sa_value_(j) + n_ - n_steps - 1) % n_;
   }
 
  private:
@@ -107,52 +112,27 @@ class ComputeToeholdValueForPhiBackward {
 template<typename TRLEString, typename TGetSAValue>
 auto buildComputeToeholdValueForPhiBackward(const std::reference_wrapper<const TRLEString> &t_bwt,
                                             const TGetSAValue &t_get_sa_value) {
-  auto bwt_rank = [t_bwt](auto tt_pos, auto tt_c) { return t_bwt.get().rank(tt_pos, tt_c); };
-  auto bwt_select = [t_bwt](auto tt_rnk, auto tt_c) { return t_bwt.get().select(tt_rnk - 1, tt_c); };
+  auto bwt_rank = [t_bwt](auto tt_sp, auto tt_ep, auto tt_c) {
+    // Note that bwt[ep] == c could be true, so we must use ep + 1 as argument of bwt rank.
+    return t_bwt.get().rank(tt_ep + 1, tt_c);
+  };
+  auto bwt_select = [t_bwt](auto tt_rnk, auto tt_c) {
+    // Note that for rle_string.select, rnk starts in 0.
+    return t_bwt.get().select(tt_rnk - 1, tt_c);
+  };
 
-  return ComputeToeholdValueForPhiBackward(t_bwt.get().size(), bwt_rank, bwt_select, t_get_sa_value);
+  return ComputeToeholdValue(t_bwt.get().size(), bwt_rank, bwt_select, t_get_sa_value);
 }
-
-//! Compute toehold value for PhiForward using Psi rank and select.
-template<typename TPsiRank, typename TPsiSelect, typename TGetSAValue>
-class ComputeToeholdValueForPhiForward {
- public:
-  ComputeToeholdValueForPhiForward(
-      std::size_t t_n, const TPsiRank &t_psi_rank, const TPsiSelect &t_psi_select, const TGetSAValue &t_get_sa_value)
-      : n_{t_n}, psi_rank_{t_psi_rank}, psi_select_{t_psi_select}, get_sa_value_{t_get_sa_value} {
-  }
-
-  template<typename TChar>
-  auto operator()(const DataBackwardSearchStep<TChar> &t_data) const {
-    // Find first c in range [t_data.range_start..t_data.range_end] (there must be one because final range is not empty)
-    // and get its sample (there must be sampled because it is at the start of a run).
-
-    auto rnk = psi_rank_(t_data.range_start, t_data.c) + 1; // Rank of the first c in range
-    assert(("There must be at least one symbol c in the range", rnk > 0));
-
-    auto j = psi_select_(rnk, t_data.c); // Corresponding BWT position for first symbol c in range
-    assert(("Symbol c must be in the range", t_data.range_start <= j && j <= t_data.range_end));
-
-    return (get_sa_value_(j) + n_ - t_data.step - 1) % n_;
-  }
-
- private:
-  std::size_t n_;
-
-  TPsiRank psi_rank_;
-  TPsiSelect psi_select_;
-
-  TGetSAValue get_sa_value_;
-};
 
 template<typename TBitVector, typename TGetSAValue>
 auto buildComputeToeholdValueForPhiForward(const std::reference_wrapper<const PsiCore<TBitVector>> &t_psi,
                                            const TGetSAValue &t_get_sa_value) {
-  auto psi_rank = [t_psi](auto tt_pos, auto tt_c) { return t_psi.get().rank_partial_psi[tt_c](tt_pos); };
+  auto psi_rank = [t_psi](auto tt_sp, auto tt_ep, auto tt_c) { return t_psi.get().rank_partial_psi[tt_c](tt_sp) + 1; };
   auto psi_select = [t_psi](auto tt_rnk, auto tt_c) { return t_psi.get().select_partial_psi[tt_c](tt_rnk); };
 
-  return ComputeToeholdValueForPhiForward(t_psi.get().size(), psi_rank, psi_select, t_get_sa_value);
+  return ComputeToeholdValue(t_psi.get().size(), psi_rank, psi_select, t_get_sa_value);
 }
+
 }
 
 #endif //SRI_TOEHOLD_H_
