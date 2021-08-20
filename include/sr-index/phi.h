@@ -463,7 +463,7 @@ class ComputeAllValuesWithPhiForRange {
   void operator()(const TRange &t_range, const TDataLastValue &t_k, TReport &t_report) const {
     // TODO In the case we need to backward search the value for the last position in the range,
     //  we can take advantage of this travel for the other positions in the same BWT sub-run
-    auto k = get_value_for_sa_position_(t_k, t_range);
+    auto k = get_value_for_sa_position_(t_k);
     t_report(k);
 
     auto range = t_range;

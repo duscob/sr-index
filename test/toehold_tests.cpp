@@ -155,8 +155,7 @@ TEST_P(ComputeToeholdValueForPhiBackward_Test, execute) {
   auto get_toehold_value = sri::buildComputeToeholdValueForPhiBackward(std::cref(bwt_rle), get_sa);
 
   const auto &data = std::get<2>(GetParam());
-  Range range{data.range_start, data.range_end};
-  auto sa_value = get_toehold_value(data, range);
+  auto sa_value = get_toehold_value(data);
 
   const auto &e_sa_value = std::get<3>(GetParam());
   EXPECT_EQ(sa_value, e_sa_value);
@@ -169,56 +168,148 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{1, 0, 0, 11}, // Data
+            Data{1, 0, 0, 11}, // Data for pattern "1"
             11 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{2, 0, 0, 11}, // Next data
+            Data{2, 0, 0, 11}, // Data for pattern "2"
             0 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{3, 0, 0, 11}, // Next data
+            Data{3, 0, 0, 11}, // Data for pattern "3"
             1 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{4, 0, 0, 11}, // Next data
+            Data{4, 0, 0, 11}, // Data for pattern "4"
             2 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{4, 2, 0, 11}, // Next data
+            Data{4, 2, 0, 11}, // Data for pattern "2 3 4"
             0 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{3, 0, 1, 4}, // Next data
+            Data{3, 0, 1, 4}, // Data for pattern "3 2"
             7 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{3, 1, 1, 4}, // Next data
+            Data{3, 1, 1, 4}, // Data for pattern "2 3 2"
             6 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{3, 1, 0, 11}, // Next data
+            Data{3, 1, 0, 11}, // Data for pattern "2 3"
             0 // SA value
         ),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, // BWT
             SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
-            Data{4, 2, 0, 11}, // Next data
+            Data{4, 2, 0, 11}, // Data for pattern "2 3 4"
             0 // SA value
+        )
+    )
+);
+
+class ComputeToeholdValueForPhiForward_Test
+    : public testing::TestWithParam<std::tuple<Psi, Cumulative, SA, Data, SAValue>> {
+};
+
+TEST_P(ComputeToeholdValueForPhiForward_Test, execute) {
+  const auto &psi_raw = std::get<0>(GetParam());
+  const auto &cum_c = std::get<1>(GetParam());
+  auto psi_core = sri::PsiCore(cum_c, psi_raw);
+
+  const auto &sa = std::get<2>(GetParam());
+  auto get_sa = [&sa](auto tt_i) { return sa[tt_i]; };
+
+  auto get_toehold_value = sri::buildComputeToeholdValueForPhiForward(std::cref(psi_core), get_sa);
+
+  const auto &data = std::get<3>(GetParam());
+  auto sa_value = get_toehold_value(data);
+
+  const auto &e_sa_value = std::get<4>(GetParam());
+  EXPECT_EQ(sa_value, e_sa_value);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Toehold,
+    ComputeToeholdValueForPhiForward_Test,
+    testing::Values(
+        // Symbols for Psi are in [0..sigma)
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{0, 0, 0, 11}, // Data for pattern "0"
+            11 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{1, 0, 0, 11}, // Data for pattern "1"
+            6 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{2, 0, 0, 11}, // Data for pattern "2"
+            7 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 0, 0, 11}, // Data for pattern "3"
+            10 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 2, 0, 11}, // Data for pattern "1 2 3"
+            8 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{2, 0, 1, 4}, // Data for pattern "2 1"
+            7 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{2, 1, 1, 4}, // Data for pattern "1 2 1"
+            6 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{2, 1, 0, 11}, // Data for pattern "1 2"
+            6 // SA value
+        ),
+        std::make_tuple(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
+            Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
+            SA{11, 6, 8, 3, 0, 7, 9, 4, 1, 10, 5, 2}, // SA
+            Data{3, 2, 0, 11}, // Data for pattern "1 2 3"
+            8 // SA value
         )
     )
 );

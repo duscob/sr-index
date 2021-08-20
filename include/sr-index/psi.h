@@ -52,22 +52,21 @@ class PsiCore {
    * @tparam TCumulativeC Random access container
    * @tparam TPsi Random access container
    * @param t_cumulative_c Cumulative count for the alphabet [0..sigma]
-   * @param t_psi Full psi function
+   * @param t_psi Full psi function as a container
    */
   template<typename TCumulativeC, typename TPsi>
   PsiCore(const TCumulativeC &t_cumulative_c, const TPsi &t_psi) {
     auto sigma = t_cumulative_c.size() - 1;
+    n_ = t_cumulative_c[sigma];
 
     // Reserve space for psis is critical to avoid invalid pointers in rank/select data structures
     partial_psi_.reserve(sigma);
     rank_partial_psi_.reserve(sigma);
     select_partial_psi_.reserve(sigma);
 
-    auto n = t_cumulative_c[sigma];
-
     for (std::size_t i = 1; i <= sigma; ++i) {
       // Partial psi for character i
-      sdsl::bit_vector psi_c(n, 0);
+      sdsl::bit_vector psi_c(n_, 0);
 
       // Marks psi values in range of SA corresponding to character i
       for (auto j = t_cumulative_c[i - 1]; j < t_cumulative_c[i]; ++j) {
@@ -79,6 +78,8 @@ class PsiCore {
       select_partial_psi_.emplace_back(&partial_psi_.back());
     }
   }
+
+  [[nodiscard]] inline std::size_t size() const { return n_; }
 
   typedef std::size_t size_type;
 
@@ -109,6 +110,8 @@ class PsiCore {
   }
 
  private:
+  std::size_t n_ = 0;
+
   // Partial psi function per character. Each bit-vector marks the psi values in the range on SA for the corresponding character.
   std::vector<TBitVector> partial_psi_;
   std::vector<TRank> rank_partial_psi_; // Ranks for partial psis.
