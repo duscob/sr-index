@@ -44,9 +44,9 @@ auto buildGetInitialDataBackwardSearchStep(const TChar &t_c, std::size_t t_range
 //! \tparam TIsLFTrivial Predicate to check if the LF step in the range with the character is trivial,
 //!     i.e., if lf(range, c) matches with next_range in the corresponding limit.
 template<typename TIsLFTrivial>
-class GetLastSpecialBackwardSearchStep {
+class ComputeDataBackwardSearchStep {
  public:
-  explicit GetLastSpecialBackwardSearchStep(const TIsLFTrivial &t_is_lf_trivial) : is_lf_trivial_{t_is_lf_trivial} {
+  explicit ComputeDataBackwardSearchStep(const TIsLFTrivial &t_is_lf_trivial) : is_lf_trivial_{t_is_lf_trivial} {
   }
 
   template<typename TRange, typename TChar, typename TDataBackwardSearchStep>
@@ -73,21 +73,21 @@ class GetLastSpecialBackwardSearchStep {
 };
 
 template<typename TRLEString>
-auto buildGetLastSpecialBackwardSearchStepForPhiBackward(const std::reference_wrapper<const TRLEString> &t_bwt) {
+auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapper<const TRLEString> &t_bwt) {
   auto is_lf_trivial_with_bwt = [t_bwt](const auto &tt_range, const auto &tt_c) {
     return t_bwt.get()[tt_range.second] == tt_c;
   };
 
-  return GetLastSpecialBackwardSearchStep(is_lf_trivial_with_bwt);
+  return ComputeDataBackwardSearchStep(is_lf_trivial_with_bwt);
 }
 
 template<typename TBitVector>
-auto buildGetLastSpecialBackwardSearchStepForPhiForward(const std::reference_wrapper<const PsiCore<TBitVector>> &t_psi) {
+auto buildComputeDataBackwardSearchStepForPhiForward(const std::reference_wrapper<const PsiCore<TBitVector>> &t_psi) {
   auto is_lf_trivial_with_psi = [t_psi](const auto &tt_range, const auto &tt_c) {
     return t_psi.get().partial_psi[tt_c][tt_range.first] == 1;
   };
 
-  return GetLastSpecialBackwardSearchStep(is_lf_trivial_with_psi);
+  return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi);
 }
 
 //! Compute toehold value for Phi Backward/Forward using BWT rank and select.

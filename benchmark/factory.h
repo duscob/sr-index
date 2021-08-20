@@ -146,7 +146,7 @@ class Factory {
   }
 
   auto makeGetLastSpecialBackwardSearchStep() const {
-    return sri::buildGetLastSpecialBackwardSearchStepForPhiBackward(std::cref(bwt_rle_.item));
+    return sri::buildComputeDataBackwardSearchStepForPhiBackward(std::cref(bwt_rle_.item));
   }
 
   template<typename TGetPredToRun, typename TSampledTailValidator>

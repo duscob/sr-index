@@ -30,7 +30,7 @@ TEST_P(GetLastSpecialBackwardSearchStepForPhiBackward_Test, execute) {
 
   const auto &[range, next_range, c, step, prev_data] = std::get<1>(GetParam());
 
-  auto get_data = sri::buildGetLastSpecialBackwardSearchStepForPhiBackward(std::cref(bwt_rle));
+  auto get_data = sri::buildComputeDataBackwardSearchStepForPhiBackward(std::cref(bwt_rle));
   auto data = get_data(range, next_range, c, step, prev_data);
 
   const auto &e_data = std::get<2>(GetParam());
@@ -88,7 +88,7 @@ TEST_P(GetLastSpecialBackwardSearchStepForPhiForward_Test, execute) {
 
   const auto &[range, next_range, c, step, prev_data] = std::get<2>(GetParam());
 
-  auto get_data = sri::buildGetLastSpecialBackwardSearchStepForPhiForward(std::cref(psi_core));
+  auto get_data = sri::buildComputeDataBackwardSearchStepForPhiForward(std::cref(psi_core));
   auto data = get_data(range, next_range, c, step, prev_data);
 
   const auto &e_data = std::get<3>(GetParam());
