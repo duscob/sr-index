@@ -21,6 +21,25 @@ struct DataBackwardSearchStep {
   std::size_t range_end; // End of range before LF step
 };
 
+template<typename TChar>
+class GetInitialDataBackwardSearchStep {
+ public:
+  GetInitialDataBackwardSearchStep(const TChar &t_c, std::size_t t_range_end) : c{t_c}, range_end{t_range_end} {}
+
+  auto operator()(std::size_t t_step) const {
+    return DataBackwardSearchStep<TChar>{c, t_step, 0, range_end};
+  }
+
+ private:
+  TChar c;
+  std::size_t range_end;
+};
+
+template<typename TChar>
+auto buildGetInitialDataBackwardSearchStep(const TChar &t_c, std::size_t t_range_end) {
+  return GetInitialDataBackwardSearchStep<TChar>(t_c, t_range_end);
+}
+
 //! Compute data corresponding to backward-search step for given range and character
 //! \tparam TIsLFTrivial Predicate to check if the LF step in the range with the character is trivial,
 //!     i.e., if lf(range, c) matches with next_range in the corresponding limit.
