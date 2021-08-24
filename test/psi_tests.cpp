@@ -38,6 +38,39 @@ class BasePsiTests : public testing::Test {
   sdsl::byte_alphabet alphabet_;
 };
 
+using Cumulative = sdsl::int_vector<64>;
+
+class AlphabetTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Cumulative>> {
+ protected:
+  void SetUp() override {
+    const auto &bwt = std::get<0>(GetParam());
+    BasePsiTests::SetUp(bwt);
+  }
+};
+
+TEST_P(AlphabetTests, construct) {
+  const auto &cumulative = this->alphabet_.C;
+
+  const auto &e_cumulative = std::get<1>(GetParam());
+  EXPECT_THAT(cumulative, testing::ElementsAreArray(e_cumulative));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Alphabet,
+    AlphabetTests,
+    testing::Values(
+        std::make_tuple(
+            BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
+            Cumulative {0, 1, 5, 9, 12}),
+        std::make_tuple(
+            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+            Cumulative {0, 1, 5, 9, 12}),
+        std::make_tuple(
+            BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 'a', 'b', 'd', 'b', 'd', 'c', 'd'},
+            Cumulative {0, 1, 5, 6, 12, 16})
+    )
+);
+
 using Psi = sdsl::int_vector<>;
 
 class PsiTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi>> {
@@ -51,7 +84,7 @@ class PsiTests : public BasePsiTests, public testing::WithParamInterface<std::tu
 TEST_P(PsiTests, construct) {
   const auto &bwt = std::get<0>(GetParam());
 
-  auto psi = sri::ConstructPsi(bwt, alphabet_);
+  auto psi = sri::constructPsi(bwt, alphabet_);
 
   const auto &e_psi = std::get<1>(GetParam());
   EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
@@ -60,7 +93,7 @@ TEST_P(PsiTests, construct) {
 TEST_P(PsiTests, store) {
   const auto &bwt = std::get<0>(GetParam());
 
-  sri::ConstructPsi(bwt, alphabet_, config_);
+  sri::constructPsi(bwt, alphabet_, config_);
 
   sdsl::int_vector<> psi;
   sdsl::load_from_cache(psi, sdsl::conf::KEY_PSI, config_);
@@ -75,7 +108,7 @@ TEST_P(PsiTests, partial_psi) {
   auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -98,7 +131,7 @@ TEST_P(PsiTests, partial_psi_serialize) {
   sdsl::load_from_cache(psi_core, key, config_);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -114,7 +147,7 @@ TEST_P(PsiTests, partial_psi_sd_vector) {
   auto psi_core = sri::PsiCore<sdsl::sd_vector<>>(alphabet_.C, e_psi);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -130,7 +163,7 @@ TEST_P(PsiTests, partial_psi_rrr_vector) {
   auto psi_core = sri::PsiCore<sdsl::rrr_vector<>>(alphabet_.C, e_psi);
 
   auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
-  auto get_c = [this](auto tt_index) { return sri::GetCForSAIndex(this->alphabet_.C, tt_index); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);

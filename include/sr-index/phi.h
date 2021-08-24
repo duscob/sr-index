@@ -60,7 +60,7 @@ class GetSampleForPhi {
  * @return <s, v>: next value in SA and its validity.
  */
 template<typename TGetRelatedValue, typename TGetSample, typename TGetDelta, typename TGetNextValue>
-auto Phi(std::size_t t_prev_value,
+auto phi(std::size_t t_prev_value,
          const TGetRelatedValue &t_get_related_value,
          const TGetSample &t_get_sample,
          const TGetDelta &t_get_delta,
@@ -108,7 +108,7 @@ class PhiBackward {
       return (t_sample + t_delta) % size;
     };
 
-    return Phi(t_prev_value, predecessor_, get_sample_, get_delta, get_next_value);
+    return phi(t_prev_value, predecessor_, get_sample_, get_delta, get_next_value);
   }
 
  private:
@@ -157,7 +157,7 @@ class PhiForward {
       return t_sample - t_delta;
     };
 
-    return Phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
+    return phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
   }
 
  private:
@@ -188,22 +188,45 @@ auto buildPhiForward(const TSoftSuccessor &t_soft_successor,
  * @param t_report Reporter for the links
  */
 template<typename TSelectMarkSAPos, typename TRankSampleSAPos, typename TLF, typename TPsi, typename TReport>
-void ComputeMarkToSampleLinkForPhiForward(std::size_t t_n,
+void computeMarkToSampleLinkForPhiForward(std::size_t t_n,
                                           std::size_t t_r,
                                           const TSelectMarkSAPos &t_select_mark_sa_pos,
                                           const TRankSampleSAPos &t_rank_sample_sa_pos,
                                           const TLF &t_lf,
                                           const TPsi &t_psi,
                                           TReport &t_report) {
+  auto rank_sample = [&t_rank_sample_sa_pos](const auto &tt_k) {
+    return t_rank_sample_sa_pos(tt_k + 1) - 1;
+  };
+
   for (std::size_t i = 1; i <= t_r; ++i) {
-    // Current BWT run tail could travel together its following symbol until previous LF step
-    auto j = t_lf(t_select_mark_sa_pos(i)); // Position of previous symbol
-
-    // Psi value of the following symbol (ISA[SA[j + 1] + 1]) is the BWT run head (sample) associated to current BWT run tail (mark value)
-    auto k = t_psi((j + 1) % t_n); // Psi position of next symbol in SA
-
-    t_report(i - 1, t_rank_sample_sa_pos(k + 1) - 1);
+    t_report(i - 1, computeMarkToSampleLinkForPhiForward(t_select_mark_sa_pos(i), t_n, t_lf, t_psi, rank_sample));
   }
+}
+
+//! Compute link between a marked position (BWT tail) and its corresponding sample (BWT heads) to be used in PhiForward function.
+/**
+ * @param t_mark_pos Marked position or position of the last letter of a BWT run
+ * @param t_n Number of symbols in the sequence
+ * @param t_lf LF function
+ * @param t_psi Psi function
+ * @param t_rank_sample Compute index (rank) for sample position in BWT
+ * @param t_report Reporter for the links
+ * @return Index of sample associated to given mark position
+ */
+template<typename TLF, typename TPsi, typename TRankSample>
+auto computeMarkToSampleLinkForPhiForward(std::size_t t_mark_pos,
+                                          std::size_t t_n,
+                                          const TLF &t_lf,
+                                          const TPsi &t_psi,
+                                          const TRankSample &t_rank_sample) {
+  // Current BWT run tail could travel together its following symbol until previous LF step
+  auto j = t_lf(t_mark_pos); // Position of previous symbol
+
+  // Psi value of the following symbol (ISA[SA[j + 1] + 1]) is the BWT run head (sample) associated to current BWT run tail (mark value)
+  auto k = t_psi((j + 1) % t_n); // Psi position of next symbol in SA
+
+  return t_rank_sample(k);
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
@@ -440,7 +463,7 @@ class ComputeAllValuesWithPhiForRange {
   void operator()(const TRange &t_range, const TDataLastValue &t_k, TReport &t_report) const {
     // TODO In the case we need to backward search the value for the last position in the range,
     //  we can take advantage of this travel for the other positions in the same BWT sub-run
-    auto k = get_value_for_sa_position_(t_k, t_range);
+    auto k = get_value_for_sa_position_(t_k);
     t_report(k);
 
     auto range = t_range;

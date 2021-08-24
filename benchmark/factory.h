@@ -146,7 +146,7 @@ class Factory {
   }
 
   auto makeGetLastSpecialBackwardSearchStep() const {
-    return sri::buildGetLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item));
+    return sri::buildComputeDataBackwardSearchStepForPhiBackward(std::cref(bwt_rle_.item));
   }
 
   template<typename TGetPredToRun, typename TSampledTailValidator>
@@ -205,7 +205,7 @@ class Factory {
 
     auto get_value_for_sa_pos = sri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
     auto compute_final_value =
-        sri::buildComputeFinalValueWithLastSpecialBackwardSearchStep(std::cref(bwt_rle_.item), get_value_for_sa_pos);
+        sri::buildComputeToeholdValueForPhiBackward(std::cref(bwt_rle_.item), get_value_for_sa_pos);
 
     return sri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
   }
@@ -259,7 +259,7 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), false);
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto sa_end_value = sri::buildGetDataFirstBackwardSearchStep(
+        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(
             bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {sri::buildSharedPtrRIndex(makeLF(),
@@ -278,7 +278,7 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto sa_end_value = sri::buildGetDataFirstBackwardSearchStep(
+        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(
             bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {sri::buildSharedPtrRIndex(makeLF(),
@@ -300,7 +300,7 @@ class Factory {
             sri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
         auto phi = makePhi(components, get_pred_to_run, sample_validator);
 
-        auto sa_end_value = sri::buildGetDataFirstBackwardSearchStep(
+        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(
             bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
         return {sri::buildSharedPtrRIndex(makeLF(),

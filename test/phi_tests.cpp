@@ -176,7 +176,7 @@ class ComputeMarkToSampleLinkForPhiForward_Tests
     : public testing::TestWithParam<std::tuple<BWT, F, Psi, std::size_t, BWTHeadsPos, BWTTailsPos, Links>> {
 };
 
-TEST_P(ComputeMarkToSampleLinkForPhiForward_Tests, compute) {
+TEST_P(ComputeMarkToSampleLinkForPhiForward_Tests, compute_bv) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
   auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle));
@@ -196,12 +196,51 @@ TEST_P(ComputeMarkToSampleLinkForPhiForward_Tests, compute) {
   const auto &bwt_tails_pos = std::get<5>(GetParam());
   auto tails_select = BWTTailsPos::select_1_type(&bwt_tails_pos);
 
-  const auto &e_links = std::get<6>(GetParam());
   IntVector links(r, 0);
   auto report_link = [&links](auto tt_i, auto tt_l) { links[tt_i] = tt_l; };
 
-  sri::ComputeMarkToSampleLinkForPhiForward(bwt.size(), r, tails_select, heads_rank, lf, psi, report_link);
+  sri::computeMarkToSampleLinkForPhiForward(bwt.size(), r, tails_select, heads_rank, lf, psi, report_link);
 
+  const auto &e_links = std::get<6>(GetParam());
+  EXPECT_THAT(links, testing::ElementsAreArray(e_links));
+}
+
+TEST_P(ComputeMarkToSampleLinkForPhiForward_Tests, compute_v) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::rle_string<> bwt_rle(bwt);
+  auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle));
+  auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle));
+
+  const auto &f = std::get<1>(GetParam());
+  auto get_f = sri::buildRandomAccessForContainer(std::cref(f));
+  auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
+
+  auto psi = sri::RandomAccessForCRefContainer(std::cref(std::get<2>(GetParam())));
+
+  auto r = std::get<3>(GetParam());
+
+  auto get_mark_pos = [](const auto &tt_bv) {
+    std::vector<std::size_t> pos;
+    for (int i = 0; i < tt_bv.size(); ++i) {
+      if (tt_bv[i])
+        pos.push_back(i);
+    }
+    return pos;
+  };
+
+  auto bwt_head_pos = get_mark_pos(std::get<4>(GetParam()));
+  auto rank_sample = [&bwt_head_pos](const auto &tt_k) {
+    return std::lower_bound(bwt_head_pos.begin(), bwt_head_pos.end(), tt_k) - bwt_head_pos.begin();
+  };
+
+  auto bwt_tail_pos = get_mark_pos(std::get<5>(GetParam()));
+
+  IntVector links(r, 0);
+  for (std::size_t i = 0; i < r; ++i) {
+    links[i] = computeMarkToSampleLinkForPhiForward(bwt_tail_pos[i], bwt.size(), lf, psi, rank_sample);
+  }
+
+  const auto &e_links = std::get<6>(GetParam());
   EXPECT_THAT(links, testing::ElementsAreArray(e_links));
 }
 

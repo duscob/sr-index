@@ -2,14 +2,17 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/5/21.
 //
 
-#ifndef SR_INDEX_PSI_H_
-#define SR_INDEX_PSI_H_
+#ifndef SRI_PSI_H_
+#define SRI_PSI_H_
+
+#include <sdsl/bits.hpp>
+#include <sdsl/int_vector.hpp>
 
 namespace sri {
 
 //! Constructs the Psi function using BWT for text.
 template<typename TBwt, typename TAlphabet>
-auto ConstructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
+auto constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet) {
   const auto &n = t_bwt.size();
   const auto &sigma = t_alphabet.sigma;
   sdsl::int_vector<> cnt_chr(sigma, 0, sdsl::bits::hi(n) + 1);
@@ -28,9 +31,9 @@ auto ConstructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet) {
 
 //! Constructs and stores the Psi function using BWT for text.
 template<typename TBwt, typename TAlphabet>
-void ConstructPsi(const TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
+void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
   // Store psi
-  store_to_cache(ConstructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
+  store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
 }
 
 //! Psi function core-representation based on partial psis.
@@ -49,22 +52,21 @@ class PsiCore {
    * @tparam TCumulativeC Random access container
    * @tparam TPsi Random access container
    * @param t_cumulative_c Cumulative count for the alphabet [0..sigma]
-   * @param t_psi Full psi function
+   * @param t_psi Full psi function as a container
    */
   template<typename TCumulativeC, typename TPsi>
   PsiCore(const TCumulativeC &t_cumulative_c, const TPsi &t_psi) {
     auto sigma = t_cumulative_c.size() - 1;
+    n_ = t_cumulative_c[sigma];
 
     // Reserve space for psis is critical to avoid invalid pointers in rank/select data structures
     partial_psi_.reserve(sigma);
     rank_partial_psi_.reserve(sigma);
     select_partial_psi_.reserve(sigma);
 
-    auto n = t_cumulative_c[sigma];
-
     for (std::size_t i = 1; i <= sigma; ++i) {
       // Partial psi for character i
-      sdsl::bit_vector psi_c(n, 0);
+      sdsl::bit_vector psi_c(n_, 0);
 
       // Marks psi values in range of SA corresponding to character i
       for (auto j = t_cumulative_c[i - 1]; j < t_cumulative_c[i]; ++j) {
@@ -76,6 +78,8 @@ class PsiCore {
       select_partial_psi_.emplace_back(&partial_psi_.back());
     }
   }
+
+  [[nodiscard]] inline std::size_t size() const { return n_; }
 
   typedef std::size_t size_type;
 
@@ -106,6 +110,8 @@ class PsiCore {
   }
 
  private:
+  std::size_t n_ = 0;
+
   // Partial psi function per character. Each bit-vector marks the psi values in the range on SA for the corresponding character.
   std::vector<TBitVector> partial_psi_;
   std::vector<TRank> rank_partial_psi_; // Ranks for partial psis.
@@ -121,7 +127,7 @@ class PsiCore {
  * @return Character corresponding to index
  */
 template<typename TCumulativeC>
-auto GetCForSAIndex(const TCumulativeC &t_cumulative_c, std::size_t t_index) {
+auto computeCForSAIndex(const TCumulativeC &t_cumulative_c, std::size_t t_index) {
   auto upper_bound = std::upper_bound(t_cumulative_c.begin(), t_cumulative_c.end(), t_index);
   return std::distance(t_cumulative_c.begin(), upper_bound) - 1;
 }
@@ -159,7 +165,7 @@ template<typename TRankPartialPsi, typename TCumulativeC>
 class LFOnPsi {
  public:
   LFOnPsi(const TRankPartialPsi &t_rank_partial_psi, const TCumulativeC &t_cumulative_c)
-  : rank_partial_psi_{t_rank_partial_psi}, cumulative_c_{t_cumulative_c} {
+      : rank_partial_psi_{t_rank_partial_psi}, cumulative_c_{t_cumulative_c} {
   }
 
   //! LFOnPsi function
@@ -196,4 +202,4 @@ class LFOnPsi {
 };
 }
 
-#endif //SR_INDEX_PSI_H_
+#endif //SRI_PSI_H_
