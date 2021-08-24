@@ -79,6 +79,12 @@ class PsiCore {
     }
   }
 
+  template<typename TChar>
+  auto rank(TChar t_c, std::size_t t_i) const { return rank_partial_psi_[t_c](t_i); }
+
+  template<typename TChar>
+  auto select(TChar t_c, std::size_t t_rnk) const { return select_partial_psi_[t_c](t_rnk); }
+
   [[nodiscard]] inline std::size_t size() const { return n_; }
 
   typedef std::size_t size_type;
@@ -147,7 +153,7 @@ class Psi {
 
   auto operator()(std::size_t t_index) const {
     auto c = get_c_(t_index);
-    return select_partial_psi_[c](t_index - cumulative_c_[c] + 1);
+    return select_partial_psi_(c, t_index - cumulative_c_[c] + 1);
   }
 
  private:
@@ -181,10 +187,10 @@ class LFOnPsi {
     auto[sp, ep] = t_range;
 
     // Number of c before the interval
-    auto c_before_sp = rank_partial_psi_[t_c](sp);
+    auto c_before_sp = rank_partial_psi_(t_c, sp);
 
     // Number of c before the interval + number of c inside the interval range
-    auto c_until_ep = rank_partial_psi_[t_c](ep + 1);
+    auto c_until_ep = rank_partial_psi_(t_c, ep + 1);
 
     // If there are no c in the interval, return empty range
     if (c_before_sp == c_until_ep)
