@@ -12,7 +12,6 @@
 namespace sri {
 
 //! Data for the current backward-search step to compute toehold value for final range
-//! \tparam TChar
 template<typename TChar>
 struct DataBackwardSearchStep {
   TChar c; // Character for LF step in the range

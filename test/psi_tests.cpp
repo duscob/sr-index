@@ -61,13 +61,13 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         std::make_tuple(
             BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
-            Cumulative {0, 1, 5, 9, 12}),
+            Cumulative{0, 1, 5, 9, 12}),
         std::make_tuple(
             BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-            Cumulative {0, 1, 5, 9, 12}),
+            Cumulative{0, 1, 5, 9, 12}),
         std::make_tuple(
             BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 'a', 'b', 'd', 'b', 'd', 'c', 'd'},
-            Cumulative {0, 1, 5, 6, 12, 16})
+            Cumulative{0, 1, 5, 6, 12, 16})
     )
 );
 
@@ -102,12 +102,12 @@ TEST_P(PsiTests, store) {
   EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
 }
 
-TEST_P(PsiTests, partial_psi) {
+TEST_P(PsiTests, psi_core) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
 
-  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
@@ -118,7 +118,7 @@ TEST_P(PsiTests, partial_psi) {
   }
 }
 
-TEST_P(PsiTests, partial_psi_serialize) {
+TEST_P(PsiTests, psi_core_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
   auto key = "psi_core";
 
@@ -130,7 +130,7 @@ TEST_P(PsiTests, partial_psi_serialize) {
   sri::PsiCore<> psi_core;
   sdsl::load_from_cache(psi_core, key, config_);
 
-  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
@@ -141,12 +141,12 @@ TEST_P(PsiTests, partial_psi_serialize) {
   }
 }
 
-TEST_P(PsiTests, partial_psi_sd_vector) {
+TEST_P(PsiTests, psi_core_sd_vector) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCore<sdsl::sd_vector<>>(alphabet_.C, e_psi);
 
-  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
@@ -157,12 +157,53 @@ TEST_P(PsiTests, partial_psi_sd_vector) {
   }
 }
 
-TEST_P(PsiTests, partial_psi_rrr_vector) {
+TEST_P(PsiTests, psi_core_rrr_vector) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCore<sdsl::rrr_vector<>>(alphabet_.C, e_psi);
 
-  auto psi_select = sri::RandomAccessForCRefContainer(std::cref(psi_core.select_partial_psi));
+  auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+  for (int i = 0; i < e_psi.size(); ++i) {
+    EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
+  }
+}
+
+TEST_P(PsiTests, psi_rle) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+
+  auto psi_select = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.select(tt_c, tt_rnk); };
+  auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+  EXPECT_EQ(psi_rle.getFirstBWTSymbol(), alphabet_.char2comp[bwt_buf_[0]]);
+
+  for (int i = 0; i < e_psi.size(); ++i) {
+    EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
+  }
+}
+
+TEST_P(PsiTests, psi_rle_serialized) {
+  const auto &e_psi = std::get<1>(GetParam());
+  auto key = "psi_rle";
+
+  {
+    auto tmp_psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+    sdsl::store_to_cache(tmp_psi_rle, key, config_);
+  }
+
+  sri::PsiRLE<> psi_rle;
+  sdsl::load_from_cache(psi_rle, key, config_);
+
+  auto psi_select = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
@@ -200,12 +241,12 @@ class LFOnPsiTests : public BasePsiTests, public testing::WithParamInterface<std
   }
 };
 
-TEST_P(LFOnPsiTests, lf) {
+TEST_P(LFOnPsiTests, psi_core) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
 
-  auto psi_rank = sri::RandomAccessForCRefContainer(std::cref(psi_core.rank_partial_psi));
+  auto psi_rank = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.rank(tt_c, tt_rnk); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
@@ -219,7 +260,7 @@ TEST_P(LFOnPsiTests, lf) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, lf_serialized_phi) {
+TEST_P(LFOnPsiTests, psi_core_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
   auto key = "psi_core";
 
@@ -231,7 +272,52 @@ TEST_P(LFOnPsiTests, lf_serialized_phi) {
   sri::PsiCore<> psi_core;
   sdsl::load_from_cache(psi_core, key, config_);
 
-  auto psi_rank = sri::RandomAccessForCRefContainer(std::cref(psi_core.rank_partial_psi));
+  auto psi_rank = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.rank(tt_c, tt_rnk); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto lf = sri::LFOnPsi(psi_rank, cumulative);
+
+  const auto &range = std::get<2>(GetParam());
+  Char c = std::get<3>(GetParam());
+
+  auto new_range = lf(range, alphabet_.char2comp[c]);
+
+  auto e_range = std::get<4>(GetParam());
+  EXPECT_EQ(new_range, e_range);
+}
+
+TEST_P(LFOnPsiTests, psi_rle) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+
+  auto psi_rank = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.rank(tt_c, tt_rnk); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto lf = sri::LFOnPsi(psi_rank, cumulative);
+
+  const auto &range = std::get<2>(GetParam());
+  Char c = std::get<3>(GetParam());
+
+  auto new_range = lf(range, alphabet_.char2comp[c]);
+
+  auto e_range = std::get<4>(GetParam());
+  EXPECT_EQ(new_range, e_range);
+}
+
+TEST_P(LFOnPsiTests, psi_rle_serialized) {
+  const auto &e_psi = std::get<1>(GetParam());
+  auto key = "psi_rle";
+
+  {
+    auto tmp_psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+    sdsl::store_to_cache(tmp_psi_rle, key, config_);
+  }
+
+  sri::PsiRLE<> psi_rle;
+  sdsl::load_from_cache(psi_rle, key, config_);
+
+  auto psi_rank = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.rank(tt_c, tt_rnk); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
@@ -295,11 +381,52 @@ INSTANTIATE_TEST_SUITE_P(
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{10, 11},
                         2,
-                        Range{1, 0}), // 2 before 42
+                        Range{1, 0}), // 2 before 4
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{10, 11},
                         3,
-                        Range{7, 8}) // 3 before 42
+                        Range{7, 8}), // 3 before 4
+
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{1, 8},
+                        3,
+                        Range{5, 5}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{1, 9},
+                        3,
+                        Range{5, 6}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{1, 10},
+                        3,
+                        Range{5, 7}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{2, 4},
+                        3,
+                        Range{5, 5}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{2, 8},
+                        3,
+                        Range{5, 5}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{2, 9},
+                        3,
+                        Range{5, 6}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{3, 4},
+                        3,
+                        Range{1, 0}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{3, 9},
+                        3,
+                        Range{6, 6})
     )
 );

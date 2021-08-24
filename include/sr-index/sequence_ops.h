@@ -27,7 +27,7 @@ class CircularPredecessor {
   /**
    * @param i Number to search.
    * @return <o, v>: the predecessor of i is the o-th number and its value is v.
-   * @note The search is circular. The predecessor is strictly lower (or higher if i is lesser all values).
+   * @note The search is circular. The predecessor is strictly lower (or higher if i is less than all values).
    */
   auto operator()(std::size_t i) const {
     auto order = (rank_(i) + n_ones_ - 1) % n_ones_;
