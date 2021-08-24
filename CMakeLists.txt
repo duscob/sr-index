@@ -50,6 +50,9 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/sparse_hyb_vector.hpp
         ${PROJECT_SOURCE_DIR}/include/sr-index/rle_string.hpp
         ${PROJECT_SOURCE_DIR}/include/sr-index/psi.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/io.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/enc_vector.hpp
+        ${PROJECT_SOURCE_DIR}/include/sr-index/coder.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/toehold.h
         )
 

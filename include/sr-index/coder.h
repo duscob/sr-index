@@ -5,6 +5,9 @@
 #ifndef SRI_CODER_H_
 #define SRI_CODER_H_
 
+#include <sdsl/coder.hpp>
+#include <sdsl/bits.hpp>
+
 namespace sri {
 
 template<typename T>
