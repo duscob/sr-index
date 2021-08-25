@@ -30,7 +30,7 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_TO_FIRST_IDX;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
 
   static const std::string KEY_ALPHABET;
 };
@@ -53,8 +53,8 @@ template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_idx";
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_TO_FIRST_IDX =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_to_first_idx";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
 
 template<>
 const std::string key_trait<8>::KEY_ALPHABET = "alphabet";
@@ -279,8 +279,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 
   // Mark positions
   sdsl::int_vector<> bwt_run_last;
-  sdsl::load_from_cache(bwt_run_last, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
-  auto n = bwt_run_last.size();
+  sdsl::load_from_cache(bwt_run_last, key_trait<t_width>::KEY_BWT_RUN_LAST, t_config);
 
   // LF
   sri::rle_string<> bwt_rle;
@@ -290,6 +289,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 
   typename alphabet_trait<t_width>::type alphabet;
   sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
+  auto n = alphabet.C[alphabet.sigma];
 
   auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[alphabet.char2comp[tt_symbol]]; };
   auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
@@ -306,7 +306,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 
   // Samples
   sdsl::int_vector<> bwt_run_first; // BWT run heads positions in text
-  sdsl::load_from_cache(bwt_run_first, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
+  sdsl::load_from_cache(bwt_run_first, key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config);
 
   auto rank_sample = [&bwt_run_first](const auto &tt_k) {
     return std::lower_bound(bwt_run_first.begin(), bwt_run_first.end(), tt_k) - bwt_run_first.begin();
@@ -320,7 +320,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   auto[sorted_mark_idxs, mark_to_sample_links] = constructMarkToSampleLinks(bwt_run_last_text_pos, get_link);
 
   sdsl::store_to_cache(sorted_mark_idxs, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
-  sdsl::store_to_cache(mark_to_sample_links, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_TO_FIRST_IDX, t_config);
+  sdsl::store_to_cache(mark_to_sample_links, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
 }
 
 template<uint8_t t_width, typename TIndex>
@@ -388,7 +388,7 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   {
     // Construct Links from Mark to Sample
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_TO_FIRST_IDX, t_config)) {
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
       constructMarkToSampleLinksForPhiForward<t_width>(t_config);
     }
   }
@@ -402,7 +402,7 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
 
   sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
   for (int i = 0; i < int_buf.size(); ++i) {
-    bv_tmp[i] = true;
+    bv_tmp[int_buf[i]] = true;
   }
 
   TBitVector bv(std::move(bv_tmp));
