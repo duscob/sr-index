@@ -54,6 +54,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/enc_vector.hpp
         ${PROJECT_SOURCE_DIR}/include/sr-index/coder.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/toehold.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/construct.h
         )
 
 add_library(sr-index INTERFACE)
