@@ -102,10 +102,10 @@ TEST_P(PsiTests, store) {
   EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
 }
 
-TEST_P(PsiTests, psi_core) {
+TEST_P(PsiTests, psi_core_bv) {
   const auto &e_psi = std::get<1>(GetParam());
 
-  auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
+  auto psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
 
   auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
@@ -113,21 +113,23 @@ TEST_P(PsiTests, psi_core) {
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
 
+  EXPECT_EQ(psi_core.getFirstBWTSymbol(), alphabet_.char2comp[bwt_buf_[0]]);
+
   for (int i = 0; i < e_psi.size(); ++i) {
     EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
   }
 }
 
-TEST_P(PsiTests, psi_core_serialized) {
+TEST_P(PsiTests, psi_core_bv_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
-  auto key = "psi_core";
+  auto key = "psi_core_bv";
 
   {
-    auto tmp_psi_core = sri::PsiCore(alphabet_.C, e_psi);
+    auto tmp_psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
     sdsl::store_to_cache(tmp_psi_core, key, config_);
   }
 
-  sri::PsiCore<> psi_core;
+  sri::PsiCoreBV<> psi_core;
   sdsl::load_from_cache(psi_core, key, config_);
 
   auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
@@ -141,10 +143,10 @@ TEST_P(PsiTests, psi_core_serialized) {
   }
 }
 
-TEST_P(PsiTests, psi_core_sd_vector) {
+TEST_P(PsiTests, psi_core_bv_sd_vector) {
   const auto &e_psi = std::get<1>(GetParam());
 
-  auto psi_core = sri::PsiCore<sdsl::sd_vector<>>(alphabet_.C, e_psi);
+  auto psi_core = sri::PsiCoreBV<sdsl::sd_vector<>>(alphabet_.C, e_psi);
 
   auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
@@ -157,10 +159,10 @@ TEST_P(PsiTests, psi_core_sd_vector) {
   }
 }
 
-TEST_P(PsiTests, psi_core_rrr_vector) {
+TEST_P(PsiTests, psi_core_bv_rrr_vector) {
   const auto &e_psi = std::get<1>(GetParam());
 
-  auto psi_core = sri::PsiCore<sdsl::rrr_vector<>>(alphabet_.C, e_psi);
+  auto psi_core = sri::PsiCoreBV<sdsl::rrr_vector<>>(alphabet_.C, e_psi);
 
   auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
@@ -173,37 +175,37 @@ TEST_P(PsiTests, psi_core_rrr_vector) {
   }
 }
 
-TEST_P(PsiTests, psi_rle) {
+TEST_P(PsiTests, psi_core_rle) {
   const auto &e_psi = std::get<1>(GetParam());
 
-  auto psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+  auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  auto psi_select = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.select(tt_c, tt_rnk); };
+  auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto psi = sri::Psi(psi_select, get_c, cumulative);
 
-  EXPECT_EQ(psi_rle.getFirstBWTSymbol(), alphabet_.char2comp[bwt_buf_[0]]);
+  EXPECT_EQ(psi_core.getFirstBWTSymbol(), alphabet_.char2comp[bwt_buf_[0]]);
 
   for (int i = 0; i < e_psi.size(); ++i) {
     EXPECT_EQ(psi(i), e_psi[i]) << "psi failed at index " << i;
   }
 }
 
-TEST_P(PsiTests, psi_rle_serialized) {
+TEST_P(PsiTests, psi_core_rle_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
-  auto key = "psi_rle";
+  auto key = "psi_core_rle";
 
   {
-    auto tmp_psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
-    sdsl::store_to_cache(tmp_psi_rle, key, config_);
+    auto tmp_psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
+    sdsl::store_to_cache(tmp_psi_core, key, config_);
   }
 
-  sri::PsiRLE<> psi_rle;
-  sdsl::load_from_cache(psi_rle, key, config_);
+  sri::PsiCoreRLE<> psi_core;
+  sdsl::load_from_cache(psi_core, key, config_);
 
-  auto psi_select = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.select(tt_c, tt_rnk); };
+  auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
   auto get_c = [this](auto tt_index) { return sri::computeCForSAIndex(this->alphabet_.C, tt_index); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
@@ -241,10 +243,10 @@ class LFOnPsiTests : public BasePsiTests, public testing::WithParamInterface<std
   }
 };
 
-TEST_P(LFOnPsiTests, psi_core) {
+TEST_P(LFOnPsiTests, psi_core_bv) {
   const auto &e_psi = std::get<1>(GetParam());
 
-  auto psi_core = sri::PsiCore(alphabet_.C, e_psi);
+  auto psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
 
   auto psi_rank = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.rank(tt_c, tt_rnk); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
@@ -260,16 +262,16 @@ TEST_P(LFOnPsiTests, psi_core) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_core_serialized) {
+TEST_P(LFOnPsiTests, psi_core_bv_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
-  auto key = "psi_core";
+  auto key = "psi_core_bv";
 
   {
-    auto tmp_psi_core = sri::PsiCore(alphabet_.C, e_psi);
+    auto tmp_psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
     sdsl::store_to_cache(tmp_psi_core, key, config_);
   }
 
-  sri::PsiCore<> psi_core;
+  sri::PsiCoreBV<> psi_core;
   sdsl::load_from_cache(psi_core, key, config_);
 
   auto psi_rank = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.rank(tt_c, tt_rnk); };
@@ -286,12 +288,12 @@ TEST_P(LFOnPsiTests, psi_core_serialized) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_rle) {
+TEST_P(LFOnPsiTests, psi_core_rle) {
   const auto &e_psi = std::get<1>(GetParam());
 
-  auto psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+  auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  auto psi_rank = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.rank(tt_c, tt_rnk); };
+  auto psi_rank = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.rank(tt_c, tt_rnk); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
@@ -305,19 +307,19 @@ TEST_P(LFOnPsiTests, psi_rle) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_rle_serialized) {
+TEST_P(LFOnPsiTests, psi_core_rle_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
-  auto key = "psi_rle";
+  auto key = "psi_core_rle";
 
   {
-    auto tmp_psi_rle = sri::PsiRLE(alphabet_.C, e_psi);
+    auto tmp_psi_rle = sri::PsiCoreRLE(alphabet_.C, e_psi);
     sdsl::store_to_cache(tmp_psi_rle, key, config_);
   }
 
-  sri::PsiRLE<> psi_rle;
-  sdsl::load_from_cache(psi_rle, key, config_);
+  sri::PsiCoreRLE<> psi_core;
+  sdsl::load_from_cache(psi_core, key, config_);
 
-  auto psi_rank = [&psi_rle](auto tt_c, auto tt_rnk) { return psi_rle.rank(tt_c, tt_rnk); };
+  auto psi_rank = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.rank(tt_c, tt_rnk); };
   auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
@@ -329,6 +331,32 @@ TEST_P(LFOnPsiTests, psi_rle_serialized) {
 
   auto e_range = std::get<4>(GetParam());
   EXPECT_EQ(new_range, e_range);
+}
+
+TEST_P(LFOnPsiTests, psi_core_bv_is_trivial) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
+
+  const auto &range = std::get<2>(GetParam());
+  Char c = std::get<3>(GetParam());
+
+  auto is_trivial = psi_core.exist(alphabet_.char2comp[c], range.first);
+
+  EXPECT_EQ(is_trivial, bwt_buf_[range.first] == c);
+}
+
+TEST_P(LFOnPsiTests, psi_core_rle_is_trivial) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
+
+  const auto &range = std::get<2>(GetParam());
+  Char c = std::get<3>(GetParam());
+
+  auto is_trivial = psi_core.exist(alphabet_.char2comp[c], range.first);
+
+  EXPECT_EQ(is_trivial, bwt_buf_[range.first] == c);
 }
 
 INSTANTIATE_TEST_SUITE_P(

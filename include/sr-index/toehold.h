@@ -80,10 +80,10 @@ auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapp
   return ComputeDataBackwardSearchStep(is_lf_trivial_with_bwt);
 }
 
-template<typename TBitVector>
-auto buildComputeDataBackwardSearchStepForPhiForward(const std::reference_wrapper<const PsiCore<TBitVector>> &t_psi) {
+template<typename TPsiCore>
+auto buildComputeDataBackwardSearchStepForPhiForward(const std::reference_wrapper<const TPsiCore> &t_psi) {
   auto is_lf_trivial_with_psi = [t_psi](const auto &tt_range, const auto &tt_c) {
-    return t_psi.get().partial_psi[tt_c][tt_range.first] == 1;
+    return t_psi.get().exist(tt_c, tt_range.first);
   };
 
   return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi);
@@ -142,11 +142,11 @@ auto buildComputeToeholdValueForPhiBackward(const std::reference_wrapper<const T
   return ComputeToeholdValue(t_bwt.get().size(), bwt_rank, bwt_select, t_get_sa_value);
 }
 
-template<typename TBitVector, typename TGetSAValue>
-auto buildComputeToeholdValueForPhiForward(const std::reference_wrapper<const PsiCore<TBitVector>> &t_psi,
+template<typename TPsiCore, typename TGetSAValue>
+auto buildComputeToeholdValueForPhiForward(const std::reference_wrapper<const TPsiCore> &t_psi,
                                            const TGetSAValue &t_get_sa_value) {
-  auto psi_rank = [t_psi](auto tt_sp, auto tt_ep, auto tt_c) { return t_psi.get().rank_partial_psi[tt_c](tt_sp) + 1; };
-  auto psi_select = [t_psi](auto tt_rnk, auto tt_c) { return t_psi.get().select_partial_psi[tt_c](tt_rnk); };
+  auto psi_rank = [t_psi](auto tt_sp, auto tt_ep, auto tt_c) { return t_psi.get().rank(tt_c, tt_sp) + 1; };
+  auto psi_select = [t_psi](auto tt_rnk, auto tt_c) { return t_psi.get().select(tt_c, tt_rnk); };
 
   return ComputeToeholdValue(t_psi.get().size(), psi_rank, psi_select, t_get_sa_value);
 }

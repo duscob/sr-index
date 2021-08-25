@@ -84,7 +84,7 @@ class GetLastSpecialBackwardSearchStepForPhiForward_Test
 TEST_P(GetLastSpecialBackwardSearchStepForPhiForward_Test, execute) {
   const auto &psi_raw = std::get<0>(GetParam());
   const auto &cum_c = std::get<1>(GetParam());
-  auto psi_core = sri::PsiCore(cum_c, psi_raw);
+  auto psi_core = sri::PsiCoreBV(cum_c, psi_raw);
 
   const auto &[range, next_range, c, step, prev_data] = std::get<2>(GetParam());
 
@@ -229,7 +229,7 @@ class ComputeToeholdValueForPhiForward_Test
 TEST_P(ComputeToeholdValueForPhiForward_Test, execute) {
   const auto &psi_raw = std::get<0>(GetParam());
   const auto &cum_c = std::get<1>(GetParam());
-  auto psi_core = sri::PsiCore(cum_c, psi_raw);
+  auto psi_core = sri::PsiCoreBV(cum_c, psi_raw);
 
   const auto &sa = std::get<2>(GetParam());
   auto get_sa = [&sa](auto tt_i) { return sa[tt_i]; };

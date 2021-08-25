@@ -41,18 +41,16 @@ void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &
   store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
 }
 
-//! Psi function run-length encoded representation based on partial psis.
+//! Psi function core based on partial psi per symbol using run-length encoded representation.
 //! \tparam TEncVector Encoded vector to store each partial psi function
 //! \tparam TIntVector Integer vector to store rank per sampled value in each RLE partial psi
 //! \tparam TChar Character or symbol in the compact alphabet
 template<typename TEncVector = enc_vector<sdsl::coder::elias_delta, 64>,
     typename TIntVector = sdsl::int_vector<>,
     typename TChar = uint8_t>
-class PsiRLE {
+class PsiCoreRLE {
  public:
-
-  //! Default constructor
-  PsiRLE() = default;
+  PsiCoreRLE() = default;
 
   //! Constructor
   /**
@@ -62,7 +60,7 @@ class PsiRLE {
    * @param t_psi Full psi function as a container
    */
   template<typename TCumulativeC, typename TPsi>
-  PsiRLE(const TCumulativeC &t_cumulative_c, const TPsi &t_psi) {
+  PsiCoreRLE(const TCumulativeC &t_cumulative_c, const TPsi &t_psi) {
     auto sigma = t_cumulative_c.size() - 1;
     n_ = t_cumulative_c[sigma];
 
@@ -199,6 +197,52 @@ class PsiRLE {
     return rank - (t_value < value ? value - t_value : 0);  // rank - 1 - (value - (t_value + 1))
   }
 
+  //! Find if the given psi value corresponds to the given symbol (appears in the range of the symbol)
+  //! \param t_c Symbol c
+  //! \param t_value Psi value (or SA position) query
+  //! \return If exists a symbol t_c with the psi value t_value
+  auto exist(TChar t_c, std::size_t t_value) const {
+    const auto &[values, ranks] = partial_psi_[t_c];
+    const auto n_c = values.size();
+
+    // Find idx of first sample greater than t_value (binary search)
+    const auto n_samples = values.size() / sample_dens_ + 1;
+    auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
+    const auto &cref_values = values;
+    auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
+                                        [&cref_values](const auto &tt_value, const auto &tt_item) {
+                                          return tt_value < cref_values.sample(tt_item);
+                                        });
+    if (*upper_bound == 0) { return false; }
+
+    auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
+
+    auto value = values.sample_and_pointer[2 * idx]; // Psi value
+
+    if (value == t_value) { return true; }
+
+    auto data = values.delta.data(); // RLE data
+    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
+    auto decode_uint = [&data, &pointer]() {
+      return decode<typename TEncVector::coder>(data, pointer);
+    };
+
+    // Sequential search of psi value equal to given t_value and its rank
+    auto i = idx * sample_dens_;
+    std::size_t run_gap = 0;
+    do {
+      value += run_gap; // Move to the start of next run
+
+      // Move to the run end
+      auto run_length = decode_uint();
+      value += run_length;
+
+      i += 2;
+    } while (value <= t_value && i < n_c && (run_gap = decode_uint()) + value < t_value);
+
+    return t_value < value;
+  }
+
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
 
   typedef std::size_t size_type;
@@ -211,6 +255,7 @@ class PsiRLE {
     written_bytes += sdsl::write_member(n_, out, child, "m_n");
 //    written_bytes += sdsl::write_member(sample_dens_, out, child, "m_sample_density");
     written_bytes += sdsl::write_member(first_bwt_symbol_, out, child, "m_first_bwt_symbol");
+
     written_bytes += sdsl::serialize(partial_psi_, out, child, "m_partial_psi");
 
     sdsl::structure_tree::add_size(child, written_bytes);
@@ -223,6 +268,7 @@ class PsiRLE {
     sdsl::read_member(n_, in);
 //    sdsl::read_member(sample_dens_, in);
     sdsl::read_member(first_bwt_symbol_, in);
+
     sdsl::load(partial_psi_, in);
   }
 
@@ -236,16 +282,19 @@ class PsiRLE {
   std::vector<std::pair<TEncVector, TIntVector>> partial_psi_;
 };
 
-//! Psi function core-representation based on partial psis.
-template<typename TBitVector = sdsl::bit_vector, typename TRank = typename TBitVector::rank_1_type, typename TSelect = typename TBitVector::select_1_type>
-class PsiCore {
+//! Psi function core based on partial psi per symbol using bit-vector representation.
+//!
+//! \tparam TBitVector Bit-vector to mark psi values for each symbol
+//! \tparam TRank Rank operation over TBitVector
+//! \tparam TSelect Select operation over TBitVector
+//! \tparam TChar Character or symbol in the compact alphabet
+template<typename TBitVector = sdsl::bit_vector,
+    typename TRank = typename TBitVector::rank_1_type,
+    typename TSelect = typename TBitVector::select_1_type,
+    typename TChar = uint8_t>
+class PsiCoreBV {
  public:
-  const std::vector<TBitVector> &partial_psi = partial_psi_;
-  const std::vector<TRank> &rank_partial_psi = rank_partial_psi_;
-  const std::vector<TSelect> &select_partial_psi = select_partial_psi_;
-
-  //! Default constructor
-  PsiCore() = default;
+  PsiCoreBV() = default;
 
   //! Constructor
   /**
@@ -255,7 +304,7 @@ class PsiCore {
    * @param t_psi Full psi function as a container
    */
   template<typename TCumulativeC, typename TPsi>
-  PsiCore(const TCumulativeC &t_cumulative_c, const TPsi &t_psi) {
+  PsiCoreBV(const TCumulativeC &t_cumulative_c, const TPsi &t_psi) {
     auto sigma = t_cumulative_c.size() - 1;
     n_ = t_cumulative_c[sigma];
 
@@ -268,6 +317,9 @@ class PsiCore {
       // Partial psi for character i
       sdsl::bit_vector psi_c(n_, 0);
 
+      // Compute first symbol in BWT (BWT[0])
+      if (t_psi[t_cumulative_c[i - 1]] == 0) { first_bwt_symbol_ = i - 1; }
+
       // Marks psi values in range of SA corresponding to character i
       for (auto j = t_cumulative_c[i - 1]; j < t_cumulative_c[i]; ++j) {
         psi_c[t_psi[j]] = 1;
@@ -279,13 +331,27 @@ class PsiCore {
     }
   }
 
-  template<typename TChar>
-  auto rank(TChar t_c, std::size_t t_i) const { return rank_partial_psi_[t_c](t_i); }
+  [[nodiscard]] inline std::size_t size() const { return n_; }
 
-  template<typename TChar>
+  //! Select operation over partial psi function for symbol c
+  //! \param t_c Symbol c
+  //! \param t_rnk Rank (or number of symbols c) query. It must be less or equal than the number of symbol c
+  //! \return Psi value for t_rnk-th symbol c
   auto select(TChar t_c, std::size_t t_rnk) const { return select_partial_psi_[t_c](t_rnk); }
 
-  [[nodiscard]] inline std::size_t size() const { return n_; }
+  //! Rank operation over partial psi function for symbol c
+  //! \param t_c Symbol c
+  //! \param t_value Psi value (or SA position) query
+  //! \return Rank for symbol c before position given, i.e., number of symbols c with psi value less than t_value
+  auto rank(TChar t_c, std::size_t t_i) const { return rank_partial_psi_[t_c](t_i); }
+
+  //! Find if the given psi value corresponds to the given symbol (appears in the range of the symbol)
+  //! \param t_c Symbol c
+  //! \param t_value Psi value (or SA position) query
+  //! \return If exists a symbol t_c with the psi value t_value
+  auto exist(TChar t_c, std::size_t t_i) const { return partial_psi_[t_c][t_i]; }
+
+  inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
 
   typedef std::size_t size_type;
 
@@ -294,6 +360,9 @@ class PsiCore {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
+    written_bytes += sdsl::write_member(n_, out, child, "m_n");
+    written_bytes += sdsl::write_member(first_bwt_symbol_, out, child, "m_first_bwt_symbol");
+
     written_bytes += sdsl::serialize(partial_psi_, out, child, "m_partial_psi");
     written_bytes += sdsl::serialize(rank_partial_psi_, out, child, "m_rank_partial_psi");
     written_bytes += sdsl::serialize(select_partial_psi_, out, child, "m_select_partial_psi");
@@ -305,6 +374,9 @@ class PsiCore {
 
   //! Load method
   void load(std::istream &in) {
+    sdsl::read_member(n_, in);
+    sdsl::read_member(first_bwt_symbol_, in);
+
     sdsl::load(partial_psi_, in);
     sdsl::load(rank_partial_psi_, in);
     sdsl::load(select_partial_psi_, in);
@@ -317,6 +389,8 @@ class PsiCore {
 
  private:
   std::size_t n_ = 0;
+
+  TChar first_bwt_symbol_ = 0; // BWT[0]
 
   // Partial psi function per character. Each bit-vector marks the psi values in the range on SA for the corresponding character.
   std::vector<TBitVector> partial_psi_;
