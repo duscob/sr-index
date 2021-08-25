@@ -12,6 +12,14 @@
 
 namespace sri {
 
+class GetSameArg {
+ public:
+  template<typename T>
+  auto operator()(const T &t) const {
+    return t;
+  }
+};
+
 template<typename TContainer>
 class RandomAccessForCRefContainer {
  public:

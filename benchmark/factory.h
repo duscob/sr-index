@@ -247,7 +247,8 @@ class Factory {
                                           makeGetLastValue(),
                                           makeComputeAllValuesWithPhi(),
                                           seq_size_,
-                                          sa_end_value),
+                                          sa_end_value,
+                                          sri::GetSameArg()),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -266,7 +267,8 @@ class Factory {
                                           makeGetLastSpecialBackwardSearchStep(),
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
                                           seq_size_,
-                                          sa_end_value),
+                                          sa_end_value,
+                                          sri::GetSameArg()),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -285,7 +287,8 @@ class Factory {
                                           makeGetLastSpecialBackwardSearchStep(),
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                           seq_size_,
-                                          sa_end_value),
+                                          sa_end_value,
+                                          sri::GetSameArg()),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
       }
 
@@ -307,7 +310,8 @@ class Factory {
                                           makeGetLastSpecialBackwardSearchStep(),
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                           seq_size_,
-                                          sa_end_value),
+                                          sa_end_value,
+                                          sri::GetSameArg()),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedAreas(components)};
       }
     }

@@ -88,11 +88,14 @@ class CSA {
     auto get_initial_data_backward_search_step = sri::GetInitialDataBackwardSearchStep(
         cref_psi_core.get().getFirstBWTSymbol(), n_ - 1);
 
+    // Create getter for symbol
+    auto get_symbol = [cref_alphabet](const auto &tt_c) { return cref_alphabet.get().char2comp[tt_c]; };
     index_.reset(new sri::RIndex(lf,
                                  compute_data_backward_search_step,
                                  compute_all_values,
                                  n_,
-                                 get_initial_data_backward_search_step));
+                                 get_initial_data_backward_search_step,
+                                 get_symbol));
   }
 
  private:
