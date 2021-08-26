@@ -451,37 +451,53 @@ auto buildComputeAllValuesWithPhi(const TPhi &t_phi) {
   return ComputeAllValuesWithPhi<TPhi>(t_phi);
 }
 
-template<typename TPhiForRange, typename TGetValueForSAPosition>
+template<typename TPhiForRange, typename TComputeToehold, typename TUpdateRange>
 class ComputeAllValuesWithPhiForRange {
  public:
   ComputeAllValuesWithPhiForRange(const TPhiForRange &t_phi_for_range,
-                                  const TGetValueForSAPosition &t_get_value_for_sa_position)
-      : phi_for_range_{t_phi_for_range}, get_value_for_sa_position_{t_get_value_for_sa_position} {
+                                  const TComputeToehold &t_compute_toehold,
+                                  const TUpdateRange &t_update_range)
+      : phi_for_range_{t_phi_for_range}, compute_toehold_{t_compute_toehold}, update_range_{t_update_range} {
   }
 
   template<typename TRange, typename TDataLastValue, typename TReport>
   void operator()(const TRange &t_range, const TDataLastValue &t_k, TReport &t_report) const {
     // TODO In the case we need to backward search the value for the last position in the range,
     //  we can take advantage of this travel for the other positions in the same BWT sub-run
-    auto k = get_value_for_sa_position_(t_k);
+    auto k = compute_toehold_(t_k);
     t_report(k);
 
-    auto range = t_range;
-    --range.second;
+    auto range = update_range_(t_range);
 
     phi_for_range_(range, k, t_report);
   }
 
  private:
   TPhiForRange phi_for_range_;
-  TGetValueForSAPosition get_value_for_sa_position_;
+  TComputeToehold compute_toehold_;
+  TUpdateRange update_range_;
 };
 
-template<typename TPhiForRange, typename TGetValueForSAPosition>
-auto buildComputeAllValuesWithPhiForRange(const TPhiForRange &t_phi_for_range,
-                                          const TGetValueForSAPosition &t_get_value_for_sa_position) {
-  return ComputeAllValuesWithPhiForRange<TPhiForRange, TGetValueForSAPosition>(
-      t_phi_for_range, t_get_value_for_sa_position);
+template<typename TPhiBackwardForRange, typename TGetSAValue>
+auto buildComputeAllValuesWithPhiBackwardForRange(const TPhiBackwardForRange &t_phi_backward_for_range,
+                                                  const TGetSAValue &t_get_sa_value) {
+  auto get_new_range = [](auto tt_range) {
+    --tt_range.second;
+    return tt_range;
+  };
+
+  return ComputeAllValuesWithPhiForRange(t_phi_backward_for_range, t_get_sa_value, get_new_range);
+}
+
+template<typename TPhiForwardForRange, typename TGetSAValue>
+auto buildComputeAllValuesWithPhiForwardForRange(const TPhiForwardForRange &t_phi_forward_for_range,
+                                                 const TGetSAValue &t_get_sa_value) {
+  auto get_new_range = [](auto tt_range) {
+    ++tt_range.first;
+    return tt_range;
+  };
+
+  return ComputeAllValuesWithPhiForRange(t_phi_forward_for_range, t_get_sa_value, get_new_range);
 }
 
 }

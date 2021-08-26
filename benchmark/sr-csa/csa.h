@@ -79,10 +79,10 @@ class CSA : public sri::LocateIndex {
       return cref_samples.get()[run] + 1;
     };
 
-    auto compute_toehold = sri::buildComputeToeholdValueForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
+    auto compute_toehold = sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
 
     // Create ComputeAllValuesWithPhiForRange
-    auto compute_all_values = sri::ComputeAllValuesWithPhiForRange(phi_for_range, compute_toehold);
+    auto compute_all_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
 
     // Create getter for initial data for backward search step
     auto get_initial_data_backward_search_step = sri::GetInitialDataBackwardSearchStep(

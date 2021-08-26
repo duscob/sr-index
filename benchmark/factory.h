@@ -204,10 +204,9 @@ class Factory {
     auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
     auto get_value_for_sa_pos = sri::buildGetValueForSAPosition(makeGetSampleForSAPosition(t_s), lf, seq_size_);
-    auto compute_final_value =
-        sri::buildComputeToeholdValueForPhiBackward(std::cref(bwt_rle_.item), get_value_for_sa_pos);
+    auto compute_final_value = sri::buildComputeToeholdForPhiBackward(std::cref(bwt_rle_.item), get_value_for_sa_pos);
 
-    return sri::buildComputeAllValuesWithPhiForRange(t_phi_for_range, compute_final_value);
+    return sri::buildComputeAllValuesWithPhiBackwardForRange(t_phi_for_range, compute_final_value);
   }
 
   auto sizeBasicComponents() const {

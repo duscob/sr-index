@@ -152,7 +152,7 @@ TEST_P(ComputeToeholdValueForPhiBackward_Test, execute) {
   const auto &sa = std::get<1>(GetParam());
   auto get_sa = [&sa](auto tt_i) { return sa[tt_i]; };
 
-  auto get_toehold_value = sri::buildComputeToeholdValueForPhiBackward(std::cref(bwt_rle), get_sa);
+  auto get_toehold_value = sri::buildComputeToeholdForPhiBackward(std::cref(bwt_rle), get_sa);
 
   const auto &data = std::get<2>(GetParam());
   auto sa_value = get_toehold_value(data);
@@ -234,7 +234,7 @@ TEST_P(ComputeToeholdValueForPhiForward_Test, execute) {
   const auto &sa = std::get<2>(GetParam());
   auto get_sa = [&sa](auto tt_i) { return sa[tt_i]; };
 
-  auto get_toehold_value = sri::buildComputeToeholdValueForPhiForward(std::cref(psi_core), get_sa);
+  auto get_toehold_value = sri::buildComputeToeholdForPhiForward(std::cref(psi_core), get_sa);
 
   const auto &data = std::get<3>(GetParam());
   auto sa_value = get_toehold_value(data);
