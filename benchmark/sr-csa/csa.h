@@ -67,7 +67,13 @@ class CSA : public sri::LocateIndex {
     sri::SampleValidatorDefault sample_validator_default;
 
     auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, n_);
-    auto phi_for_range = sri::ComputeAllValuesWithPhi(phi);
+    auto phi_for_range = [phi](const auto &t_range, std::experimental::optional<std::size_t> t_k, auto &t_report){
+      auto k = *t_k;
+      for (auto i = t_range.first; i <= t_range.second; ++i) {
+        k = phi(k).first;
+        t_report(k);
+      }
+    };
 
     // Create sample value from position in SA
 //    auto it_bv_sample_idx = load < TBVSampleIdx > (sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config, true);
