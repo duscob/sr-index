@@ -9,6 +9,7 @@
 #include <sdsl/int_vector.hpp>
 #include <sdsl/construct.hpp>
 #include <sdsl/csa_alphabet_strategy.hpp>
+#include <sdsl/memory_management.hpp>
 
 #include "psi.h"
 #include "tools.h"
@@ -83,10 +84,15 @@ void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
   TText text;
   auto num_bytes = t_width / 8;
   load_vector_from_file(text, t_file, num_bytes);
-  if (contains_no_zero_symbol(text, t_file)) {
-    append_zero_symbol(text);
-    store_to_cache(text, KEY_TEXT, t_config);
+
+  auto it_zero = std::find(text.begin(), text.end(), (uint64_t) 0);
+  if (it_zero == text.end()) {
+    sdsl::append_zero_symbol(text);
+  } else if (it_zero != text.end() - 1) {
+    throw std::logic_error(std::string("Error: File \"") + t_file + "\" contains inner zero symbol.");
   }
+
+  store_to_cache(text, KEY_TEXT, t_config);
 }
 
 template<uint8_t t_width>
@@ -320,7 +326,9 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   auto[sorted_mark_idxs, mark_to_sample_links] = constructMarkToSampleLinks(bwt_run_last_text_pos, get_link);
 
   sdsl::store_to_cache(sorted_mark_idxs, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
-  sdsl::store_to_cache(mark_to_sample_links, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
+  sdsl::store_to_cache(mark_to_sample_links,
+                       key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX,
+                       t_config);
 }
 
 template<uint8_t t_width, typename TIndex>
