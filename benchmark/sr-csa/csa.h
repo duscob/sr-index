@@ -27,7 +27,7 @@ template<uint8_t t_width = 8,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBVSampleIdx = sdsl::sd_vector<>>
-class CSA {
+class CSA : public sri::LocateIndex {
  public:
   explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : storage_{t_storage} {}
 
@@ -97,6 +97,12 @@ class CSA {
                                  get_initial_data_backward_search_step,
                                  get_symbol));
   }
+
+  std::vector<std::size_t> Locate(const std::string &t_pattern) const override {
+    return index_->Locate(t_pattern);
+  }
+
+  auto sizeSequence() const { return n_; }
 
  private:
   template<typename TData>
