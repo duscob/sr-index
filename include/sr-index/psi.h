@@ -111,7 +111,6 @@ class PsiCoreRLE {
   //! \return Psi value for t_rnk-th symbol c
   auto select(TChar t_c, std::size_t t_rnk) const {
     const auto &[values, ranks] = partial_psi_[t_c];
-    const auto n_c = values.size();
 
     --t_rnk;
 
@@ -131,7 +130,7 @@ class PsiCoreRLE {
     };
 
     // Sequential search of psi value with rank given, i.e., psi value for t_rnk-th symbol c
-    auto i = idx * sample_dens_;
+    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
     std::size_t run_gap = 0;
     do {
       value += run_gap; // Move to the start of next run
@@ -141,8 +140,8 @@ class PsiCoreRLE {
       rank += run_length;
       value += run_length;
 
-      i += 2;
-    } while (rank <= t_rnk && i < n_c && (run_gap = decode_uint()));
+      n_values_to_next_sample -= 2;
+    } while (rank <= t_rnk && n_values_to_next_sample && (run_gap = decode_uint()));
 
     assert(("Given rank does not exist.", t_rnk <= rank));
 
@@ -155,7 +154,6 @@ class PsiCoreRLE {
   //! \return Rank for symbol c before position given, i.e., number of symbols c with psi value less than t_value
   auto rank(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
-    const auto n_c = values.size();
 
     // Find idx of first sample greater than t_value (binary search)
     const auto n_samples = values.size() / sample_dens_ + 1;
@@ -181,7 +179,7 @@ class PsiCoreRLE {
     };
 
     // Sequential search of psi value equal to given t_value and its rank
-    auto i = idx * sample_dens_;
+    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
     std::size_t run_gap = 0;
     do {
       value += run_gap; // Move to the start of next run
@@ -191,8 +189,8 @@ class PsiCoreRLE {
       rank += run_length;
       value += run_length;
 
-      i += 2;
-    } while (value <= t_value && i < n_c && (run_gap = decode_uint()) + value < t_value);
+      n_values_to_next_sample -= 2;
+    } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
 
     return rank - (t_value < value ? value - t_value : 0);  // rank - 1 - (value - (t_value + 1))
   }
@@ -203,7 +201,6 @@ class PsiCoreRLE {
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
-    const auto n_c = values.size();
 
     // Find idx of first sample greater than t_value (binary search)
     const auto n_samples = values.size() / sample_dens_ + 1;
@@ -228,7 +225,7 @@ class PsiCoreRLE {
     };
 
     // Sequential search of psi value equal to given t_value and its rank
-    auto i = idx * sample_dens_;
+    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
     std::size_t run_gap = 0;
     do {
       value += run_gap; // Move to the start of next run
@@ -237,8 +234,8 @@ class PsiCoreRLE {
       auto run_length = decode_uint();
       value += run_length;
 
-      i += 2;
-    } while (value <= t_value && i < n_c && (run_gap = decode_uint()) + value < t_value);
+      n_values_to_next_sample -= 2;
+    } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
 
     return t_value < value;
   }
