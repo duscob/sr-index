@@ -354,8 +354,7 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   {
     // Construct BWT
     auto event = sdsl::memory_monitor::event("BWT");
-    const char *KEY_BWT = sdsl::key_bwt_trait<t_width>::KEY_BWT;
-    if (!cache_file_exists(KEY_BWT, t_config)) {
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT, t_config)) {
       sdsl::construct_bwt<t_width>(t_config);
     }
   }
@@ -415,6 +414,12 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
 
   TBitVector bv(std::move(bv_tmp));
   sdsl::store_to_cache(bv, t_key, t_config, true);
+
+  typename TBitVector::rank_1_type bv_rank(&bv);
+  sdsl::store_to_cache(bv_rank, t_key, t_config, true);
+
+  typename TBitVector::select_1_type bv_select(&bv);
+  sdsl::store_to_cache(bv_select, t_key, t_config, true);
 }
 
 }

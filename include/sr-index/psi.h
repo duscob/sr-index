@@ -5,9 +5,14 @@
 #ifndef SRI_PSI_H_
 #define SRI_PSI_H_
 
+#include <cstddef>
+#include <algorithm>
+
 #include <sdsl/bits.hpp>
 #include <sdsl/vectors.hpp>
 #include <sdsl/bit_vectors.hpp>
+#include <sdsl/io.hpp>
+#include <sdsl/coder.hpp>
 
 #include "enc_vector.hpp"
 #include "coder.h"
