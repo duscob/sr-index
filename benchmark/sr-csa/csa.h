@@ -25,8 +25,7 @@ template<uint8_t t_width = 8,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBVMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>,
-    typename TBVSampleIdx = sdsl::sd_vector<>>
+    typename TSample = sdsl::int_vector<>>
 class CSA : public sri::LocateIndex {
  public:
   explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : storage_{t_storage} {}
@@ -61,10 +60,6 @@ class CSA : public sri::LocateIndex {
         sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, out, child, "mark_to_sample");
 
     written_bytes += serializeItem<TSample>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, out, child, "samples");
-
-    written_bytes += serializeItem<TBVSampleIdx>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, out, child, "sample_idx");
-    written_bytes += serializeRank<TBVSampleIdx>(
-        sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, out, child, "sample_idx_rank");
 
     return written_bytes;
   }
@@ -109,9 +104,8 @@ class CSA : public sri::LocateIndex {
     };
 
     // Create sample value from position in SA
-    auto bv_sample_idx_rank = loadBVRank<TBVSampleIdx>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_source, true);
-    auto get_sa_value_for_bwt_run_start = [bv_sample_idx_rank, cref_samples](const auto &tt_pos) {
-      auto run = bv_sample_idx_rank(tt_pos);
+    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const auto &tt_pos) {
+      auto run = cref_psi_core.get().rankRun(tt_pos);
       return cref_samples.get()[run] + 1;
     };
 
@@ -239,8 +233,8 @@ class CSA : public sri::LocateIndex {
   std::unique_ptr<sri::LocateIndex> index_;
 };
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample, typename TBVSampleIdx>
-void construct(CSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample, TBVSampleIdx> &t_index,
+template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample>
+void construct(CSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample> &t_index,
                sdsl::cache_config &t_config) {
   std::size_t n;
   {
@@ -254,15 +248,6 @@ void construct(CSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSam
     const auto KEY_BWT_RUN_LAST_TEXT_POS = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
     if (!sdsl::cache_file_exists<TBVMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
       sri::constructBitVectorFromIntVector<TBVMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n);
-    }
-  }
-
-  {
-    // Construct Successor on the text positions of BWT run last letter
-    auto event = sdsl::memory_monitor::event("BWT Runs");
-    const auto KEY_BWT_RUN_FIRST = sri::key_trait<t_width>::KEY_BWT_RUN_FIRST;
-    if (!sdsl::cache_file_exists<TBVSampleIdx>(KEY_BWT_RUN_FIRST, t_config)) {
-      sri::constructBitVectorFromIntVector<TBVSampleIdx>(KEY_BWT_RUN_FIRST, t_config, n);
     }
   }
 
