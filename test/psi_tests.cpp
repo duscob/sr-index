@@ -216,6 +216,26 @@ TEST_P(PsiTests, psi_core_rle_serialized) {
   }
 }
 
+TEST_P(PsiTests, psi_core_rle_rank_run) {
+  const auto &bwt = std::get<0>(GetParam());
+  sdsl::bit_vector bwt_run_start(bwt.size(), 0);
+  bwt_run_start[0] = true;
+  for (int i = 1; i < bwt.size(); ++i) {
+    if (bwt[i - 1] != bwt[i]) {
+      bwt_run_start[i] = true;
+    }
+  }
+  sdsl::bit_vector::rank_1_type bwt_run_start_rank(&bwt_run_start);
+
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
+
+  for (int i = 0; i <= e_psi.size(); ++i) {
+    EXPECT_EQ(psi_core.rankRun(i), bwt_run_start_rank(i)) << "psi failed at index " << i;
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     Psi,
     PsiTests,

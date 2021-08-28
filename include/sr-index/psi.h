@@ -156,7 +156,7 @@ class PsiCoreRLE {
   //! Rank operation over partial psi function for symbol c
   //! \param t_c Symbol c
   //! \param t_value Psi value (or SA position) query
-  //! \return Rank for symbol c before position given, i.e., number of symbols c with psi value less than t_value
+  //! \return Rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
   auto rank(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
@@ -205,6 +205,27 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_value) const {
+    auto[belong, _] = computeSoftPreviousRunData(t_c, t_value);
+
+    return belong;
+  }
+
+  //! Rank operation over runs (run length encoded) in psi (these runs match with BWT runs)
+  //! \param t_value Psi value (or SA position) query
+  //! \return Rank for run-starts before the given position, i.e., number of runs with start psi value less than t_value
+  auto rankRun(std::size_t t_value) const {
+    std::size_t n_runs = 0;
+    for (int i = 0; i < partial_psi_.size(); ++i) {
+      auto[_, n_c_runs] = computeSoftPreviousRunData(i, t_value);
+
+      n_runs += n_c_runs;
+    }
+
+    return n_runs;
+  }
+
+  //! Compute if the value belongs to a run and the number of runs up to the value.
+  std::pair<bool, std::size_t> computeSoftPreviousRunData(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     // Find idx of first sample greater than t_value (binary search)
@@ -215,13 +236,14 @@ class PsiCoreRLE {
                                         [&cref_values](const auto &tt_value, const auto &tt_item) {
                                           return tt_value < cref_values.sample(tt_item);
                                         });
-    if (*upper_bound == 0) { return false; }
+    if (*upper_bound == 0) { return {false, 0}; }
 
     auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
 
     auto value = values.sample_and_pointer[2 * idx]; // Psi value
+    auto n_runs = idx * sample_dens_ / 2; // Number of runs (runs in psi are equal to bwt run)
 
-    if (value == t_value) { return true; }
+    if (value == t_value) { return {true, n_runs}; }
 
     auto data = values.delta.data(); // RLE data
     auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
@@ -234,6 +256,7 @@ class PsiCoreRLE {
     std::size_t run_gap = 0;
     do {
       value += run_gap; // Move to the start of next run
+      ++n_runs;
 
       // Move to the run end
       auto run_length = decode_uint();
@@ -242,7 +265,7 @@ class PsiCoreRLE {
       n_values_to_next_sample -= 2;
     } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
 
-    return t_value < value;
+    return {t_value < value, n_runs};
   }
 
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
