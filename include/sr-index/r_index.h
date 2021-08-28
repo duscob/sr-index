@@ -17,19 +17,21 @@ class LocateIndex {
   virtual std::vector<std::size_t> Locate(const std::string &_pattern) const = 0;
 };
 
-template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue>
+template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol>
 class RIndex : public LocateIndex {
  public:
   RIndex(const TBackwardNav &t_lf,
          const TGetLastValue &t_get_last_value,
          const TComputeAllValues &t_compute_all_values,
          std::size_t t_bwt_size,
-         const TGetFinalValue &t_get_final_sa_value)
+         const TGetFinalValue &t_get_final_sa_value,
+         const TGetSymbol &t_get_symbol)
       : lf_{t_lf},
         get_last_value_{t_get_last_value},
         compute_all_values_{t_compute_all_values},
         bwt_size_{t_bwt_size},
-        get_final_value_{t_get_final_sa_value} {
+        get_final_value_{t_get_final_sa_value},
+        get_symbol_{t_get_symbol}{
   }
 
   std::vector<std::size_t> Locate(const std::string &t_pattern) const override {
@@ -49,7 +51,7 @@ class RIndex : public LocateIndex {
     auto last_value = get_final_value_(i);
 
     for (auto it = rbegin(t_pattern); it != rend(t_pattern) && range.first <= range.second; ++it, --i) {
-      auto c = *it;
+      auto c = get_symbol_(*it);
 
       auto next_range = lf_(range, c);
       last_value = get_last_value_(range, next_range, c, i, last_value);
@@ -71,26 +73,30 @@ class RIndex : public LocateIndex {
 
   std::size_t bwt_size_;
   TGetFinalValue get_final_value_;
+
+  TGetSymbol get_symbol_;
 };
 
-template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue>
+template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol>
 auto buildRIndex(const TBackwardNav &t_lf,
                  const TGetLastValue &t_get_last_value,
                  const TComputeAllValues &t_compute_all_values,
                  std::size_t t_bwt_size,
-                 const TGetFinalValue &t_get_final_sa_value) {
-  return RIndex<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue>(
-      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value);
+                 const TGetFinalValue &t_get_final_sa_value,
+                 const TGetSymbol &t_get_symbol) {
+  return RIndex<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol>(
+      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol);
 }
 
-template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue>
+template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol>
 auto buildSharedPtrRIndex(const TBackwardNav &t_lf,
                           const TGetLastValue &t_get_last_value,
                           const TComputeAllValues &t_compute_all_values,
                           std::size_t t_bwt_size,
-                          const TGetFinalValue &t_get_final_sa_value) {
-  return std::make_shared<RIndex<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue>>(
-      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value);
+                          const TGetFinalValue &t_get_final_sa_value,
+                          const TGetSymbol &t_get_symbol) {
+  return std::make_shared<RIndex<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol>>(
+      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol);
 }
 
 }
