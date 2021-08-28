@@ -37,8 +37,36 @@ class CSA : public sri::LocateIndex {
 
   auto sizeSequence() const { return n_; }
 
+  typedef std::size_t size_type;
+
   void load(sdsl::cache_config t_config) {
     loadAllItems(t_config);
+  }
+
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = 0;
+    written_bytes += serializeItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, out, child, "alphabet");
+
+    written_bytes += serializeItem<TPsiRLE>(sdsl::conf::KEY_PSI, out, child, "psi");
+
+    written_bytes += serializeItem<TBVMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks");
+    written_bytes += serializeRank<TBVMark>(
+        sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks_rank");
+    written_bytes += serializeSelect<TBVMark>(
+        sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks_select");
+
+    written_bytes += serializeItem<TMarkToSampleIdx>(
+        sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, out, child, "mark_to_sample");
+
+    written_bytes += serializeItem<TSample>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, out, child, "samples");
+
+    written_bytes += serializeItem<TBVSampleIdx>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, out, child, "sample_idx");
+    written_bytes += serializeRank<TBVSampleIdx>(
+        sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, out, child, "sample_idx_rank");
+
+    return written_bytes;
   }
 
  private:
@@ -171,6 +199,39 @@ class CSA : public sri::LocateIndex {
 
     return std::cref(std::any_cast<const typename TBV::select_1_type &>(it->second));
   }
+
+  template<typename TItem>
+  size_type serializeItem(const std::string &t_key,
+                          std::ostream &out,
+                          sdsl::structure_tree_node *v,
+                          const std::string &name) const {
+    auto it = storage_.get().find(t_key);
+    if (it != storage_.get().end()) {
+      auto cref_item = std::cref(std::any_cast<const TItem &>(it->second));
+      return sdsl::serialize(cref_item.get(), out, v, name);
+    }
+    return sdsl::serialize_empty_object<TItem>(out, v, name);
+  }
+
+  template<typename TItem>
+  size_type serializeRank(const std::string &t_key,
+                          std::ostream &out,
+                          sdsl::structure_tree_node *v,
+                          const std::string &name) const {
+    return serializeItem<typename TItem::rank_1_type>(t_key + "_rank", out, v, name);
+  }
+
+  template<typename TItem>
+  size_type serializeSelect(const std::string &t_key,
+                            std::ostream &out,
+                            sdsl::structure_tree_node *v,
+                            const std::string &name) const {
+    return serializeItem<typename TItem::select_1_type>(t_key + "_select", out, v, name);
+  }
+
+  //********************
+  //********************
+  //********************
 
   std::size_t n_ = 0;
   std::reference_wrapper<ExternalStorage> storage_;
