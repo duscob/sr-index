@@ -54,6 +54,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/enc_vector.hpp
         ${PROJECT_SOURCE_DIR}/include/sr-index/coder.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/toehold.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sampling.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/construct.h
         )
 
@@ -81,6 +82,7 @@ if (sr-index_build_tests)
     cxx_test_with_flags_and_args(phi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/phi_tests.cpp)
     cxx_test_with_flags_and_args(psi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/psi_tests.cpp)
     cxx_test_with_flags_and_args(toehold_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/toehold_tests.cpp)
+    cxx_test_with_flags_and_args(sampling_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sampling_test.cpp)
 endif ()
 
 
