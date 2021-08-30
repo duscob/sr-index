@@ -61,11 +61,7 @@ auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const aut
 };
 
 auto BM_PrintQueryLocate = [](
-    benchmark::State &t_state,
-    const auto &t_idx_name,
-    const auto &t_idx,
-    const auto &t_patterns,
-    auto t_seq_size) {
+    benchmark::State &t_state, const auto &t_idx_name, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
   std::string idx_name = t_idx_name;
   replace(idx_name.begin(), idx_name.end(), '/', '_');
   std::string output_filename = "result-" + idx_name + ".txt";
