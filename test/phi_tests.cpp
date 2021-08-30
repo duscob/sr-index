@@ -23,7 +23,10 @@ using ParamResult = std::pair<Param, Result>;
 class Phi_Tests : public testing::TestWithParam<std::tuple<BitVector, IntVector, BitVector, IntVector, ParamResult>> {
 };
 
-TEST_P(Phi_Tests, compute) {
+class PhiBackward_Tests : public Phi_Tests {
+};
+
+TEST_P(PhiBackward_Tests, compute) {
   const auto &bv = std::get<0>(GetParam());
   auto rank = sdsl::bit_vector::rank_1_type(&bv);
   auto select = sdsl::bit_vector::select_1_type(&bv);
@@ -49,8 +52,8 @@ TEST_P(Phi_Tests, compute) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    PhiWithoutSampling,
-    Phi_Tests,
+    WithoutSampling,
+    PhiBackward_Tests,
     testing::Combine(
         testing::Values(BitVector{0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1}), // BWT heads
         testing::Values(IntVector{1, 3, 0, 4, 5, 2}), // Predecessor to sample
@@ -71,8 +74,8 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 INSTANTIATE_TEST_SUITE_P(
-    PhiWithSampling,
-    Phi_Tests,
+    WithSampling,
+    PhiBackward_Tests,
     testing::Combine(
         testing::Values(BitVector{0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1}), // BWT heads
         testing::Values(IntVector{0, 2, 1}), // Predecessor to sample
@@ -94,7 +97,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 //INSTANTIATE_TEST_SUITE_P(
 //    PhiInvWithoutSampling,
-//    Phi_Tests,
+//    PhiBackward_Tests,
 //    testing::Combine(
 //        testing::Values(BitVector{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}), // BWT tails
 //        testing::Values(IntVector{5, 0, 3, 1, 2, 4}), // Predecessor to sample
@@ -115,8 +118,7 @@ INSTANTIATE_TEST_SUITE_P(
 //    )
 //);
 
-class PhiForward_Tests
-    : public testing::TestWithParam<std::tuple<BitVector, IntVector, BitVector, IntVector, ParamResult>> {
+class PhiForward_Tests : public Phi_Tests {
 };
 
 TEST_P(PhiForward_Tests, compute) {
@@ -143,7 +145,7 @@ TEST_P(PhiForward_Tests, compute) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    PhiForwardWithoutSampling,
+    WithoutSampling,
     PhiForward_Tests,
     testing::Combine(
         testing::Values(BitVector{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}), // BWT tails
@@ -160,6 +162,29 @@ INSTANTIATE_TEST_SUITE_P(
                         ParamResult{4, {1, true}},
                         ParamResult{1, {10, true}},
                         ParamResult{10, {5, true}},
+                        ParamResult{5, {2, true}}
+        )
+    )
+);
+
+INSTANTIATE_TEST_SUITE_P(
+    WithSampling,
+    PhiForward_Tests,
+    testing::Combine(
+        testing::Values(BitVector{1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}), // BWT tails
+        testing::Values(IntVector{0, 2, 1, 3}), // Successor to sample
+        testing::Values(BitVector{1, 0, 1, 0}), // Trustworthy sample?
+        testing::Values(IntVector{7, 2, 11, 6}), // Sub-sampled heads  (sub-sampled indexes = {3, 1, 4, 2})
+        testing::Values(ParamResult{11, {6, false}},
+                        ParamResult{6, {1, false}},
+                        ParamResult{8, {3, false}},
+                        ParamResult{3, {0, true}},
+                        ParamResult{0, {7, true}},
+                        ParamResult{7, {2, false}},
+                        ParamResult{9, {4, false}},
+                        ParamResult{4, {1, true}},
+                        ParamResult{1, {10, false}},
+                        ParamResult{10, {5, false}},
                         ParamResult{5, {2, true}}
         )
     )
