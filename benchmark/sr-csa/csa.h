@@ -28,6 +28,7 @@ template<uint8_t t_width = 8,
     typename TSample = sdsl::int_vector<>>
 class CSA : public IndexBaseWithExternalStorage {
  public:
+
   explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : IndexBaseWithExternalStorage(t_storage) {}
 
   void load(sdsl::cache_config t_config) override {

@@ -27,12 +27,17 @@ struct key_trait {
 
   static const std::string KEY_BWT_RUN_FIRST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS;
-//  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+
+  static const std::string KEY_BWT_RUN_FIRST_SAMPLED;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX_SAMPLED;
 
   static const std::string KEY_ALPHABET;
 };
@@ -46,6 +51,9 @@ template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST = key_trait<t_width>::KEY_BWT + "_run_first";
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_text_pos";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
 
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST = key_trait<t_width>::KEY_BWT + "_run_last";
@@ -57,6 +65,18 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
+
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_sampled";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sampled";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first_sampled";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX_SAMPLED =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX + "_sampled";
 
 template<>
 const std::string key_trait<8>::KEY_ALPHABET = "alphabet";
@@ -255,24 +275,32 @@ void constructPsi(sdsl::cache_config &t_config) {
   }
 }
 
+template<typename TRAContainer>
+auto sortIndices(const TRAContainer &t_values) {
+  auto n = t_values.size();
+  auto log_n = sdsl::bits::hi(n) + 1;
+
+  sdsl::int_vector<> values_idx(n, 0, log_n); // Indices of the values sorted
+  iota(values_idx.begin(), values_idx.end(), 0);
+
+  sort(values_idx.begin(),
+       values_idx.end(),
+       [&t_values](const auto &a, const auto &b) -> bool { return t_values[a] < t_values[b]; });
+
+  return values_idx;
+}
+
 template<typename TRAContainer, typename TGetLink>
-auto constructMarkToSampleLinks(const TRAContainer &t_mark_text_pos, const TGetLink &t_get_link) {
-  auto r = t_mark_text_pos.size();
+auto constructMarkToSampleLinks(const TRAContainer &t_marks_text_pos, const TGetLink &t_get_link) {
+  // Indices of the mark values sorted by its text positions
+  sdsl::int_vector<> marks_idx = sortIndices(t_marks_text_pos);
+
+  auto r = t_marks_text_pos.size();
   auto log_r = sdsl::bits::hi(r) + 1;
-
-  sdsl::int_vector<> mark_idxs(r, 0, log_r); // Indices of the mark values sorted by its text positions
-  iota(mark_idxs.begin(), mark_idxs.end(), 0);
-
-  sort(mark_idxs.begin(),
-       mark_idxs.end(),
-       [&t_mark_text_pos](const auto &a, const auto &b) -> bool {
-         return t_mark_text_pos[a] < t_mark_text_pos[b];
-       });
-
   sdsl::int_vector<> mark_to_sample_link(r, 0, log_r);
-  transform(mark_idxs.begin(), mark_idxs.end(), mark_to_sample_link.begin(), t_get_link);
+  transform(marks_idx.begin(), marks_idx.end(), mark_to_sample_link.begin(), t_get_link);
 
-  return std::make_pair(std::move(mark_idxs), std::move(mark_to_sample_link));
+  return std::make_pair(std::move(marks_idx), std::move(mark_to_sample_link));
 }
 
 template<uint8_t t_width>
@@ -324,9 +352,9 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   };
 
   // Compute links
-  auto[sorted_mark_idxs, mark_to_sample_links] = constructMarkToSampleLinks(bwt_run_last_text_pos, get_link);
+  auto[sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(bwt_run_last_text_pos, get_link);
 
-  sdsl::store_to_cache(sorted_mark_idxs, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
+  sdsl::store_to_cache(sorted_marks_idx, key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
   sdsl::store_to_cache(mark_to_sample_links,
                        key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX,
                        t_config);
@@ -409,8 +437,8 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
   sdsl::bit_vector bv_tmp(t_bv_size, 0);
 
   sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
-  for (int i = 0; i < int_buf.size(); ++i) {
-    bv_tmp[int_buf[i]] = true;
+  for (auto &&item: int_buf) {
+    bv_tmp[item] = true;
   }
 
   TBitVector bv(std::move(bv_tmp));
@@ -421,6 +449,15 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
 
   typename TBitVector::select_1_type bv_select(&bv);
   sri::store_to_cache(bv_select, t_key, t_config, true);
+}
+
+void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {
+  sdsl::int_vector<> values;
+  sdsl::load_from_cache(values, t_key, t_config);
+
+  auto values_idx = sortIndices(values);
+
+  sdsl::store_to_cache(values_idx, t_out_key, t_config);
 }
 
 }

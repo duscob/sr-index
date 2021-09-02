@@ -20,7 +20,7 @@ auto computeSampling(std::size_t t_s,
                      const TValues &t_values,
                      const TContainer &t_req_idxs) {
   auto n = std::distance(t_first_idx, t_last_idx);
-  std::vector<typename std::remove_const<typename std::remove_reference<decltype(*t_first_idx)>::type>::type> samples;
+  std::vector<typename TInputIt::value_type> samples;
   samples.reserve(n / 2);
 
   if (n == 0) return samples;
