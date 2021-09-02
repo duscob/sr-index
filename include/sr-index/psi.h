@@ -43,7 +43,7 @@ auto constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet) {
 template<typename TBwt, typename TAlphabet>
 void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
   // Store psi
-  store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
+  sdsl::store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
 }
 
 //! Psi function core based on partial psi per symbol using run-length encoded representation.

@@ -16,6 +16,7 @@
 #include "phi.h"
 #include "rle_string.hpp"
 #include "bwt.h"
+#include "io.h"
 
 namespace sri {
 
@@ -92,7 +93,7 @@ void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
     throw std::logic_error(std::string("Error: File \"") + t_file + "\" contains inner zero symbol.");
   }
 
-  store_to_cache(text, KEY_TEXT, t_config);
+  sdsl::store_to_cache(text, KEY_TEXT, t_config);
 }
 
 template<uint8_t t_width>
@@ -208,7 +209,7 @@ void constructAlphabet(sdsl::cache_config &t_config) {
 
   typename alphabet_trait<t_width>::type alphabet(bwt_buf, n);
 
-  store_to_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
+  sdsl::store_to_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
 }
 
 template<uint8_t t_width>
@@ -230,27 +231,27 @@ void constructPsi(sdsl::cache_config &t_config) {
     // TODO Don't create psi_enc
     {
       sdsl::enc_vector<> psi_enc(psi);
-      sdsl::store_to_cache(psi_enc, sdsl::conf::KEY_PSI, t_config, true);
+      sri::store_to_cache(psi_enc, sdsl::conf::KEY_PSI, t_config, true);
     }
   }
 
   // TODO Don't create unused PsiCore
   {
     sri::PsiCoreBV<> psi_core(alphabet.C, psi);
-    sdsl::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
+    sri::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
   }
   {
     sri::PsiCoreBV<sdsl::sd_vector<>> psi_core(alphabet.C, psi);
-    sdsl::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
+    sri::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
   }
   {
     sri::PsiCoreBV<sdsl::rrr_vector<>> psi_core(alphabet.C, psi);
-    sdsl::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
+    sri::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
   }
 
   {
     sri::PsiCoreRLE<> psi_rle(alphabet.C, psi);
-    sdsl::store_to_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
+    sri::store_to_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
   }
 }
 
@@ -301,7 +302,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
   // Psi
-  sri::PsiCoreBV<sdsl::sd_vector<>> psi_core;
+  sri::PsiCoreRLE psi_core;
   sdsl::load_from_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
   auto psi_select = [&psi_core](auto tt_c, auto tt_rnk) { return psi_core.select(tt_c, tt_rnk); };
 
@@ -311,7 +312,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   auto psi = sri::Psi(psi_select, get_c, cumulative);
 
   // Samples
-  sdsl::int_vector<> bwt_run_first; // BWT run heads positions in text
+  sdsl::int_vector<> bwt_run_first; // BWT run heads positions in BWT
   sdsl::load_from_cache(bwt_run_first, key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config);
 
   auto rank_sample = [&bwt_run_first](const auto &tt_k) {
@@ -413,13 +414,13 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
   }
 
   TBitVector bv(std::move(bv_tmp));
-  sdsl::store_to_cache(bv, t_key, t_config, true);
+  sri::store_to_cache(bv, t_key, t_config, true);
 
   typename TBitVector::rank_1_type bv_rank(&bv);
-  sdsl::store_to_cache(bv_rank, t_key, t_config, true);
+  sri::store_to_cache(bv_rank, t_key, t_config, true);
 
   typename TBitVector::select_1_type bv_select(&bv);
-  sdsl::store_to_cache(bv_select, t_key, t_config, true);
+  sri::store_to_cache(bv_select, t_key, t_config, true);
 }
 
 }
