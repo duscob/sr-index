@@ -475,6 +475,11 @@ INSTANTIATE_TEST_SUITE_P(
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{3, 9},
                         3,
-                        Range{6, 6})
+                        Range{6, 6}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        Range{9, 11},
+                        3,
+                        Range{6, 8})
     )
 );

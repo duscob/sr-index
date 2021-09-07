@@ -205,9 +205,9 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_value) const {
-    auto[belong, _] = computeSoftPreviousRunData(t_c, t_value);
+    auto[_, run_start_value] = computeSoftPreviousRunData(t_c, t_value);
 
-    return belong;
+    return run_start_value != n_;
   }
 
   //! Rank operation over runs (run length encoded) in psi (these runs match with BWT runs)
@@ -216,7 +216,8 @@ class PsiCoreRLE {
   auto rankRun(std::size_t t_value) const {
     std::size_t n_runs = 0;
     for (int i = 0; i < partial_psi_.size(); ++i) {
-      auto[_, n_c_runs] = computeSoftPreviousRunData(i, t_value);
+      auto[n_c_runs, run_start_value] = computeSoftPreviousRunData(i, t_value);
+      if (t_value != n_ && run_start_value == t_value) --n_c_runs;
 
       n_runs += n_c_runs;
     }
@@ -224,8 +225,11 @@ class PsiCoreRLE {
     return n_runs;
   }
 
-  //! Compute if the value belongs to a run and the number of runs up to the value.
-  std::pair<bool, std::size_t> computeSoftPreviousRunData(TChar t_c, std::size_t t_value) const {
+  //! Compute the number of runs up to the value (including it) and the start value of the run containing the given value
+  //! \param t_c Symbol
+  //! \param t_value Queried position
+  //! \return {Number of runs started up to the queried position; start value of run containing queried position or n if it does not belong to any run}
+  std::pair<std::size_t, std::size_t> computeSoftPreviousRunData(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     // Find idx of first sample greater than t_value (binary search)
@@ -236,36 +240,35 @@ class PsiCoreRLE {
                                         [&cref_values](const auto &tt_value, const auto &tt_item) {
                                           return tt_value < cref_values.sample(tt_item);
                                         });
-    if (*upper_bound == 0) { return {false, 0}; }
+    if (*upper_bound == 0) { return {0, n_}; }
 
     auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
 
-    auto value = values.sample_and_pointer[2 * idx]; // Psi value
-    auto n_runs = idx * sample_dens_ / 2; // Number of runs (runs in psi are equal to bwt run)
+    auto run_start = values.sample_and_pointer[2 * idx]; // Psi value at run start
+    auto n_runs = idx * sample_dens_ / 2 + 1; // Number of runs (runs in psi are equal to bwt run)
 
-    if (value == t_value) { return {true, n_runs}; }
+    if (run_start == t_value) { return {n_runs, run_start}; }
 
     auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
+    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded run_start
     auto decode_uint = [&data, &pointer]() {
       return decode<typename TEncVector::coder>(data, pointer);
     };
+    const auto &run_length = decode_uint; // Must be called once per run
+    const auto &run_gap = decode_uint; // Must be called once per run
 
-    // Sequential search of psi value equal to given t_value and its rank
-    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
-    std::size_t run_gap = 0;
-    do {
-      value += run_gap; // Move to the start of next run
+    // Sequential search of psi run_start equal to given t_value and its rank
+    auto run_end = run_start + run_length();
+    decltype(run_start) next_run_start;
+    for (auto n_runs_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_) / 2 - 1;
+         run_end < t_value && n_runs_to_next_sample && (next_run_start = run_end + run_gap()) <= t_value;
+         --n_runs_to_next_sample) {
+      run_start = next_run_start;
+      run_end = run_start + run_length();
       ++n_runs;
+    }
 
-      // Move to the run end
-      auto run_length = decode_uint();
-      value += run_length;
-
-      n_values_to_next_sample -= 2;
-    } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
-
-    return {t_value < value, n_runs};
+    return {n_runs, t_value < run_end ? run_start : n_};
   }
 
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
