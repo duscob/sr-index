@@ -128,11 +128,7 @@ class PsiCoreRLE {
 
     if (rank == t_rnk) { return value; }
 
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
+    DecodeUInt decode_uint(values, idx);
 
     // Sequential search of psi value with rank given, i.e., psi value for t_rnk-th symbol c
     auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
@@ -160,28 +156,17 @@ class PsiCoreRLE {
   auto rank(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    // Find idx of first sample greater than t_value (binary search)
-    const auto n_samples = values.size() / sample_dens_ + 1;
-    auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
-    const auto &cref_values = values;
-    auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
-                                        [&cref_values](const auto &tt_value, const auto &tt_item) {
-                                          return tt_value < cref_values.sample(tt_item);
-                                        });
-    if (*upper_bound == 0) { return 0ul; }
+    auto upper_bound = computeUpperBound(values, t_value);
+    if (upper_bound == 0) { return 0ul; }
 
-    auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
+    auto idx = upper_bound - 1; // Index of previous sample to the greater one
 
     auto value = values.sample_and_pointer[2 * idx]; // Psi value
     auto rank = idx ? ranks[idx - 1] : 0; // Rank
 
     if (value == t_value) { return rank; }
 
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
+    DecodeUInt decode_uint(values, idx);
 
     // Sequential search of psi value equal to given t_value and its rank
     auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
@@ -232,30 +217,20 @@ class PsiCoreRLE {
   std::pair<std::size_t, std::size_t> computeSoftPreviousRunData(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    // Find idx of first sample greater than t_value (binary search)
-    const auto n_samples = values.size() / sample_dens_ + 1;
-    auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
-    const auto &cref_values = values;
-    auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
-                                        [&cref_values](const auto &tt_value, const auto &tt_item) {
-                                          return tt_value < cref_values.sample(tt_item);
-                                        });
-    if (*upper_bound == 0) { return {0, n_}; }
+    auto upper_bound = computeUpperBound(values, t_value);
 
-    auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
+    if (upper_bound == 0) { return {0, n_}; }
+
+    auto idx = upper_bound - 1; // Index of previous sample to the greater one
 
     auto run_start = values.sample_and_pointer[2 * idx]; // Psi value at run start
     auto n_runs = idx * sample_dens_ / 2 + 1; // Number of runs (runs in psi are equal to bwt run)
 
     if (run_start == t_value) { return {n_runs, run_start}; }
 
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded run_start
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
-    const auto &run_length = decode_uint; // Must be called once per run
-    const auto &run_gap = decode_uint; // Must be called once per run
+    DecodeUInt decode_uint(values, idx);
+    auto &run_length = decode_uint; // Must be called once per run
+    auto &run_gap = decode_uint; // Must be called once per run
 
     // Sequential search of psi run_start equal to given t_value and its rank
     auto run_end = run_start + run_length();
@@ -299,13 +274,9 @@ class PsiCoreRLE {
 
     auto idx = upper_bound ? upper_bound - 1 : 0; // Index of previous sample to the greater one
 
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded run_start
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
+    DecodeUInt decode_uint(values, idx);
 
-    const auto &run_gap = decode_uint; // Must be called once per run
+    auto &run_gap = decode_uint; // Must be called once per run
     const auto n_samples = values.size() / sample_dens_ + 1;
     std::size_t n_runs_to_next_sample = 0;
     auto compute_next_run_start =
@@ -326,7 +297,7 @@ class PsiCoreRLE {
           return n_;
         };
 
-    const auto &run_length = decode_uint; // Must be called once per run
+    auto &run_length = decode_uint; // Must be called once per run
     auto compute_run_end = [&run_length, this](auto tt_run_start) {
       return (tt_run_start != n_) ? tt_run_start + run_length() : n_;
     };
@@ -414,6 +385,22 @@ class PsiCoreRLE {
 
     return *upper_bound;
   }
+
+  class DecodeUInt {
+   public:
+    DecodeUInt(const TEncVector &t_values, std::size_t t_i) {
+      data_ = t_values.delta.data(); // RLE data
+      pointer_ = t_values.sample_and_pointer[2 * t_i + 1]; // Pointer to next coded value
+    }
+
+    auto operator()() {
+      return decode<typename TEncVector::coder>(data_, pointer_);
+    }
+
+   private:
+    const uint64_t *data_ = nullptr;
+    typename TEncVector::int_vector_type::value_type pointer_ = 0;
+  };
 
   std::size_t n_ = 0; // Size of sequence
   std::size_t sample_dens_ = TEncVector::sample_dens; // Sample density, i.e., 1 sample per sample_density items
