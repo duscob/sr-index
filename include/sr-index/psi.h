@@ -117,36 +117,9 @@ class PsiCoreRLE {
   auto select(TChar t_c, std::size_t t_rnk) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    --t_rnk;
+    auto select_data = selectCore(t_rnk, values, ranks);
 
-    // Find idx of first sample with rank greater than t_rnk (binary search)
-    auto upper_bound = std::upper_bound(ranks.begin(), ranks.end(), t_rnk);
-    auto idx = std::distance(ranks.begin(), upper_bound); // Index of previous sample to the one with greater rank
-
-    auto value = values.sample_and_pointer[2 * idx]; // Psi value
-    auto rank = idx ? ranks[idx - 1] : 0; // Rank
-
-    if (rank == t_rnk) { return value; }
-
-    DecodeUInt decode_uint(values, idx);
-
-    // Sequential search of psi value with rank given, i.e., psi value for t_rnk-th symbol c
-    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
-    std::size_t run_gap = 0;
-    do {
-      value += run_gap; // Move to the start of next run
-
-      // Move to the run end
-      auto run_length = decode_uint();
-      rank += run_length;
-      value += run_length;
-
-      n_values_to_next_sample -= 2;
-    } while (rank <= t_rnk && n_values_to_next_sample && (run_gap = decode_uint()));
-
-    assert(("Given rank does not exist.", t_rnk <= rank));
-
-    return value - (rank - t_rnk);  // value - 1 - (rank - (t_rnk + 1))
+    return select_data.run_end - 1 - (select_data.rank_run_end - (t_rnk));
   }
 
   //! Rank operation over partial psi function for symbol c
@@ -276,31 +249,8 @@ class PsiCoreRLE {
 
     DecodeUInt decode_uint(values, idx);
 
-    auto &run_gap = decode_uint; // Must be called once per run
-    const auto n_samples = values.size() / sample_dens_ + 1;
-    std::size_t n_runs_to_next_sample = 0;
-    auto compute_next_run_start =
-        [&n_runs_to_next_sample, &run_gap, &idx, &n_samples, this, &cref_values = values](auto tt_run_end) {
-          if (n_runs_to_next_sample) {
-            // Still remaining runs until the next sampled value, so next run start value is in the current interval
-            --n_runs_to_next_sample;
-            return tt_run_end + run_gap();
-          }
-
-          if (idx < n_samples) {
-            // No remaining runs until the next sampled value, so next run start value is the next sample
-            n_runs_to_next_sample = std::min(sample_dens_, cref_values.size() - idx * sample_dens_) / 2 - 1;
-            return cref_values.sample_and_pointer[2 * idx++]; // Psi value at run start
-          }
-
-          // No remaining runs
-          return n_;
-        };
-
-    auto &run_length = decode_uint; // Must be called once per run
-    auto compute_run_end = [&run_length, this](auto tt_run_start) {
-      return (tt_run_start != n_) ? tt_run_start + run_length() : n_;
-    };
+    ComputeNextRunStart compute_next_run_start(decode_uint, values, idx, n_);
+    ComputeRunEnd compute_run_end(decode_uint, n_);
 
     auto run_start = compute_next_run_start(0);
     auto run_end = compute_run_end(run_start);
@@ -401,6 +351,98 @@ class PsiCoreRLE {
     const uint64_t *data_ = nullptr;
     typename TEncVector::int_vector_type::value_type pointer_ = 0;
   };
+
+  class ComputeNextRunStart {
+   public:
+    ComputeNextRunStart(DecodeUInt &t_run_gap, const TEncVector &t_values, std::size_t t_idx, std::size_t t_n)
+        : run_gap_{t_run_gap}, cr_values_{t_values}, idx_{t_idx}, n_{t_n} {
+      sample_dens_ = cr_values_.get_sample_dens();
+      n_samples_ = cr_values_.size() / sample_dens_ + 1;
+    }
+
+    auto operator()(std::size_t t_run_end) {
+      if (n_runs_to_next_sample_) {
+        // Still remaining runs until the next sampled value, so next run start value is in the current interval
+        --n_runs_to_next_sample_;
+        return t_run_end + run_gap_();
+      }
+
+      if (idx_ < n_samples_) {
+        // No remaining runs until the next sampled value, so next run start value is the next sample
+        n_runs_to_next_sample_ = std::min(sample_dens_, cr_values_.size() - idx_ * sample_dens_) / 2 - 1;
+        return cr_values_.sample_and_pointer[2 * idx_++]; // Psi value at run start
+      }
+
+      // No remaining runs
+      return n_;
+    }
+
+   private:
+    DecodeUInt &run_gap_;
+    std::size_t n_runs_to_next_sample_ = 0;
+
+    const TEncVector &cr_values_;
+    std::size_t sample_dens_;
+    std::size_t n_samples_;
+    std::size_t idx_;
+
+    std::size_t n_;
+  };
+
+  class ComputeRunEnd {
+   public:
+    ComputeRunEnd(DecodeUInt &t_run_length, std::size_t t_n) : run_length_{t_run_length}, n_{t_n} {}
+
+    auto operator()(std::size_t t_run_start) {
+      return (t_run_start != n_) ? t_run_start + run_length_() : n_;
+    }
+
+   private:
+    DecodeUInt &run_length_;
+
+    std::size_t n_;
+  };
+
+  struct DataSelectCore {
+    std::size_t run_start = 0;
+    std::size_t run_end = 0;
+
+    std::size_t rank_run_end = 0;
+
+    DecodeUInt decode_uint;
+  };
+
+  //! Select (core) operation over partial psi function for symbol c
+  //! \param t_rnk Rank (or number of symbols c) query. It must be less or equal than the number of symbol c
+  //! \param t_values Encoded values
+  //! \param t_ranks Ranks
+  //! \return Psi run for t_rnk-th symbol c and rank run end (additional info is added)
+  auto selectCore(std::size_t t_rnk, const TEncVector &t_values, const TIntVector &t_ranks) const {
+    --t_rnk;
+
+    // Find idx_ of first sample with rank_run_end greater than t_rnk (binary search)
+    auto upper_bound = std::upper_bound(t_ranks.begin(), t_ranks.end(), t_rnk);
+    auto idx = std::distance(t_ranks.begin(), upper_bound); // Index of previous sample to the one with greater rank
+
+    auto rank_run_end = idx ? t_ranks[idx - 1] : 0; // Rank
+
+    DecodeUInt decode_uint(t_values, idx);
+    ComputeNextRunStart compute_next_run_start(decode_uint, t_values, idx, n_); // Must be called once per run
+    ComputeRunEnd compute_run_end(decode_uint, n_); // Must be called once per run
+
+    std::size_t run_start, run_end = 0;
+
+    // Sequential search of psi value with rank_run_end given, i.e., psi value for t_rnk-th symbol c
+    do {
+      run_start = compute_next_run_start(run_end);
+
+      run_end = compute_run_end(run_start);
+      rank_run_end += run_end - run_start;
+
+    } while (rank_run_end <= t_rnk);
+
+    return DataSelectCore{run_start, run_end, rank_run_end, decode_uint};
+  }
 
   std::size_t n_ = 0; // Size of sequence
   std::size_t sample_dens_ = TEncVector::sample_dens; // Sample density, i.e., 1 sample per sample_density items
