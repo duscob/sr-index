@@ -562,3 +562,98 @@ INSTANTIATE_TEST_SUITE_P(
                         Ranges{{9, 11}})
     )
 );
+
+class ComputeForwardRunsWithPsiTests
+    : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Char, Range, Ranges>> {
+ protected:
+  void SetUp() override {
+    const auto &bwt = std::get<0>(GetParam());
+    BasePsiTests::SetUp(bwt);
+  }
+};
+
+TEST_P(ComputeForwardRunsWithPsiTests, psi_core_rle) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
+
+  const auto &c = std::get<2>(GetParam());
+  const auto &range = std::get<3>(GetParam());
+
+  auto ranges = psi_core.computeForwardRuns(c, range.first, range.second);
+
+  auto e_ranges = std::get<4>(GetParam());
+  EXPECT_THAT(ranges, testing::ElementsAreArray(e_ranges));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Psi,
+    ComputeForwardRunsWithPsiTests,
+    testing::Values(
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        0,
+                        Range{1, 2},
+                        Ranges{{4, 5}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        1,
+                        Range{1, 5},
+                        Ranges{{5, 9}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        2,
+                        Range{1, 5},
+                        Ranges{{2, 3}, {9, 12}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        3,
+                        Range{1, 4},
+                        Ranges{{0, 2}, {3, 4}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        1,
+                        Range{1, 2},
+                        Ranges{{5, 6}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        1,
+                        Range{2, 5},
+                        Ranges{{6, 9}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        1,
+                        Range{3, 5},
+                        Ranges{{7, 9}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        1,
+                        Range{3, 4},
+                        Ranges{{7, 8}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        2,
+                        Range{2, 5},
+                        Ranges{{9, 12}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        2,
+                        Range{3, 5},
+                        Ranges{{10, 12}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        2,
+                        Range{4, 5},
+                        Ranges{{11, 12}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        2,
+                        Range{3, 4},
+                        Ranges{{10, 11}}),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        3,
+                        Range{2, 4},
+                        Ranges{{1, 2}, {3, 4}})
+    )
+);

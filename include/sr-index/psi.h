@@ -117,9 +117,9 @@ class PsiCoreRLE {
   auto select(TChar t_c, std::size_t t_rnk) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    auto select_data = selectCore(t_rnk, values, ranks);
+    auto[run, _] = selectCore(t_rnk, values, ranks);
 
-    return select_data.run_end - 1 - (select_data.rank_run_end - (t_rnk));
+    return run.end - 1 - (run.rank_end - (t_rnk));
   }
 
   //! Rank operation over partial psi function for symbol c
@@ -235,10 +235,10 @@ class PsiCoreRLE {
     return ranges;
   }
 
-  //! Split in runs (BWT runs) of symbol c on the given range [t_first..t_last)
+  //! Split in runs (BWT runs) of symbol c on the given range [@p t_first..@p t_last)
   //! \param t_c Symbol
   //! \param t_first First position in queried range
-  //! \param t_last Las position in queried range (not included)
+  //! \param t_last Last position in queried range (not included)
   //! \return Runs (BWT) in the queried range for given symbol
   auto splitInRuns(TChar t_c, std::size_t t_first, std::size_t t_last) const {
     const auto &[values, ranks] = partial_psi_[t_c];
@@ -247,21 +247,18 @@ class PsiCoreRLE {
 
     auto idx = upper_bound ? upper_bound - 1 : 0; // Index of previous sample to the greater one
 
-    DecodeUInt decode_uint(values, idx);
+    RunOps run_ops(values, idx, n_);
 
-    ComputeNextRunStart compute_next_run_start(decode_uint, values, idx, n_);
-    ComputeRunEnd compute_run_end(decode_uint, n_);
-
-    auto run_start = compute_next_run_start(0);
-    auto run_end = compute_run_end(run_start);
-    auto next_run_start = compute_next_run_start(run_end);
+    auto run_start = run_ops.nextStart(0);
+    auto run_end = run_ops.nextEnd(run_start);
+    auto next_run_start = run_ops.nextStart(run_end);
 
     // Compute first run that ends after t_first (this is the first run cover by given range)
     while (run_end <= t_first) {
       run_start = next_run_start;
-      run_end = compute_run_end(run_start);
+      run_end = run_ops.nextEnd(run_start);
 
-      next_run_start = compute_next_run_start(run_end);
+      next_run_start = run_ops.nextStart(run_end);
     }
 
     using Range = std::pair<std::size_t, std::size_t>;
@@ -276,15 +273,46 @@ class PsiCoreRLE {
       ranges.emplace_back(range);
 
       range.first = run_start = next_run_start;
-      run_end = compute_run_end(run_start);
+      run_end = run_ops.nextEnd(run_start);
 
-      next_run_start = compute_next_run_start(run_end);
+      next_run_start = run_ops.nextStart(run_end);
     }
 
     range.second = std::min(t_last, run_end);
     if (range.first < range.second) {
       ranges.emplace_back(range);
     }
+
+    return ranges;
+  }
+
+  //! Compute forward runs (BWT runs) of symbol @p c on the given ranks range [@p t_first_rank..@p t_last_rank)
+  //! \param t_c Symbol
+  //! \param t_first_rank First rank in queried range
+  //! \param t_last_rank Last rank in queried range
+  //! \return Forward runs (BWT) in the queried range for given symbol, i.e., psi ranges from @p t_first_rank -th to @p t_last_rank -th symbol @p c
+  auto computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank) const {
+    const auto &[values, ranks] = partial_psi_[t_c];
+
+    auto[run, run_ops] = selectCore(t_first_rank, values, ranks);
+
+    using Range = std::pair<std::size_t, std::size_t>;
+    std::vector<Range> ranges;
+    Range range;
+    range.first = run.end - 1 - (run.rank_end - (t_first_rank));
+
+    --t_last_rank;
+    while (run.rank_end < t_last_rank) {
+      range.second = run.end;
+      ranges.emplace_back(range);
+
+      range.first = run.start = run_ops.nextStart(run.end);
+      run.end = run_ops.nextEnd(run.start);
+      run.rank_end += run.end - run.start;
+    }
+
+    range.second = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
+    ranges.emplace_back(range);
 
     return ranges;
   }
@@ -352,19 +380,19 @@ class PsiCoreRLE {
     typename TEncVector::int_vector_type::value_type pointer_ = 0;
   };
 
-  class ComputeNextRunStart {
+  class RunOps {
    public:
-    ComputeNextRunStart(DecodeUInt &t_run_gap, const TEncVector &t_values, std::size_t t_idx, std::size_t t_n)
-        : run_gap_{t_run_gap}, cr_values_{t_values}, idx_{t_idx}, n_{t_n} {
+    RunOps(const TEncVector &t_values, std::size_t t_idx, std::size_t t_n)
+        : cr_values_{t_values}, idx_{t_idx}, n_{t_n}, decode_uint_{cr_values_, idx_} {
       sample_dens_ = cr_values_.get_sample_dens();
       n_samples_ = cr_values_.size() / sample_dens_ + 1;
     }
 
-    auto operator()(std::size_t t_run_end) {
+    auto nextStart(std::size_t t_run_end) {
       if (n_runs_to_next_sample_) {
         // Still remaining runs until the next sampled value, so next run start value is in the current interval
         --n_runs_to_next_sample_;
-        return t_run_end + run_gap_();
+        return t_run_end + decode_uint_();
       }
 
       if (idx_ < n_samples_) {
@@ -377,39 +405,28 @@ class PsiCoreRLE {
       return n_;
     }
 
-   private:
-    DecodeUInt &run_gap_;
-    std::size_t n_runs_to_next_sample_ = 0;
-
-    const TEncVector &cr_values_;
-    std::size_t sample_dens_;
-    std::size_t n_samples_;
-    std::size_t idx_;
-
-    std::size_t n_;
-  };
-
-  class ComputeRunEnd {
-   public:
-    ComputeRunEnd(DecodeUInt &t_run_length, std::size_t t_n) : run_length_{t_run_length}, n_{t_n} {}
-
-    auto operator()(std::size_t t_run_start) {
-      return (t_run_start != n_) ? t_run_start + run_length_() : n_;
+    auto nextEnd(std::size_t t_run_start) {
+      return (t_run_start != n_) ? t_run_start + decode_uint_() : n_;
     }
 
    private:
-    DecodeUInt &run_length_;
+    const TEncVector &cr_values_;
+    std::size_t idx_;
+
+    DecodeUInt decode_uint_;
+
+    std::size_t sample_dens_;
+    std::size_t n_samples_;
+    std::size_t n_runs_to_next_sample_ = 0;
 
     std::size_t n_;
   };
 
-  struct DataSelectCore {
-    std::size_t run_start = 0;
-    std::size_t run_end = 0;
+  struct Run {
+    std::size_t start = 0;
+    std::size_t end = 0;
 
-    std::size_t rank_run_end = 0;
-
-    DecodeUInt decode_uint;
+    std::size_t rank_end = 0;
   };
 
   //! Select (core) operation over partial psi function for symbol c
@@ -420,28 +437,25 @@ class PsiCoreRLE {
   auto selectCore(std::size_t t_rnk, const TEncVector &t_values, const TIntVector &t_ranks) const {
     --t_rnk;
 
-    // Find idx_ of first sample with rank_run_end greater than t_rnk (binary search)
+    // Find idx_ of first sample with rank_end greater than t_rnk (binary search)
     auto upper_bound = std::upper_bound(t_ranks.begin(), t_ranks.end(), t_rnk);
     auto idx = std::distance(t_ranks.begin(), upper_bound); // Index of previous sample to the one with greater rank
 
     auto rank_run_end = idx ? t_ranks[idx - 1] : 0; // Rank
 
-    DecodeUInt decode_uint(t_values, idx);
-    ComputeNextRunStart compute_next_run_start(decode_uint, t_values, idx, n_); // Must be called once per run
-    ComputeRunEnd compute_run_end(decode_uint, n_); // Must be called once per run
+    RunOps run_ops(t_values, idx, n_);
 
     std::size_t run_start, run_end = 0;
 
-    // Sequential search of psi value with rank_run_end given, i.e., psi value for t_rnk-th symbol c
+    // Sequential search of psi value with rank_end given, i.e., psi value for t_rnk-th symbol c
     do {
-      run_start = compute_next_run_start(run_end);
-
-      run_end = compute_run_end(run_start);
+      run_start = run_ops.nextStart(run_end);
+      run_end = run_ops.nextEnd(run_start);
       rank_run_end += run_end - run_start;
 
     } while (rank_run_end <= t_rnk);
 
-    return DataSelectCore{run_start, run_end, rank_run_end, decode_uint};
+    return std::make_pair(Run{run_start, run_end, rank_run_end}, run_ops);
   }
 
   std::size_t n_ = 0; // Size of sequence
