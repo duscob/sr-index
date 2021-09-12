@@ -163,7 +163,7 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_value) const {
-    auto[_, run_start_value] = computeSoftPreviousRunData(t_c, t_value);
+    auto[_, run_start_value] = rankSoftRun(t_c, t_value);
 
     return run_start_value != n_;
   }
@@ -172,22 +172,33 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return Rank for run-starts before the given position, i.e., number of runs with start psi value less than t_value
   auto rankRun(std::size_t t_value) const {
-    std::size_t n_runs = 0;
-    for (int i = 0; i < partial_psi_.size(); ++i) {
-      auto[n_c_runs, run_start_value] = computeSoftPreviousRunData(i, t_value);
-      if (t_value != n_ && run_start_value == t_value) --n_c_runs;
-
-      n_runs += n_c_runs;
-    }
+    auto[n_runs, run_start] = rankSoftRun(t_value);
+    if (t_value != n_ && run_start == t_value) --n_runs;
 
     return n_runs;
+  }
+
+  //! Compute the number of runs up to the value (including it) and the start value of the run containing the given value
+  //! \param t_value Psi value (or SA position) query
+  //! \return {Number of runs started up to the queried position; start value of run containing queried position or @p n if it does not belong to any run}
+  auto rankSoftRun(std::size_t t_value) const {
+    std::size_t n_runs = 0;
+    std::size_t run_start = n_;
+    for (int i = 0; i < partial_psi_.size(); ++i) {
+      auto[n_runs_c, run_start_c] = rankSoftRun(i, t_value);
+      if (run_start_c != n_) run_start = run_start_c;
+
+      n_runs += n_runs_c;
+    }
+
+    return std::make_pair(n_runs, run_start);
   }
 
   //! Compute the number of runs up to the value (including it) and the start value of the run containing the given value
   //! \param t_c Symbol
   //! \param t_value Queried position
   //! \return {Number of runs started up to the queried position; start value of run containing queried position or n if it does not belong to any run}
-  std::pair<std::size_t, std::size_t> computeSoftPreviousRunData(TChar t_c, std::size_t t_value) const {
+  std::pair<std::size_t, std::size_t> rankSoftRun(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     auto upper_bound = computeUpperBound(values, t_value);
