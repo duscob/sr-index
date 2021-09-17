@@ -14,23 +14,104 @@ template<uint8_t t_width = 8,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBVMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>>
+    typename TSample = sdsl::int_vector<>,
+    typename TBvSampleIdx = sdsl::sd_vector<>>
 class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx, TSample> {
 
  public:
+  using BaseClass = CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx, TSample>;
 
   explicit SrCSA(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr)
-      : CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx, TSample>(t_storage), subsample_rate_{t_sr} {
+      : BaseClass(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {
   }
 
   void load(sdsl::cache_config t_config) override {
+    loadAllItems(t_config);
   }
 
   auto SubsampleRate() const { return subsample_rate_; }
 
  protected:
 
+  template<typename TSource>
+  auto constructGetSample(TSource &t_source) {
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
+    auto get_run = [cref_psi_core](auto tt_sa_pos) {
+      auto[run, run_start] = cref_psi_core.get().rankSoftRun(tt_sa_pos);
+      return std::make_pair(run - 1, run_start);
+    };
+
+    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(
+        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED, t_source, true);
+    auto is_run_sampled = [cref_bv_sample_idx](auto tt_i) {
+      return cref_bv_sample_idx.get()[tt_i];
+    };
+
+    auto cref_samples = this->template loadItem<TSample>(
+        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED, t_source);
+    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(
+        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED, t_source, true);
+    auto get_sample = [cref_samples, bv_sample_idx_rank](auto tt_run) {
+      auto sampled_run = bv_sample_idx_rank(tt_run);
+      return cref_samples.get()[sampled_run];
+    };
+
+    return sri::GetSampleForSAPosition(get_run, is_run_sampled, get_sample);
+  }
+
+  template<typename TSource>
+  auto constructComputeToeholdForPhiForward(TSource &t_source) {
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
+
+    auto get_sample = constructGetSample(t_source);
+
+    auto psi_select = [cref_psi_core](auto tt_c, auto tt_rnk) { return cref_psi_core.get().select(tt_c, tt_rnk); };
+    auto cref_alphabet = this->template loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
+    auto get_c = [cref_alphabet](auto tt_index) { return sri::computeCForSAIndex(cref_alphabet.get().C, tt_index); };
+    auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
+    auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+    auto get_sa_value_for_bwt_run_start = sri::buildComputeSAValueForward(get_sample, psi, this->n_);
+
+    return sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
+  }
+
+ protected:
+
+  template<typename TSource>
+  void loadAllItems(TSource &t_source) {
+    // Create LF function
+    auto lf = BaseClass::constructLF(t_source);
+
+    // Create getter for backward search step data
+    auto compute_data_backward_search_step = BaseClass::constructComputeDataBackwardSearchStepForPhiForward(t_source);
+
+    // Create Phi function using PhiForward
+    auto phi_for_range = BaseClass::constructPhiForRange(t_source);
+
+    // Create toehold for phi forward
+    auto compute_toehold = constructComputeToeholdForPhiForward(t_source);
+
+    // Create ComputeAllValuesWithPhiForRange
+    auto compute_all_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
+
+    // Create getter for initial data for backward search step
+    auto get_initial_data_backward_search_step = BaseClass::constructGetInitialDataBackwardSearchStep(t_source);
+
+    // Create getter for symbol
+    auto get_symbol = BaseClass::constructGetSymbol(t_source);
+
+    BaseClass::index_.reset(
+        new sri::RIndex(lf,
+                        compute_data_backward_search_step,
+                        compute_all_values,
+                        this->sizeSequence(),
+                        get_initial_data_backward_search_step,
+                        get_symbol));
+  }
+
   std::size_t subsample_rate_ = 1;
+  std::string key_prefix_;
 };
 
 template<uint8_t t_width>
@@ -39,13 +120,19 @@ void constructSubsamplingBackwardSamples(std::size_t t_subsample_rate, sdsl::cac
 template<uint8_t t_width>
 void constructSubsamplingBackwardMarks(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample>
-void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample> &t_index,
+template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample, typename TBVOriginalSampleIdx>
+void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample, TBVOriginalSampleIdx> &t_index,
                sdsl::cache_config &t_config) {
   std::size_t n;
   {
     sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
     n = bwt_buf.size();
+  }
+
+  std::size_t r;
+  {
+    sdsl::int_vector_buffer<> bwt(sdsl::cache_file_name(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config));
+    r = bwt.size();
   }
 
   auto subsample_rate = t_index.SubsampleRate();
@@ -63,8 +150,11 @@ void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TS
   {
     // Construct subsampling backward of samples (text positions of BWT-run last letter)
     auto event = sdsl::memory_monitor::event("Subsampling");
-    if (!sdsl::cache_file_exists(prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED, t_config)) {
+    auto key = prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED;
+    if (!sdsl::cache_file_exists(key, t_config)) {
       constructSubsamplingBackwardSamples<t_width>(subsample_rate, t_config);
+
+      sri::constructBitVectorFromIntVector<TBVOriginalSampleIdx>(key, t_config, r);
     }
   }
 
