@@ -350,7 +350,7 @@ class ComputeSAValue {
                  const TNavigate &t_navigate,
                  std::size_t t_seq_size,
                  bool t_is_backward_nav)
-      : get_sample_{t_get_sample}, navigate_{t_navigate}, seq_size_{t_seq_size}, is_backward_nav_{is_backward_nav_} {
+      : get_sample_{t_get_sample}, navigate_{t_navigate}, seq_size_{t_seq_size}, is_backward_nav_{t_is_backward_nav} {
   }
 
   std::size_t operator()(std::size_t t_idx) const {
@@ -364,7 +364,7 @@ class ComputeSAValue {
     }
 
     // If the navigation is backward we go forward n_jumps jumps, else we go back n_jumps steps.
-    return (*sample + 1 + seq_size_ + n_jumps * (is_backward_nav_ ? 1 : -1)) % seq_size_;
+    return (*sample + 1 + seq_size_ + (is_backward_nav_ ? 1 : -1) * n_jumps) % seq_size_;
   }
 
  private:
