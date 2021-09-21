@@ -11,16 +11,19 @@
 #include <sdsl/int_vector_buffer.hpp>
 
 #include "csa.h"
+#include "sr_csa.h"
 
 template<uint8_t t_width = 8>
 class Factory {
  public:
   enum class IndexEnum {
-    R_CSA = 0
+    R_CSA = 0,
+    SR_CSA = 1
   };
 
   struct Config {
     IndexEnum index_type;
+    std::size_t sampling_size;
   };
 
   explicit Factory(sdsl::cache_config t_config) : config_{std::move(t_config)} {
@@ -33,9 +36,15 @@ class Factory {
   std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) {
     switch (t_config.index_type) {
       case IndexEnum::R_CSA: {
-        auto csa = std::make_shared<CSA<t_width>>(std::ref(storage_));
-        csa->load(config_);
-        return {csa, sdsl::size_in_bytes(*csa)};
+        auto idx = std::make_shared<CSA<t_width>>(std::ref(storage_));
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
+      case IndexEnum::SR_CSA: {
+        auto idx = std::make_shared<SrCSA<t_width>>(std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
       }
     }
 
