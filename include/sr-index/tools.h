@@ -343,60 +343,47 @@ auto buildGetLastValue(const TRLEString &t_string, const TSampleForSAPosition &t
   return GetLastValue<TRLEString, TSampleForSAPosition>(t_string, t_sample_for_sa_position);
 }
 
-template<typename TSampleAt, typename TBackwardNav>
-class GetValueForSAPosition {
+template<typename TGetSample, typename TNavigate>
+class ComputeSAValue {
  public:
-  GetValueForSAPosition(const TSampleAt &t_sample_at, const TBackwardNav &t_lf, std::size_t t_bwt_size)
-      : sample_at_{t_sample_at}, lf_{t_lf}, bwt_size_{t_bwt_size} {
+  ComputeSAValue(const TGetSample &t_get_sample,
+                 const TNavigate &t_navigate,
+                 std::size_t t_seq_size,
+                 bool t_is_backward_nav)
+      : get_sample_{t_get_sample}, navigate_{t_navigate}, seq_size_{t_seq_size}, is_backward_nav_{t_is_backward_nav} {
   }
 
-  std::size_t operator()(std::size_t t_pos) const {
-    std::size_t jumps = 0;
-    auto pos = t_pos;
-    auto sample = sample_at_(pos);
+  std::size_t operator()(std::size_t t_idx) const {
+    std::size_t n_jumps = 0;
+    auto sample = get_sample_(t_idx); // std::optional
 
     while (!sample) {
-      pos = lf_(pos);
-      sample = sample_at_(pos);
-      ++jumps;
+      t_idx = navigate_(t_idx);
+      sample = get_sample_(t_idx);
+      ++n_jumps;
     }
 
-    return (sample.value() + 1 + jumps) % bwt_size_;
+    // If the navigation is backward we go forward n_jumps jumps, else we go back n_jumps steps.
+    return (*sample + 1 + seq_size_ + (is_backward_nav_ ? 1 : -1) * n_jumps) % seq_size_;
   }
 
  private:
-  TSampleAt sample_at_;
-  TBackwardNav lf_;
+  TGetSample get_sample_;
+  TNavigate navigate_;
 
-  std::size_t bwt_size_;
+  std::size_t seq_size_;
+  bool is_backward_nav_;
 };
 
-template<typename TSampleAt, typename TBackwardNav>
-auto buildGetValueForSAPosition(const TSampleAt &t_sample_at, const TBackwardNav &t_lf, std::size_t t_bwt_size) {
-  return GetValueForSAPosition<TSampleAt, TBackwardNav>(t_sample_at, t_lf, t_bwt_size);
+template<typename TGetSample, typename TNavigateBackward>
+auto buildComputeSAValueBackward(const TGetSample &t_sample_at, const TNavigateBackward &t_lf, std::size_t t_bwt_size) {
+  return ComputeSAValue<TGetSample, TNavigateBackward>(t_sample_at, t_lf, t_bwt_size, true);
 }
 
-template<typename TGetValueForSAPosition>
-class ComputeFinalValueWithLastSampledValue {
- public:
-  explicit ComputeFinalValueWithLastSampledValue(const TGetValueForSAPosition &t_get_value_for_sa_position)
-      : get_value_for_sa_position_{t_get_value_for_sa_position} {
-  }
-
-  template<typename TRange>
-  auto operator()(const std::experimental::optional<std::size_t> &t_k, const TRange &t_range) const {
-    return t_k ? *t_k : get_value_for_sa_position_(t_range.second);
-  }
-
- private:
-  TGetValueForSAPosition get_value_for_sa_position_;
-};
-
-template<typename TGetValueForSAPosition>
-auto buildComputeFinalValueWithLastSampledValue(const TGetValueForSAPosition &t_get_value_for_sa_position) {
-  return ComputeFinalValueWithLastSampledValue<TGetValueForSAPosition>(t_get_value_for_sa_position);
+template<typename TGetSample, typename TNavigateForward>
+auto buildComputeSAValueForward(const TGetSample &t_sample_at, const TNavigateForward &t_psi, std::size_t t_bwt_size) {
+  return ComputeSAValue<TGetSample, TNavigateForward>(t_sample_at, t_psi, t_bwt_size, false);
 }
-
 
 class GetOptionalValue {
  public:
@@ -410,7 +397,6 @@ class GetOptionalValue {
  private:
   std::size_t final_value_;
 };
-
 
 }
 

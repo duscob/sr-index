@@ -43,7 +43,7 @@ auto constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet) {
 template<typename TBwt, typename TAlphabet>
 void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
   // Store psi
-  store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
+  sdsl::store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
 }
 
 //! Psi function core based on partial psi per symbol using run-length encoded representation.
@@ -117,40 +117,9 @@ class PsiCoreRLE {
   auto select(TChar t_c, std::size_t t_rnk) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    --t_rnk;
+    auto[run, _] = selectCore(t_rnk, values, ranks);
 
-    // Find idx of first sample with rank greater than t_rnk (binary search)
-    auto upper_bound = std::upper_bound(ranks.begin(), ranks.end(), t_rnk);
-    auto idx = std::distance(ranks.begin(), upper_bound); // Index of previous sample to the one with greater rank
-
-    auto value = values.sample_and_pointer[2 * idx]; // Psi value
-    auto rank = idx ? ranks[idx - 1] : 0; // Rank
-
-    if (rank == t_rnk) { return value; }
-
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
-
-    // Sequential search of psi value with rank given, i.e., psi value for t_rnk-th symbol c
-    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
-    std::size_t run_gap = 0;
-    do {
-      value += run_gap; // Move to the start of next run
-
-      // Move to the run end
-      auto run_length = decode_uint();
-      rank += run_length;
-      value += run_length;
-
-      n_values_to_next_sample -= 2;
-    } while (rank <= t_rnk && n_values_to_next_sample && (run_gap = decode_uint()));
-
-    assert(("Given rank does not exist.", t_rnk <= rank));
-
-    return value - (rank - t_rnk);  // value - 1 - (rank - (t_rnk + 1))
+    return run.end - 1 - (run.rank_end - (t_rnk));
   }
 
   //! Rank operation over partial psi function for symbol c
@@ -160,28 +129,17 @@ class PsiCoreRLE {
   auto rank(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    // Find idx of first sample greater than t_value (binary search)
-    const auto n_samples = values.size() / sample_dens_ + 1;
-    auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
-    const auto &cref_values = values;
-    auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
-                                        [&cref_values](const auto &tt_value, const auto &tt_item) {
-                                          return tt_value < cref_values.sample(tt_item);
-                                        });
-    if (*upper_bound == 0) { return 0ul; }
+    auto upper_bound = computeUpperBound(values, t_value);
+    if (upper_bound == 0) { return 0ul; }
 
-    auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
+    auto idx = upper_bound - 1; // Index of previous sample to the greater one
 
     auto value = values.sample_and_pointer[2 * idx]; // Psi value
     auto rank = idx ? ranks[idx - 1] : 0; // Rank
 
     if (value == t_value) { return rank; }
 
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
+    DecodeUInt decode_uint(values, idx);
 
     // Sequential search of psi value equal to given t_value and its rank
     auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
@@ -205,67 +163,169 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_value) const {
-    auto[belong, _] = computeSoftPreviousRunData(t_c, t_value);
+    auto[_, run_start_value] = rankSoftRun(t_c, t_value);
 
-    return belong;
+    return run_start_value != n_;
   }
 
   //! Rank operation over runs (run length encoded) in psi (these runs match with BWT runs)
   //! \param t_value Psi value (or SA position) query
   //! \return Rank for run-starts before the given position, i.e., number of runs with start psi value less than t_value
   auto rankRun(std::size_t t_value) const {
-    std::size_t n_runs = 0;
-    for (int i = 0; i < partial_psi_.size(); ++i) {
-      auto[_, n_c_runs] = computeSoftPreviousRunData(i, t_value);
-
-      n_runs += n_c_runs;
-    }
+    auto[n_runs, run_start] = rankSoftRun(t_value);
+    if (t_value != n_ && run_start == t_value) --n_runs;
 
     return n_runs;
   }
 
-  //! Compute if the value belongs to a run and the number of runs up to the value.
-  std::pair<bool, std::size_t> computeSoftPreviousRunData(TChar t_c, std::size_t t_value) const {
+  //! Compute the number of runs up to the value (including it) and the start value of the run containing the given value
+  //! \param t_value Psi value (or SA position) query
+  //! \return {Number of runs started up to the queried position; start value of run containing queried position or @p n if it does not belong to any run}
+  auto rankSoftRun(std::size_t t_value) const {
+    std::size_t n_runs = 0;
+    std::size_t run_start = n_;
+    for (int i = 0; i < partial_psi_.size(); ++i) {
+      auto[n_runs_c, run_start_c] = rankSoftRun(i, t_value);
+      if (run_start_c != n_) run_start = run_start_c;
+
+      n_runs += n_runs_c;
+    }
+
+    return std::make_pair(n_runs, run_start);
+  }
+
+  //! Compute the number of runs up to the value (including it) and the start value of the run containing the given value
+  //! \param t_c Symbol
+  //! \param t_value Queried position
+  //! \return {Number of runs started up to the queried position; start value of run containing queried position or n if it does not belong to any run}
+  std::pair<std::size_t, std::size_t> rankSoftRun(TChar t_c, std::size_t t_value) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    // Find idx of first sample greater than t_value (binary search)
-    const auto n_samples = values.size() / sample_dens_ + 1;
-    auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
-    const auto &cref_values = values;
-    auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
-                                        [&cref_values](const auto &tt_value, const auto &tt_item) {
-                                          return tt_value < cref_values.sample(tt_item);
-                                        });
-    if (*upper_bound == 0) { return {false, 0}; }
+    auto upper_bound = computeUpperBound(values, t_value);
 
-    auto idx = *upper_bound ? *upper_bound - 1 : 0; // Index of previous sample to the greater one
+    if (upper_bound == 0) { return {0, n_}; }
 
-    auto value = values.sample_and_pointer[2 * idx]; // Psi value
-    auto n_runs = idx * sample_dens_ / 2; // Number of runs (runs in psi are equal to bwt run)
+    auto idx = upper_bound - 1; // Index of previous sample to the greater one
 
-    if (value == t_value) { return {true, n_runs}; }
+    auto run_start = values.sample_and_pointer[2 * idx]; // Psi value at run start
+    auto n_runs = idx * sample_dens_ / 2 + 1; // Number of runs (runs in psi are equal to bwt run)
 
-    auto data = values.delta.data(); // RLE data
-    auto pointer = values.sample_and_pointer[2 * idx + 1]; // Pointer to next coded value
-    auto decode_uint = [&data, &pointer]() {
-      return decode<typename TEncVector::coder>(data, pointer);
-    };
+    if (run_start == t_value) { return {n_runs, run_start}; }
 
-    // Sequential search of psi value equal to given t_value and its rank
-    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
-    std::size_t run_gap = 0;
-    do {
-      value += run_gap; // Move to the start of next run
+    DecodeUInt decode_uint(values, idx);
+    auto &run_length = decode_uint; // Must be called once per run
+    auto &run_gap = decode_uint; // Must be called once per run
+
+    // Sequential search of psi run_start equal to given t_value and its rank
+    auto run_end = run_start + run_length();
+    decltype(run_start) next_run_start;
+    for (auto n_runs_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_) / 2 - 1;
+         run_end < t_value && n_runs_to_next_sample && (next_run_start = run_end + run_gap()) <= t_value;
+         --n_runs_to_next_sample) {
+      run_start = next_run_start;
+      run_end = run_start + run_length();
       ++n_runs;
+    }
 
-      // Move to the run end
-      auto run_length = decode_uint();
-      value += run_length;
+    return {n_runs, t_value < run_end ? run_start : n_};
+  }
 
-      n_values_to_next_sample -= 2;
-    } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
+  //! Split in runs (BWT runs) on the given range [t_first..t_last)
+  //! \param t_first First position in queried range
+  //! \param t_last Las position in queried range (not included)
+  //! \return Runs (BWT) in the queried range
+  auto splitInRuns(std::size_t t_first, std::size_t t_last) const {
+    auto ranges = splitInRuns(0, t_first, t_last);
 
-    return {t_value < value, n_runs};
+    for (int i = 1; i < partial_psi_.size(); ++i) {
+      auto c_ranges = splitInRuns(i, t_first, t_last);
+      ranges.insert(ranges.end(), c_ranges.begin(), c_ranges.end());
+    }
+
+    std::sort(ranges.begin(), ranges.end());
+    return ranges;
+  }
+
+  //! Split in runs (BWT runs) of symbol c on the given range [@p t_first..@p t_last)
+  //! \param t_c Symbol
+  //! \param t_first First position in queried range
+  //! \param t_last Last position in queried range (not included)
+  //! \return Runs (BWT) in the queried range for given symbol
+  auto splitInRuns(TChar t_c, std::size_t t_first, std::size_t t_last) const {
+    const auto &[values, ranks] = partial_psi_[t_c];
+
+    auto upper_bound = computeUpperBound(values, t_first);
+
+    auto idx = upper_bound ? upper_bound - 1 : 0; // Index of previous sample to the greater one
+
+    RunOps run_ops(values, idx, n_);
+
+    auto run_start = run_ops.nextStart(0);
+    auto run_end = run_ops.nextEnd(run_start);
+    auto next_run_start = run_ops.nextStart(run_end);
+
+    // Compute first run that ends after t_first (this is the first run cover by given range)
+    while (run_end <= t_first) {
+      run_start = next_run_start;
+      run_end = run_ops.nextEnd(run_start);
+
+      next_run_start = run_ops.nextStart(run_end);
+    }
+
+    using Range = std::pair<std::size_t, std::size_t>;
+    std::vector<Range> ranges;
+    Range range;
+
+    range.first = std::max(t_first, run_start);
+
+    // Compute first run that starts after t_last (this is the first run not cover by given range)
+    while (next_run_start < t_last) {
+      range.second = run_end;
+      ranges.emplace_back(range);
+
+      range.first = run_start = next_run_start;
+      run_end = run_ops.nextEnd(run_start);
+
+      next_run_start = run_ops.nextStart(run_end);
+    }
+
+    range.second = std::min(t_last, run_end);
+    if (range.first < range.second) {
+      ranges.emplace_back(range);
+    }
+
+    return ranges;
+  }
+
+  //! Compute forward runs (BWT runs) of symbol @p c on the given ranks range [@p t_first_rank..@p t_last_rank)
+  //! \param t_c Symbol
+  //! \param t_first_rank First rank in queried range
+  //! \param t_last_rank Last rank in queried range
+  //! \return Forward runs (BWT) in the queried range for given symbol, i.e., psi ranges from @p t_first_rank -th to @p t_last_rank -th symbol @p c
+  auto computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank) const {
+    const auto &[values, ranks] = partial_psi_[t_c];
+
+    auto[run, run_ops] = selectCore(t_first_rank, values, ranks);
+
+    using Range = std::pair<std::size_t, std::size_t>;
+    std::vector<Range> ranges;
+    Range range;
+    range.first = run.end - 1 - (run.rank_end - (t_first_rank));
+
+    --t_last_rank;
+    while (run.rank_end < t_last_rank) {
+      range.second = run.end;
+      ranges.emplace_back(range);
+
+      range.first = run.start = run_ops.nextStart(run.end);
+      run.end = run_ops.nextEnd(run.start);
+      run.rank_end += run.end - run.start;
+    }
+
+    range.second = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
+    ranges.emplace_back(range);
+
+    return ranges;
   }
 
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
@@ -298,6 +358,117 @@ class PsiCoreRLE {
   }
 
  private:
+
+  //! Find idx of first sample greater than t_value (binary search)
+  //! \param t_values Searchable values
+  //! \param t_value Queried value
+  //! \return Index of first sample greater than t_value
+  auto computeUpperBound(const TEncVector &t_values, std::size_t t_value) const {
+    const auto n_samples = t_values.size() / sample_dens_ + 1;
+    auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
+
+    auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
+                                        [&t_values](const auto &tt_value, const auto &tt_item) {
+                                          return tt_value < t_values.sample(tt_item);
+                                        });
+
+    return *upper_bound;
+  }
+
+  class DecodeUInt {
+   public:
+    DecodeUInt(const TEncVector &t_values, std::size_t t_i) {
+      data_ = t_values.delta.data(); // RLE data
+      pointer_ = t_values.sample_and_pointer[2 * t_i + 1]; // Pointer to next coded value
+    }
+
+    auto operator()() {
+      return decode<typename TEncVector::coder>(data_, pointer_);
+    }
+
+   private:
+    const uint64_t *data_ = nullptr;
+    typename TEncVector::int_vector_type::value_type pointer_ = 0;
+  };
+
+  class RunOps {
+   public:
+    RunOps(const TEncVector &t_values, std::size_t t_idx, std::size_t t_n)
+        : cr_values_{t_values}, idx_{t_idx}, n_{t_n}, decode_uint_{cr_values_, idx_} {
+      sample_dens_ = cr_values_.get_sample_dens();
+      n_samples_ = cr_values_.size() / sample_dens_ + 1;
+    }
+
+    auto nextStart(std::size_t t_run_end) {
+      if (n_runs_to_next_sample_) {
+        // Still remaining runs until the next sampled value, so next run start value is in the current interval
+        --n_runs_to_next_sample_;
+        return t_run_end + decode_uint_();
+      }
+
+      if (idx_ < n_samples_) {
+        // No remaining runs until the next sampled value, so next run start value is the next sample
+        n_runs_to_next_sample_ = std::min(sample_dens_, cr_values_.size() - idx_ * sample_dens_) / 2 - 1;
+        return cr_values_.sample_and_pointer[2 * idx_++]; // Psi value at run start
+      }
+
+      // No remaining runs
+      return n_;
+    }
+
+    auto nextEnd(std::size_t t_run_start) {
+      return (t_run_start != n_) ? t_run_start + decode_uint_() : n_;
+    }
+
+   private:
+    const TEncVector &cr_values_;
+    std::size_t idx_;
+
+    DecodeUInt decode_uint_;
+
+    std::size_t sample_dens_;
+    std::size_t n_samples_;
+    std::size_t n_runs_to_next_sample_ = 0;
+
+    std::size_t n_;
+  };
+
+  struct Run {
+    std::size_t start = 0;
+    std::size_t end = 0;
+
+    std::size_t rank_end = 0;
+  };
+
+  //! Select (core) operation over partial psi function for symbol c
+  //! \param t_rnk Rank (or number of symbols c) query. It must be less or equal than the number of symbol c
+  //! \param t_values Encoded values
+  //! \param t_ranks Ranks
+  //! \return Psi run for t_rnk-th symbol c and rank run end (additional info is added)
+  auto selectCore(std::size_t t_rnk, const TEncVector &t_values, const TIntVector &t_ranks) const {
+    --t_rnk;
+
+    // Find idx_ of first sample with rank_end greater than t_rnk (binary search)
+    auto upper_bound = std::upper_bound(t_ranks.begin(), t_ranks.end(), t_rnk);
+    auto idx = std::distance(t_ranks.begin(), upper_bound); // Index of previous sample to the one with greater rank
+
+    auto rank_run_end = idx ? t_ranks[idx - 1] : 0; // Rank
+
+    RunOps run_ops(t_values, idx, n_);
+
+    std::size_t run_start, run_end = 0;
+
+    // Sequential search of psi value with rank_end given, i.e., psi value for t_rnk-th symbol c
+    do {
+      run_start = run_ops.nextStart(run_end);
+      run_end = run_ops.nextEnd(run_start);
+      rank_run_end += run_end - run_start;
+
+    } while (rank_run_end <= t_rnk);
+
+    return std::make_pair(Run{run_start, run_end, rank_run_end}, run_ops);
+  }
+
   std::size_t n_ = 0; // Size of sequence
   std::size_t sample_dens_ = TEncVector::sample_dens; // Sample density, i.e., 1 sample per sample_density items
 
