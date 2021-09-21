@@ -347,6 +347,106 @@ auto buildPhiForRangeSimple(const TPhi &t_phi,
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
 
+template<typename TPhi, typename TGetSample, typename TSplitInBWTRuns, typename TUpdateRange, typename TIsRangeEmpty>
+class PhiForwardForRangeSimple{
+ public:
+  PhiForwardForRangeSimple(const TPhi &t_phi,
+                           const TGetSample &t_get_sample,
+                           const TSplitInBWTRuns &t_split,
+                           std::size_t t_sampling_size,
+                           std::size_t t_seq_size,
+                           const TUpdateRange &t_update_range,
+                           const TIsRangeEmpty &t_is_range_empty)
+      : phi_{t_phi},
+        split_{t_split},
+        get_sample_{t_get_sample},
+        sampling_size_{t_sampling_size},
+        seq_size_{t_seq_size},
+        update_range_{t_update_range},
+        is_empty_{t_is_range_empty} {
+  }
+
+  template<typename TReport, typename TRange>
+  auto operator()(TRange t_range, std::size_t t_prev_value, TReport &t_report) const {
+    auto &[first, last] = t_range;
+    ++last;
+    return compute(t_range, t_prev_value, 0, t_report);
+  }
+
+  template<typename TReporter, typename TRange>
+  auto compute(TRange t_range, std::size_t t_prev_value, std::size_t t_level, TReporter &t_reporter) const {
+    if (sampling_size_ < t_level) {
+      // Reach the limits of backward jumps, so phi for the previous value is valid
+      do {
+        t_prev_value = phi_(t_prev_value);
+        t_reporter(t_prev_value);
+        update_range_(t_range);
+      } while (!is_empty_(t_range));
+
+      return t_prev_value;
+    }
+
+    if (t_level) {
+      auto sample = get_sample_(t_range);
+      if (sample) {
+        // Extreme position in range is sampled, so we can use the sampled value (SA[i] = i-th BWT char sampled position + 1)
+        t_prev_value = (*sample + 1 + seq_size_ - t_level + 1) % seq_size_;
+        t_reporter(t_prev_value);
+        update_range_(t_range);
+      }
+
+      if (is_empty_(t_range)) { return t_prev_value; }
+    }
+
+    // Split current range in BWT-runs
+    auto runs = split_(t_range, t_level);
+    for (const auto &run: runs) {
+      t_prev_value = compute(run, t_prev_value, t_level + 1, t_reporter);
+    }
+
+    return t_prev_value;
+  }
+
+ private:
+  TPhi phi_;
+  TGetSample get_sample_; // Access to extreme value of a BWT run. Note that some tails are not sampled.
+  TSplitInBWTRuns split_; // Split an interval in its internal BWT runs
+
+  std::size_t sampling_size_;
+  std::size_t seq_size_;
+
+  TUpdateRange update_range_;
+  TIsRangeEmpty is_empty_;
+};
+
+template<typename TPhi, typename TSplitInBWTRun, typename TGetSample>
+auto buildPhiForwardForRangeSimple(const TPhi &t_phi,
+                                   const TSplitInBWTRun &t_split,
+                                   const TGetSample &t_get_sample,
+                                   std::size_t t_sampling_size,
+                                   std::size_t t_bwt_size) {
+
+  auto phi = [t_phi](const auto tt_prev_value) { return t_phi(tt_prev_value).first; };
+
+  auto get_sample = [t_get_sample](const auto &tt_range) {
+    auto &[first, last] = tt_range;
+    return t_get_sample(first);
+  };
+
+  auto update_range = [](auto &tt_range) {
+    auto &[first, last] = tt_range;
+    ++first;
+    return tt_range;
+  };
+
+  auto is_range_empty = [](const auto &tt_range) {
+    auto &[first, last] = tt_range;
+    return last <= first;
+  };
+
+  return PhiForwardForRangeSimple(phi, get_sample, t_split, t_sampling_size, t_bwt_size, update_range, is_range_empty);
+}
+
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 class PhiForRange {
  public:
