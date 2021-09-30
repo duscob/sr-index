@@ -367,14 +367,15 @@ class PhiForwardForRangeSimple{
   }
 
   template<typename TReport, typename TRange>
-  auto operator()(TRange t_range, std::size_t t_prev_value, TReport &t_report) const {
-    auto &[first, last] = t_range;
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport t_report) const {
+    auto range = t_range;
+    auto &[first, last] = range;
     ++last;
-    return compute(t_range, t_prev_value, 0, t_report);
+    compute(range, t_prev_value, 0, t_report);
   }
 
   template<typename TReporter, typename TRange>
-  auto compute(TRange t_range, std::size_t t_prev_value, std::size_t t_level, TReporter &t_reporter) const {
+  auto compute(TRange t_range, std::size_t t_prev_value, std::size_t t_level, TReporter t_reporter) const {
     if (sampling_size_ < t_level) {
       // Reach the limits of backward jumps, so phi for the previous value is valid
       do {

@@ -29,10 +29,6 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx,
 
   auto SubsampleRate() const { return subsample_rate_; }
 
-  void load(sdsl::cache_config t_config) override {
-    loadAllItems(t_config);
-  }
-
   using typename BaseClass::size_type;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
@@ -68,7 +64,8 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx,
 
  protected:
 
-  template<typename TSource>
+  using typename BaseClass::TSource;
+
   auto constructGetSampleForSAIdx(TSource &t_source) {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
     auto get_run = [cref_psi_core](auto tt_sa_pos) {
@@ -94,7 +91,6 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx,
     return sri::GetSampleForSAPosition(get_run, is_run_sampled, get_sample);
   }
 
-  template<typename TSource>
   auto constructSplitInBWTRuns(TSource &t_source) {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
     auto cref_alphabet = this->template loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
@@ -129,8 +125,8 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx,
     return split;
   }
 
-  template<typename TSource>
-  auto constructPhiForRange(TSource &t_source) {
+  using typename BaseClass::TFnPhiForRange;
+  TFnPhiForRange constructPhiForRange(TSource &t_source) override {
     auto bv_mark_rank = this->template loadBVRank<TBVMark>(
         key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED, t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBVMark>(
@@ -154,8 +150,8 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx,
     return sri::buildPhiForwardForRangeSimple(phi, split_in_runs, get_sample_x_sa_idx, subsample_rate_, this->n_);
   }
 
-  template<typename TSource>
-  auto constructComputeToeholdForPhiForward(TSource &t_source) {
+  using typename BaseClass::TFnComputeToehold;
+  TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) override {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
 
     auto get_sample = constructGetSampleForSAIdx(t_source);
@@ -169,39 +165,6 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBVMark, TMarkToSampleIdx,
     auto get_sa_value_for_bwt_run_start = sri::buildComputeSAValueForward(get_sample, psi, this->n_);
 
     return sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
-  }
-
- private:
-
-  template<typename TSource>
-  void loadAllItems(TSource &t_source) {
-    // Create LF function
-    auto lf = BaseClass::constructLF(t_source);
-
-    // Create getter for backward search step data
-    auto compute_data_backward_search_step = BaseClass::constructComputeDataBackwardSearchStepForPhiForward(t_source);
-
-    // Create Phi function using PhiForward
-    auto phi_for_range = constructPhiForRange(t_source);
-
-    // Create toehold for phi forward
-    auto compute_toehold = constructComputeToeholdForPhiForward(t_source);
-
-    // Create ComputeAllValuesWithPhiForRange
-    auto compute_all_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
-
-    // Create getter for initial data for backward search step
-    auto get_initial_data_backward_search_step = BaseClass::constructGetInitialDataBackwardSearchStep(t_source);
-
-    // Create getter for symbol
-    auto get_symbol = BaseClass::constructGetSymbol(t_source);
-
-    BaseClass::index_.reset(new sri::RIndex(lf,
-                                            compute_data_backward_search_step,
-                                            compute_all_values,
-                                            this->sizeSequence(),
-                                            get_initial_data_backward_search_step,
-                                            get_symbol));
   }
 
   std::size_t subsample_rate_ = 1;

@@ -32,7 +32,8 @@ class CSA : public IndexBaseWithExternalStorage {
   explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : IndexBaseWithExternalStorage(t_storage) {}
 
   void load(sdsl::cache_config t_config) override {
-    loadAllItems(t_config);
+    TSource source(std::ref(t_config));
+    loadAllItems(source);
   }
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
@@ -57,10 +58,9 @@ class CSA : public IndexBaseWithExternalStorage {
     return written_bytes;
   }
 
- private:
+ protected:
 
-  template<typename TSource>
-  void loadAllItems(TSource &t_source) {
+  virtual void loadAllItems(TSource &t_source) {
     // Create LF function
     auto lf = constructLF(t_source);
 
@@ -90,10 +90,10 @@ class CSA : public IndexBaseWithExternalStorage {
                                  get_symbol));
   }
 
- protected:
-
-  template<typename TSource>
-  auto constructLF(TSource &t_source) {
+  using Char = sri::uchar;
+  using Range = std::pair<std::size_t, std::size_t>;
+  using TFnLF = std::function<Range(Range, Char)>;
+  virtual TFnLF constructLF(TSource &t_source) {
     auto cref_alphabet = loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
     auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     n_ = cumulative[cref_alphabet.get().sigma];
@@ -104,15 +104,16 @@ class CSA : public IndexBaseWithExternalStorage {
     return sri::LFOnPsi(psi_rank, cumulative);
   }
 
-  template<typename TSource>
   auto constructComputeDataBackwardSearchStepForPhiForward(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
 
     return sri::buildComputeDataBackwardSearchStepForPhiForward(cref_psi_core);
   }
 
-  template<typename TSource>
-  auto constructPhiForRange(TSource &t_source) {
+  using Value = std::size_t;
+  using TFnReport = std::function<void(std::size_t)>;
+  using TFnPhiForRange = std::function<void(const Range &, Value, TFnReport)>;
+  virtual TFnPhiForRange constructPhiForRange(TSource &t_source) {
     auto bv_mark_rank = loadBVRank<TBVMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_source, true);
     auto bv_mark_select = loadBVSelect<TBVMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_source, true);
     auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, n_);
@@ -137,11 +138,12 @@ class CSA : public IndexBaseWithExternalStorage {
     return phi_for_range;
   }
 
-  template<typename TSource>
-  auto constructComputeToeholdForPhiForward(TSource &t_source) {
+  using DataBackwardSearchStep = sri::DataBackwardSearchStep<Char>;
+  using TFnComputeToehold = std::function<Value(const DataBackwardSearchStep &)>;
+  virtual TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
-    auto cref_samples = loadItem<TSample>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_source);
 
+    auto cref_samples = loadItem<TSample>(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_source);
     auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const auto &tt_pos) {
       auto run = cref_psi_core.get().rankRun(tt_pos);
       return cref_samples.get()[run] + 1;
@@ -150,14 +152,12 @@ class CSA : public IndexBaseWithExternalStorage {
     return sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
   }
 
-  template<typename TSource>
   auto constructGetInitialDataBackwardSearchStep(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
 
     return sri::GetInitialDataBackwardSearchStep(cref_psi_core.get().getFirstBWTSymbol(), n_ - 1);
   }
 
-  template<typename TSource>
   auto constructGetSymbol(TSource &t_source) {
     auto cref_alphabet = loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
 
