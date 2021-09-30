@@ -9,6 +9,7 @@
 #include <string>
 #include <any>
 #include <functional>
+#include <variant>
 
 #include <sdsl/io.hpp>
 
@@ -30,11 +31,14 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
 
   virtual void load(sdsl::cache_config t_config) = 0;
 
-//  typedef std::size_t size_type;
+  typedef std::size_t size_type;
 //  virtual void load(std::istream &in) = 0;
-//  virtual size_type serialize(std::ostream &out,
-//                              sdsl::structure_tree_node *v = nullptr,
-//                              const std::string &name = "") const = 0;
+
+  virtual size_type serialize(std::ostream &out) const {
+    return serialize(out, nullptr, "");
+  }
+
+  virtual size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const = 0;
 
  protected:
   template<typename TItem, typename TSource>
