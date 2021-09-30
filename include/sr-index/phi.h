@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cassert>
 #include <iterator>
-#include <experimental/optional>
+#include <optional>
 
 namespace sri {
 
@@ -555,7 +555,7 @@ class ComputeAllValuesWithPhi {
   explicit ComputeAllValuesWithPhi(const TPhi &t_phi) : phi_{t_phi} {}
 
   template<typename TRange, typename TReport>
-  void operator()(const TRange &t_range, std::experimental::optional<std::size_t> t_k, TReport &t_report) const {
+  void operator()(const TRange &t_range, std::optional<std::size_t> t_k, TReport &t_report) const {
     auto k = *t_k;
     for (auto i = t_range.first; i <= t_range.second; ++i) {
       t_report(k);

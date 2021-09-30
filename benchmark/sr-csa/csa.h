@@ -128,8 +128,8 @@ class CSA : public IndexBaseWithExternalStorage {
     sri::SampleValidatorDefault sample_validator_default;
 
     auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, n_);
-    auto phi_for_range = [phi](const auto &t_range, std::experimental::optional<std::size_t> t_k, auto &t_report) {
-      auto k = *t_k;
+    auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
+      auto k = t_k;
       for (auto i = t_range.first; i <= t_range.second; ++i) {
         k = phi(k).first;
         t_report(k);

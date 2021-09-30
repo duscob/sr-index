@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <experimental/optional>
 
 namespace sri {
 
