@@ -28,16 +28,13 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_FIRST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
+  static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
-
-  static const std::string KEY_BWT_RUN_FIRST_SAMPLED;
-  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX_SAMPLED;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 
   static const std::string KEY_ALPHABET;
 };
@@ -54,6 +51,8 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS = key_trait<t_w
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_idx";
 
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST = key_trait<t_width>::KEY_BWT + "_run_last";
@@ -65,18 +64,9 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
-
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_sampled";
-template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED =
-    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sampled";
-template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first_sampled";
-template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX_SAMPLED =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX + "_sampled";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
 
 template<>
 const std::string key_trait<8>::KEY_ALPHABET = "alphabet";

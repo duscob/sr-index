@@ -87,7 +87,7 @@ auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_conf
   auto prefix = std::to_string(subsample_rate) + "_";
   {
     sdsl::int_vector_buffer<> buf(
-        sdsl::cache_file_name(prefix + sri::key_trait<8>::KEY_BWT_RUN_FIRST_SAMPLED, t_config));
+        sdsl::cache_file_name(prefix + sri::key_trait<8>::KEY_BWT_RUN_FIRST_IDX, t_config));
     t_state.counters["r'"] = buf.size();
   }
 };
