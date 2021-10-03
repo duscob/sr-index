@@ -348,7 +348,7 @@ auto buildPhiForRangeSimple(const TPhi &t_phi,
 }
 
 template<typename TPhi, typename TGetSample, typename TSplitInBWTRuns, typename TUpdateRange, typename TIsRangeEmpty>
-class PhiForwardForRangeSimple{
+class PhiForwardForRangeSimple {
  public:
   PhiForwardForRangeSimple(const TPhi &t_phi,
                            const TGetSample &t_get_sample,
@@ -370,6 +370,7 @@ class PhiForwardForRangeSimple{
   void operator()(const TRange &t_range, std::size_t t_prev_value, TReport t_report) const {
     auto range = t_range;
     auto &[first, last] = range;
+    if (last < first) return;
     ++last;
     compute(range, t_prev_value, 0, t_report);
   }

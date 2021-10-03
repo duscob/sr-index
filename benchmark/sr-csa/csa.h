@@ -23,7 +23,7 @@
 template<uint8_t t_width = 8,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
-    typename TBVMark = sdsl::sd_vector<>,
+    typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>>
 class CSA : public IndexBaseWithExternalStorage {
@@ -44,10 +44,10 @@ class CSA : public IndexBaseWithExternalStorage {
 
     written_bytes += serializeItem<TPsiRLE>(sdsl::conf::KEY_PSI, out, child, "psi");
 
-    written_bytes += serializeItem<TBVMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks");
-    written_bytes += serializeRank<TBVMark>(
+    written_bytes += serializeItem<TBvMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks");
+    written_bytes += serializeRank<TBvMark>(
         sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks_rank");
-    written_bytes += serializeSelect<TBVMark>(
+    written_bytes += serializeSelect<TBvMark>(
         sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, out, child, "marks_select");
 
     written_bytes += serializeItem<TMarkToSampleIdx>(
@@ -91,7 +91,8 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   using Char = sri::uchar;
-  using Range = std::pair<std::size_t, std::size_t>;
+  using Position = std::size_t;
+  using Range = std::pair<Position, Position>;
   using TFnLF = std::function<Range(Range, Char)>;
   virtual TFnLF constructLF(TSource &t_source) {
     auto cref_alphabet = loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
@@ -114,8 +115,8 @@ class CSA : public IndexBaseWithExternalStorage {
   using TFnReport = std::function<void(std::size_t)>;
   using TFnPhiForRange = std::function<void(const Range &, Value, TFnReport)>;
   virtual TFnPhiForRange constructPhiForRange(TSource &t_source) {
-    auto bv_mark_rank = loadBVRank<TBVMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_source, true);
-    auto bv_mark_select = loadBVSelect<TBVMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_source, true);
+    auto bv_mark_rank = loadBVRank<TBvMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_source, true);
+    auto bv_mark_select = loadBVSelect<TBvMark>(sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_source, true);
     auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, n_);
 
     auto cref_mark_to_sample_idx =
@@ -167,8 +168,8 @@ class CSA : public IndexBaseWithExternalStorage {
 
 };
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample>
-void construct(CSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample> &t_index,
+template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
+void construct(CSA<t_width, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                sdsl::cache_config &t_config) {
   std::size_t n;
   {
@@ -180,8 +181,8 @@ void construct(CSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSam
     // Construct Successor on the text positions of BWT run last letter
     auto event = sdsl::memory_monitor::event("Successor");
     const auto KEY_BWT_RUN_LAST_TEXT_POS = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
-    if (!sdsl::cache_file_exists<TBVMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
-      sri::constructBitVectorFromIntVector<TBVMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n);
+    if (!sdsl::cache_file_exists<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
+      sri::constructBitVectorFromIntVector<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n);
     }
   }
 

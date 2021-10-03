@@ -422,12 +422,14 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   construct(t_index, t_config);
 }
 
-template<typename TBitVector>
-void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size) {
+template<typename TBitVector, typename TValues>
+void constructBitVectorFromIntVector(TValues &t_values,
+                                     const std::string &t_key,
+                                     sdsl::cache_config &t_config,
+                                     std::size_t t_bv_size) {
   sdsl::bit_vector bv_tmp(t_bv_size, 0);
 
-  sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
-  for (auto &&item: int_buf) {
+  for (auto &&item: t_values) {
     bv_tmp[item] = true;
   }
 
@@ -439,6 +441,12 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
 
   typename TBitVector::select_1_type bv_select(&bv);
   sri::store_to_cache(bv_select, t_key, t_config, true);
+}
+
+template<typename TBitVector>
+void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size) {
+  sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
+  constructBitVectorFromIntVector<TBitVector>(int_buf, t_key, t_config, t_bv_size);
 }
 
 void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {
