@@ -18,7 +18,8 @@ class Factory {
  public:
   enum class IndexEnum {
     R_CSA = 0,
-    SR_CSA = 1
+    SR_CSA = 1,
+    SR_CSA_BV = 2
   };
 
   struct Config {
@@ -43,6 +44,12 @@ class Factory {
 
       case IndexEnum::SR_CSA: {
         auto idx = std::make_shared<SrCSA<t_width>>(std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
+      case IndexEnum::SR_CSA_BV: {
+        auto idx = std::make_shared<SrCSAWithBv<t_width>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }

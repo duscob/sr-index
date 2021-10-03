@@ -59,11 +59,12 @@ auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config
   }
 };
 
-auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+template<typename TSrIndex>
+void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config, const std::string &t_data_path) {
   std::size_t subsample_rate = t_state.range(0); // Subsampling rate
 
   ExternalStorage storage;
-  SrCSA<> index(storage, subsample_rate);
+  TSrIndex index(storage, subsample_rate);
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
@@ -86,10 +87,17 @@ auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_conf
   t_state.counters["s"] = subsample_rate;
   auto prefix = std::to_string(subsample_rate) + "_";
   {
-    sdsl::int_vector_buffer<> buf(
-        sdsl::cache_file_name(prefix + sri::key_trait<8>::KEY_BWT_RUN_FIRST_IDX, t_config));
+    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(prefix + sri::key_trait<8>::KEY_BWT_RUN_FIRST_IDX, t_config));
     t_state.counters["r'"] = buf.size();
   }
+};
+
+auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<SrCSA<>>(t_state, t_config, t_data_path);
+};
+
+auto BM_ConstructSrCSAWithBv = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<SrCSAWithBv<>>(t_state, t_config, t_data_path);
 };
 
 int main(int argc, char **argv) {
@@ -113,6 +121,11 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark("Construct-R-CSA", BM_ConstructCSA, config, data_path)->Iterations(1);
 
   benchmark::RegisterBenchmark("Construct-SR-CSA", BM_ConstructSrCSA, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-CSA-Bv", BM_ConstructSrCSAWithBv, config, data_path)
       ->Iterations(1)
       ->RangeMultiplier(2)
       ->Range(4, 2u << 8u);
