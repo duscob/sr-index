@@ -67,14 +67,8 @@ class CSA : public IndexBaseWithExternalStorage {
     // Create getter for backward search step data
     auto compute_data_backward_search_step = constructComputeDataBackwardSearchStepForPhiForward(t_source);
 
-    // Create Phi function using PhiForward
-    auto phi_for_range = constructPhiForRange(t_source);
-
-    // Create toehold for phi forward
-    auto compute_toehold = constructComputeToeholdForPhiForward(t_source);
-
-    // Create ComputeAllValuesWithPhiForRange
-    auto compute_all_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
+    // Create function to compute SA values in the range
+    auto compute_sa_values = constructComputeSAValues(t_source);
 
     // Create getter for initial data for backward search step
     auto get_initial_data_backward_search_step = constructGetInitialDataBackwardSearchStep(t_source);
@@ -84,7 +78,7 @@ class CSA : public IndexBaseWithExternalStorage {
 
     index_.reset(new sri::RIndex(lf,
                                  compute_data_backward_search_step,
-                                 compute_all_values,
+                                 compute_sa_values,
                                  n_,
                                  get_initial_data_backward_search_step,
                                  get_symbol));
@@ -151,6 +145,20 @@ class CSA : public IndexBaseWithExternalStorage {
     };
 
     return sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
+  }
+
+  using TFnComputeSAValues = std::function<void(const Range &, const DataBackwardSearchStep &, TFnReport)>;
+  virtual TFnComputeSAValues constructComputeSAValues(TSource &t_source) {
+    // Create Phi function using PhiForward
+    auto phi_for_range = constructPhiForRange(t_source);
+
+    // Create toehold for phi forward
+    auto compute_toehold = constructComputeToeholdForPhiForward(t_source);
+
+    // Create ComputeAllValuesWithPhiForRange
+    auto compute_sa_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
+
+    return compute_sa_values;
   }
 
   auto constructGetInitialDataBackwardSearchStep(TSource &t_source) {
