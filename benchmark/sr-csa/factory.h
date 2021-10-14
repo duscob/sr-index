@@ -12,13 +12,16 @@
 
 #include "csa.h"
 #include "sr_csa.h"
+#include "csa_raw.h"
 
 template<uint8_t t_width = 8>
 class Factory {
  public:
   enum class IndexEnum {
     R_CSA = 0,
-    SR_CSA = 1
+    CSA_RAW = 1,
+    SR_CSA = 2,
+    SR_CSA_BV = 4
   };
 
   struct Config {
@@ -41,8 +44,20 @@ class Factory {
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
+      case IndexEnum::CSA_RAW: {
+        auto idx = std::make_shared<CSARaw<t_width>>(std::ref(storage_));
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
       case IndexEnum::SR_CSA: {
         auto idx = std::make_shared<SrCSA<t_width>>(std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
+      case IndexEnum::SR_CSA_BV: {
+        auto idx = std::make_shared<SrCSAWithBv<t_width>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }

@@ -129,6 +129,8 @@ int main(int argc, char *argv[]) {
   Factory<> factory(config);
 
   std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
+      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}},
+
       {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
 
       {"SR-CSA-WS/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 4}},
@@ -136,6 +138,12 @@ int main(int argc, char *argv[]) {
       {"SR-CSA-WS/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 16}},
       {"SR-CSA-WS/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 32}},
       {"SR-CSA-WS/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 64}},
+
+      {"SR-CSA-BV-WS/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 4}},
+      {"SR-CSA-BV-WS/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 8}},
+      {"SR-CSA-BV-WS/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 16}},
+      {"SR-CSA-BV-WS/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 32}},
+      {"SR-CSA-BV-WS/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 64}},
   };
 
   std::string print_bm_prefix = "Print-";

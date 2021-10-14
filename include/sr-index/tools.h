@@ -6,7 +6,7 @@
 #define RI_TOOLS_H_
 
 #include <cstddef>
-#include <experimental/optional>
+#include <optional>
 
 #include "toehold.h"
 
@@ -221,10 +221,10 @@ class GetSampleForSAPosition {
         sample_for_bwt_run_{t_sample_for_bwt_run} {
   }
 
-  std::experimental::optional<std::size_t> operator()(std::size_t pos) const {
+  std::optional<std::size_t> operator()(std::size_t pos) const {
     auto run = run_of_sa_position_(pos);
 
-    if (pos != run.second || !is_run_sampled_(run.first)) { return std::experimental::nullopt; }
+    if (pos != run.second || !is_run_sampled_(run.first)) { return std::nullopt; }
 
     return sample_for_bwt_run_(run.first);
   }
@@ -287,12 +287,12 @@ class GetLastValue {
   }
 
   template<typename TRange, typename TChar>
-  std::experimental::optional<std::size_t> operator()(
+  std::optional<std::size_t> operator()(
       const TRange &t_range,
       const TRange &t_next_range,
       const TChar &t_c,
       std::size_t /*t_step*/,
-      const std::experimental::optional<std::size_t> &t_last_value) const {
+      const std::optional<std::size_t> &t_last_value) const {
 
     if (t_next_range.second < t_next_range.first) { return t_last_value; }
 
@@ -391,7 +391,7 @@ class GetOptionalValue {
   }
 
   auto operator()(std::size_t /*t_step*/) const {
-    return std::experimental::make_optional(final_value_);
+    return std::make_optional(final_value_);
   }
 
  private:

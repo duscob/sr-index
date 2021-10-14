@@ -28,16 +28,13 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_FIRST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
+  static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
-
-  static const std::string KEY_BWT_RUN_FIRST_SAMPLED;
-  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX_SAMPLED;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 
   static const std::string KEY_ALPHABET;
 };
@@ -54,6 +51,8 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS = key_trait<t_w
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_idx";
 
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST = key_trait<t_width>::KEY_BWT + "_run_last";
@@ -65,18 +64,9 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
-
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_SAMPLED = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_sampled";
-template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SAMPLED =
-    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sampled";
-template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST_SAMPLED =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first_sampled";
-template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX_SAMPLED =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX + "_sampled";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
 
 template<>
 const std::string key_trait<8>::KEY_ALPHABET = "alphabet";
@@ -432,12 +422,14 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   construct(t_index, t_config);
 }
 
-template<typename TBitVector>
-void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size) {
+template<typename TBitVector, typename TValues>
+void constructBitVectorFromIntVector(TValues &t_values,
+                                     const std::string &t_key,
+                                     sdsl::cache_config &t_config,
+                                     std::size_t t_bv_size) {
   sdsl::bit_vector bv_tmp(t_bv_size, 0);
 
-  sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
-  for (auto &&item: int_buf) {
+  for (auto &&item: t_values) {
     bv_tmp[item] = true;
   }
 
@@ -449,6 +441,12 @@ void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_confi
 
   typename TBitVector::select_1_type bv_select(&bv);
   sri::store_to_cache(bv_select, t_key, t_config, true);
+}
+
+template<typename TBitVector>
+void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size) {
+  sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
+  constructBitVectorFromIntVector<TBitVector>(int_buf, t_key, t_config, t_bv_size);
 }
 
 void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {

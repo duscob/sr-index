@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cassert>
 #include <iterator>
-#include <experimental/optional>
+#include <optional>
 
 namespace sri {
 
@@ -348,7 +348,7 @@ auto buildPhiForRangeSimple(const TPhi &t_phi,
 }
 
 template<typename TPhi, typename TGetSample, typename TSplitInBWTRuns, typename TUpdateRange, typename TIsRangeEmpty>
-class PhiForwardForRangeSimple{
+class PhiForwardForRangeSimple {
  public:
   PhiForwardForRangeSimple(const TPhi &t_phi,
                            const TGetSample &t_get_sample,
@@ -367,14 +367,16 @@ class PhiForwardForRangeSimple{
   }
 
   template<typename TReport, typename TRange>
-  auto operator()(TRange t_range, std::size_t t_prev_value, TReport &t_report) const {
-    auto &[first, last] = t_range;
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport t_report) const {
+    auto range = t_range;
+    auto &[first, last] = range;
+    if (last < first) return;
     ++last;
-    return compute(t_range, t_prev_value, 0, t_report);
+    compute(range, t_prev_value, 0, t_report);
   }
 
   template<typename TReporter, typename TRange>
-  auto compute(TRange t_range, std::size_t t_prev_value, std::size_t t_level, TReporter &t_reporter) const {
+  auto compute(TRange t_range, std::size_t t_prev_value, std::size_t t_level, TReporter t_reporter) const {
     if (sampling_size_ < t_level) {
       // Reach the limits of backward jumps, so phi for the previous value is valid
       do {
@@ -555,7 +557,7 @@ class ComputeAllValuesWithPhi {
   explicit ComputeAllValuesWithPhi(const TPhi &t_phi) : phi_{t_phi} {}
 
   template<typename TRange, typename TReport>
-  void operator()(const TRange &t_range, std::experimental::optional<std::size_t> t_k, TReport &t_report) const {
+  void operator()(const TRange &t_range, std::optional<std::size_t> t_k, TReport &t_report) const {
     auto k = *t_k;
     for (auto i = t_range.first; i <= t_range.second; ++i) {
       t_report(k);
@@ -584,7 +586,7 @@ class ComputeAllValuesWithPhiForRange {
   }
 
   template<typename TRange, typename TDataLastValue, typename TReport>
-  void operator()(const TRange &t_range, const TDataLastValue &t_k, TReport &t_report) const {
+  void operator()(const TRange &t_range, const TDataLastValue &t_k, TReport t_report) const {
     // TODO In the case we need to backward search the value for the last position in the range,
     //  we can take advantage of this travel for the other positions in the same BWT sub-run
     auto k = compute_toehold_(t_k);
