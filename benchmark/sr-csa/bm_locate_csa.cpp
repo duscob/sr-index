@@ -129,6 +129,8 @@ int main(int argc, char *argv[]) {
   Factory<> factory(config);
 
   std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
+      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}},
+
       {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
 
       {"SR-CSA-WS/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 4}},
