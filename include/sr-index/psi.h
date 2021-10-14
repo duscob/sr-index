@@ -364,7 +364,7 @@ class PsiCoreRLE {
   //! \param t_value Queried value
   //! \return Index of first sample greater than t_value
   auto computeUpperBound(const TEncVector &t_values, std::size_t t_value) const {
-    const auto n_samples = t_values.size() / sample_dens_ + 1;
+    const auto n_samples = (t_values.size() - 1) / sample_dens_ + 1;
     auto fake_rac_samples = sdsl::random_access_container([](auto tt_i) { return tt_i; }, n_samples);
 
     auto upper_bound = std::upper_bound(fake_rac_samples.begin(), fake_rac_samples.end(), t_value,
@@ -396,7 +396,7 @@ class PsiCoreRLE {
     RunOps(const TEncVector &t_values, std::size_t t_idx, std::size_t t_n)
         : cr_values_{t_values}, idx_{t_idx}, n_{t_n}, decode_uint_{cr_values_, idx_} {
       sample_dens_ = cr_values_.get_sample_dens();
-      n_samples_ = cr_values_.size() / sample_dens_ + 1;
+      n_samples_ = (cr_values_.size() - 1) / sample_dens_ + 1;
     }
 
     auto nextStart(std::size_t t_run_end) {
