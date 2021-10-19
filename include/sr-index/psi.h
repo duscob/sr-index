@@ -235,23 +235,54 @@ class PsiCoreRLE {
   //! \param t_last Las position in queried range (not included)
   //! \return Runs (BWT) in the queried range
   auto splitInRuns(std::size_t t_first, std::size_t t_last) const {
-    auto ranges = splitInRuns(0, t_first, t_last);
+    using Run = std::pair<std::size_t, std::size_t>;
 
-    for (int i = 1; i < partial_psi_.size(); ++i) {
-      auto c_ranges = splitInRuns(i, t_first, t_last);
-      ranges.insert(ranges.end(), c_ranges.begin(), c_ranges.end());
+    auto construct_run = [](auto tt_first, auto tt_last, auto, auto, auto) {
+      return Run(tt_first, tt_last);
+    };
+
+    return splitInSortedRuns(t_first, t_last, construct_run);
+  }
+
+  //! Split in runs (BWT runs) on the given range [t_first..t_last)
+  //! \tparam TCreateRun
+  //! \param t_first First position in queried range
+  //! \param t_last Las position in queried range (not included)
+  //! \param t_create_run Create a run from <first, last, symbol, number of run, if first is the real first of run>
+  //! \return Runs (BWT) in the queried range
+  template<typename TCreateRun>
+  auto splitInSortedRuns(std::size_t t_first, std::size_t t_last, TCreateRun t_create_run) const {
+    std::vector<decltype(t_create_run(t_first, t_last, 0, 0, true))> runs;
+
+    auto report = [&runs, &t_create_run](auto tt_first, auto tt_last, auto tt_c, auto tt_n_run, auto tt_is_first) {
+      runs.emplace_back(t_create_run(tt_first, tt_last, tt_c, tt_n_run, tt_is_first));
+    };
+
+    splitInRuns(t_first, t_last, report);
+    std::sort(runs.begin(), runs.end());
+    return runs;
+  }
+
+  //! Split in runs (BWT runs) on the given range [t_first..t_last)
+  //! \tparam TReportRun
+  //! \param t_first
+  //! \param t_last
+  //! \param t_report_run Report runs (BWT) in the queried range
+  template<typename TReportRun>
+  void splitInRuns(std::size_t t_first, std::size_t t_last, TReportRun t_report_run) const {
+    for (int i = 0; i < partial_psi_.size(); ++i) {
+      splitInRuns(i, t_first, t_last, t_report_run);
     }
-
-    std::sort(ranges.begin(), ranges.end());
-    return ranges;
   }
 
   //! Split in runs (BWT runs) of symbol c on the given range [@p t_first..@p t_last)
+  //! \tparam TReportRun
   //! \param t_c Symbol
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)
-  //! \return Runs (BWT) in the queried range for given symbol
-  auto splitInRuns(TChar t_c, std::size_t t_first, std::size_t t_last) const {
+  //! \param t_report_run Report runs (BWT) in the queried range for given symbol
+  template<typename TReportRun>
+  void splitInRuns(TChar t_c, std::size_t t_first, std::size_t t_last, TReportRun t_report_run) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     auto upper_bound = computeUpperBound(values, t_first);
@@ -272,29 +303,23 @@ class PsiCoreRLE {
       next_run_start = run_ops.nextStart(run_end);
     }
 
-    using Range = std::pair<std::size_t, std::size_t>;
-    std::vector<Range> ranges;
-    Range range;
-
-    range.first = std::max(t_first, run_start);
+    auto first = std::max(t_first, run_start), last = run_end;
 
     // Compute first run that starts after t_last (this is the first run not cover by given range)
     while (next_run_start < t_last) {
-      range.second = run_end;
-      ranges.emplace_back(range);
+      last = run_end;
+      t_report_run(first, last, t_c, run_ops.currentRun - 1, first == run_start);
 
-      range.first = run_start = next_run_start;
+      first = run_start = next_run_start;
       run_end = run_ops.nextEnd(run_start);
 
       next_run_start = run_ops.nextStart(run_end);
     }
 
-    range.second = std::min(t_last, run_end);
-    if (range.first < range.second) {
-      ranges.emplace_back(range);
+    last = std::min(t_last, run_end);
+    if (first < last) {
+      t_report_run(first, last, t_c, run_ops.currentRun - 1, first == run_start);
     }
-
-    return ranges;
   }
 
   //! Compute forward runs (BWT runs) of symbol @p c on the given ranks range [@p t_first_rank..@p t_last_rank)
@@ -303,29 +328,43 @@ class PsiCoreRLE {
   //! \param t_last_rank Last rank in queried range
   //! \return Forward runs (BWT) in the queried range for given symbol, i.e., psi ranges from @p t_first_rank -th to @p t_last_rank -th symbol @p c
   auto computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank) const {
+    using Run = std::pair<std::size_t, std::size_t>;
+    std::vector<Run> runs;
+    auto report = [&runs](auto tt_first, auto tt_last, auto, auto, auto) {
+      runs.emplace_back(tt_first, tt_last);
+    };
+
+    computeForwardRuns(t_c, t_first_rank, t_last_rank, report);
+
+    return runs;
+  }
+
+  //! Compute forward runs (BWT runs) of symbol @p c on the given ranks range [@p t_first_rank..@p t_last_rank)
+  //! \tparam TReportRun
+  //! \param t_c Symbol
+  //! \param t_first_rank First rank in queried range
+  //! \param t_last_rank Last rank in queried range
+  //! \param t_report_run Report forward runs (BWT) in the queried range for given symbol, i.e., psi ranges from @p t_first_rank -th to @p t_last_rank -th symbol @p c
+  template<typename TReportRun>
+  void computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank, TReportRun t_report_run) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     auto[run, run_ops] = selectCore(t_first_rank, values, ranks);
 
-    using Range = std::pair<std::size_t, std::size_t>;
-    std::vector<Range> ranges;
-    Range range;
-    range.first = run.end - 1 - (run.rank_end - (t_first_rank));
+    auto first = run.end - 1 - (run.rank_end - (t_first_rank)), last = run.end;
 
     --t_last_rank;
     while (run.rank_end < t_last_rank) {
-      range.second = run.end;
-      ranges.emplace_back(range);
+      last = run.end;
+      t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
 
-      range.first = run.start = run_ops.nextStart(run.end);
+      first = run.start = run_ops.nextStart(run.end);
       run.end = run_ops.nextEnd(run.start);
       run.rank_end += run.end - run.start;
     }
 
-    range.second = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
-    ranges.emplace_back(range);
-
-    return ranges;
+    last = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
+    t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
   }
 
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
@@ -402,12 +441,14 @@ class PsiCoreRLE {
     auto nextStart(std::size_t t_run_end) {
       if (n_runs_to_next_sample_) {
         // Still remaining runs until the next sampled value, so next run start value is in the current interval
+        ++curr_run_;
         --n_runs_to_next_sample_;
         return t_run_end + decode_uint_();
       }
 
       if (idx_ < n_samples_) {
         // No remaining runs until the next sampled value, so next run start value is the next sample
+        curr_run_ = idx_ * sample_dens_ / 2;
         n_runs_to_next_sample_ = std::min(sample_dens_, cr_values_.size() - idx_ * sample_dens_) / 2 - 1;
         return cr_values_.sample_and_pointer[2 * idx_++]; // Psi value at run start
       }
@@ -420,17 +461,21 @@ class PsiCoreRLE {
       return (t_run_start != n_) ? t_run_start + decode_uint_() : n_;
     }
 
+    const std::size_t &currentRun = curr_run_;
+
    private:
+
     const TEncVector &cr_values_;
     std::size_t idx_;
+
+    std::size_t n_;
 
     DecodeUInt decode_uint_;
 
     std::size_t sample_dens_;
     std::size_t n_samples_;
     std::size_t n_runs_to_next_sample_ = 0;
-
-    std::size_t n_;
+    std::size_t curr_run_ = 0; // Number of current run (runs in psi are equal to bwt run)
   };
 
   struct Run {
