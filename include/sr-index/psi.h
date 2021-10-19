@@ -648,19 +648,19 @@ class LFOnPsi {
   /**
    * @tparam TRange Range type {sp; ep}
    * @tparam TChar Character type for compact alphabet
-   * @param t_range Range [sp; ep]
+   * @param t_range Range [sp; ep)
    * @param t_c Character for compact alphabet in [0..sigma]
-   * @return [new_sp; new_ep]
+   * @return [new_sp; new_ep)
    */
   template<typename TRange, typename TChar>
   auto operator()(const TRange &t_range, const TChar &t_c) const {
-    auto[sp, ep] = t_range;
+    const auto&[sp, ep] = t_range;
 
     // Number of c before the interval
     auto c_before_sp = rank_partial_psi_(t_c, sp);
 
     // Number of c before the interval + number of c inside the interval range
-    auto c_until_ep = rank_partial_psi_(t_c, ep + 1);
+    auto c_until_ep = rank_partial_psi_(t_c, ep);
 
     // If there are no c in the interval, return empty range
     if (c_before_sp == c_until_ep)
@@ -669,7 +669,7 @@ class LFOnPsi {
     // Number of characters smaller than c
     auto prev_to_c = cumulative_c_[t_c];
 
-    return TRange{prev_to_c + c_before_sp, prev_to_c + c_until_ep - 1};
+    return TRange{prev_to_c + c_before_sp, prev_to_c + c_until_ep};
   }
 
  private:

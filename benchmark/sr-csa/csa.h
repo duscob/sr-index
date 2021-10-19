@@ -76,12 +76,18 @@ class CSA : public IndexBaseWithExternalStorage {
     // Create getter for symbol
     auto get_symbol = constructGetSymbol(t_source);
 
+    auto create_full_range = [](auto tt_seq_size) { return Range{0, tt_seq_size}; };
+
+    auto is_range_empty = [](const auto &tt_range) { return  tt_range.second <= tt_range.first; };
+
     index_.reset(new sri::RIndex(lf,
                                  compute_data_backward_search_step,
                                  compute_sa_values,
                                  n_,
                                  get_initial_data_backward_search_step,
-                                 get_symbol));
+                                 get_symbol,
+                                 create_full_range,
+                                 is_range_empty));
   }
 
   using Char = sri::uchar;
@@ -124,7 +130,7 @@ class CSA : public IndexBaseWithExternalStorage {
     auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, n_);
     auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
-      for (auto i = t_range.first; i <= t_range.second; ++i) {
+      for (auto i = t_range.first; i < t_range.second; ++i) {
         k = phi(k).first;
         t_report(k);
       }

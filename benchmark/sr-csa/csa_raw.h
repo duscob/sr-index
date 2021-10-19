@@ -42,7 +42,7 @@ class CSARaw : public CSA<t_width, TAlphabet, TPsiRLE> {
     auto compute_sa_values = [cref_sa](const auto &tt_range, const auto &, auto tt_report) {
       auto[first, last] = tt_range;
 
-      while (first <= last) {
+      while (first < last) {
         tt_report(cref_sa.get()[first++]);
       }
     };
