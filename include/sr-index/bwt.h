@@ -95,14 +95,14 @@ Range computeLF(const TGetCRankOnBWT &get_c_rank_on_bwt,
 
 /// Backward navigation on BWT
 template<typename TGetCRankOnBWT, typename TGetF, typename TChar = unsigned char>
-class LF {
+class LFOnBWT {
  public:
   using Range = std::pair<std::size_t, std::size_t>;
 
-  LF(const TGetCRankOnBWT &t_get_c_rank_on_bwt,
-     const TGetF &t_f,
-     std::size_t t_bwt_size,
-     TChar t_max_c = 255)
+  LFOnBWT(const TGetCRankOnBWT &t_get_c_rank_on_bwt,
+          const TGetF &t_f,
+          std::size_t t_bwt_size,
+          TChar t_max_c = 255)
       : get_c_rank_on_bwt_{t_get_c_rank_on_bwt}, f_{t_f}, bwt_size_{t_bwt_size}, max_c_{t_max_c} {
   }
 
@@ -123,7 +123,7 @@ auto buildLF(const TGetCRankOnBWT &t_get_c_rank_on_bwt,
              const TGetF &t_f,
              std::size_t t_bwt_size,
              TChar t_max_c = 255) {
-  return LF<TGetCRankOnBWT, TGetF, TChar>(t_get_c_rank_on_bwt, t_f, t_bwt_size, t_max_c);
+  return LFOnBWT<TGetCRankOnBWT, TGetF, TChar>(t_get_c_rank_on_bwt, t_f, t_bwt_size, t_max_c);
 }
 
 template<typename TGetChar, typename TGetCRankOnBWT, typename TGetF>
