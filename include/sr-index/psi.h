@@ -677,50 +677,6 @@ class Psi {
   TCumulativeC cumulative_c_; // Cumulative count for alphabet [0..sigma]
 };
 
-//! LFOnPsi function using partial psi function
-/**
- * @tparam TRankPartialPsi Rank function for partial psis
- * @tparam TCumulativeC Random access container
- */
-template<typename TRankPartialPsi, typename TCumulativeC>
-class LFOnPsi {
- public:
-  LFOnPsi(const TRankPartialPsi &t_rank_partial_psi, const TCumulativeC &t_cumulative_c)
-      : rank_partial_psi_{t_rank_partial_psi}, cumulative_c_{t_cumulative_c} {
-  }
-
-  //! LFOnPsi function
-  /**
-   * @tparam TRange Range type {sp; ep}
-   * @tparam TChar Character type for compact alphabet
-   * @param t_range Range [sp; ep)
-   * @param t_c Character for compact alphabet in [0..sigma]
-   * @return [new_sp; new_ep)
-   */
-  template<typename TRange, typename TChar>
-  auto operator()(const TRange &t_range, const TChar &t_c) const {
-    const auto&[sp, ep] = t_range;
-
-    // Number of c before the interval
-    auto c_before_sp = rank_partial_psi_(t_c, sp);
-
-    // Number of c before the interval + number of c inside the interval range
-    auto c_until_ep = rank_partial_psi_(t_c, ep);
-
-    // If there are no c in the interval, return empty range
-    if (c_before_sp == c_until_ep)
-      return TRange{1, 0};
-
-    // Number of characters smaller than c
-    auto prev_to_c = cumulative_c_[t_c];
-
-    return TRange{prev_to_c + c_before_sp, prev_to_c + c_until_ep};
-  }
-
- private:
-  TRankPartialPsi rank_partial_psi_; // Rank function for partial psis
-  TCumulativeC cumulative_c_; // Cumulative count for alphabet [0..sigma]
-};
 }
 
 #endif //SRI_PSI_H_

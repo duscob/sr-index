@@ -15,6 +15,7 @@
 
 #include "sr-index/r_index.h"
 #include "sr-index/psi.h"
+#include "sr-index/lf.h"
 #include "sr-index/construct.h"
 #include "sr-index/sequence_ops.h"
 
