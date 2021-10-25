@@ -82,16 +82,6 @@ class RIndex : public LocateIndex {
   TIsRangeEmpty is_range_empty_;
 };
 
-template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol>
-auto buildRIndex(const TBackwardNav &t_lf,
-                 const TGetLastValue &t_get_last_value,
-                 const TComputeAllValues &t_compute_all_values,
-                 std::size_t t_bwt_size,
-                 const TGetFinalValue &t_get_final_sa_value,
-                 const TGetSymbol &t_get_symbol) {
-  return RIndex<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol>(
-      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol);
-}
 
 template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol>
 auto buildSharedPtrRIndex(const TBackwardNav &t_lf,
