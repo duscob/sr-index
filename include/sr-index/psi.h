@@ -55,6 +55,8 @@ template<typename TEncVector = enc_vector<sdsl::coder::elias_delta, 64>,
     typename TChar = uint8_t>
 class PsiCoreRLE {
  public:
+  using Char = TChar;
+
   PsiCoreRLE() = default;
 
   //! Constructor
@@ -127,35 +129,51 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return Rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
   auto rank(TChar t_c, std::size_t t_value) const {
+    std::size_t rnk;
+    auto report = [&rnk](const auto &tt_rank, const auto &, const auto &, const auto &) { rnk = tt_rank; };
+    rank(t_c, t_value, report);
+
+    return rnk;
+  }
+
+  //! Rank operation over partial psi function for symbol c
+  //! \tparam TReport
+  //! \param t_c Symbol c
+  //! \param t_value Psi value (or SA position) query
+  //! \param t_report Report rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
+  //! and data of run containing the value or the previous (lower) run if value does not belong to any run
+  template<typename TReport>
+  void rank(TChar t_c, std::size_t t_value, TReport t_report) const {
+    assert(("Value must be less or equal than the size of sequence", t_value <= n_));
     const auto &[values, ranks] = partial_psi_[t_c];
 
+    bool is_last_value = t_value == n_;
+    if (is_last_value) --t_value;
+
     auto upper_bound = computeUpperBound(values, t_value);
-    if (upper_bound == 0) { return 0ul; }
+    if (upper_bound == 0) {
+      t_report(0u, 0u, 0u, 0u);
+      return;
+    }
 
     auto idx = upper_bound - 1; // Index of previous sample to the greater one
-
-    auto value = values.sample_and_pointer[2 * idx]; // Psi value
     auto rank = idx ? ranks[idx - 1] : 0; // Rank
-
-    if (value == t_value) { return rank; }
-
-    DecodeUInt decode_uint(values, idx);
+    RunOps run_ops(values, idx, n_);
 
     // Sequential search of psi value equal to given t_value and its rank
-    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
-    std::size_t run_gap = 0;
+    auto next_run_start = run_ops.nextStart(0);
+    decltype(next_run_start) run_start, run_end;
+
     do {
-      value += run_gap; // Move to the start of next run
+      run_start = next_run_start;
+      run_end = run_ops.nextEnd(run_start);
+      rank += run_end - run_start;
+    } while (run_end < t_value && (next_run_start = run_ops.nextStart(run_end)) <= t_value);
 
-      // Move to the run end
-      auto run_length = decode_uint();
-      rank += run_length;
-      value += run_length;
+    if (t_value + is_last_value < run_end) rank -= run_end - t_value;  // rank - 1 - (value - (t_value + 1))
+    auto run_rank = run_ops.currentRun - (run_start != next_run_start && next_run_start != n_);
 
-      n_values_to_next_sample -= 2;
-    } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
-
-    return rank - (t_value < value ? value - t_value : 0);  // rank - 1 - (value - (t_value + 1))
+    t_report(rank, run_start, run_end, run_rank);
   }
 
   //! Find if the given psi value corresponds to the given symbol (appears in the range of the symbol)
@@ -478,7 +496,7 @@ class PsiCoreRLE {
     std::size_t curr_run_ = 0; // Number of current run (runs in psi are equal to bwt run)
   };
 
-  struct Run {
+  struct RunSelect {
     std::size_t start = 0;
     std::size_t end = 0;
 
@@ -511,7 +529,7 @@ class PsiCoreRLE {
 
     } while (rank_run_end <= t_rnk);
 
-    return std::make_pair(Run{run_start, run_end, rank_run_end}, run_ops);
+    return std::make_pair(RunSelect{run_start, run_end, rank_run_end}, run_ops);
   }
 
   std::size_t n_ = 0; // Size of sequence
