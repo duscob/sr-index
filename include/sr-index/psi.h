@@ -129,11 +129,27 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return Rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
   auto rank(TChar t_c, std::size_t t_value) const {
-    std::size_t rnk;
-    auto report = [&rnk](const auto &tt_rank, const auto &, const auto &, const auto &) { rnk = tt_rank; };
-    rank(t_c, t_value, report);
+    assert(("Value must be less or equal than the size of sequence", t_value <= n_));
+    const auto &[values, ranks] = partial_psi_[t_c];
 
-    return rnk;
+    auto upper_bound = computeUpperBound(values, t_value);
+    if (upper_bound == 0) return 0ul;
+
+    auto idx = upper_bound - 1; // Index of previous sample to the greater one
+    auto rank = idx ? ranks[idx - 1] : 0; // Rank
+    RunOps run_ops(values, idx, n_);
+
+    // Sequential search of psi value equal to given t_value and its rank
+    auto next_run_start = run_ops.nextStart(0);
+    decltype(next_run_start) run_start, run_end;
+    do {
+      run_start = next_run_start;
+      run_end = run_ops.nextEnd(run_start);
+      rank += run_end - run_start;
+    } while (run_end < t_value && (next_run_start = run_ops.nextStart(run_end)) < t_value);
+
+    if (t_value < run_end) rank -= run_end - t_value;  // rank - 1 - (value - (t_value + 1))
+    return rank;
   }
 
   //! Rank operation over partial psi function for symbol c
@@ -141,7 +157,7 @@ class PsiCoreRLE {
   //! \param t_c Symbol c
   //! \param t_value Psi value (or SA position) query
   //! \param t_report Report rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
-  //! and data of run containing the value or the previous (lower) run if value does not belong to any run
+  //! and data of run containing the value or the next (upper) run if value does not belong to any run
   template<typename TReport>
   void rank(TChar t_c, std::size_t t_value, TReport t_report) const {
     assert(("Value must be less or equal than the size of sequence", t_value <= n_));
@@ -151,27 +167,24 @@ class PsiCoreRLE {
     if (is_last_value) --t_value;
 
     auto upper_bound = computeUpperBound(values, t_value);
-    if (upper_bound == 0) {
-      t_report(0u, 0u, 0u, 0u);
-      return;
-    }
 
-    auto idx = upper_bound - 1; // Index of previous sample to the greater one
+    auto idx = upper_bound ? upper_bound - 1 : 0; // Index of previous sample to the greater one
     auto rank = idx ? ranks[idx - 1] : 0; // Rank
     RunOps run_ops(values, idx, n_);
 
     // Sequential search of psi value equal to given t_value and its rank
-    auto next_run_start = run_ops.nextStart(0);
-    decltype(next_run_start) run_start, run_end;
-
-    do {
-      run_start = next_run_start;
-      run_end = run_ops.nextEnd(run_start);
+    auto run_start = run_ops.nextStart(0);
+    auto run_end = run_ops.nextEnd(run_start);
+    while (run_end <= t_value) {
       rank += run_end - run_start;
-    } while (run_end < t_value && (next_run_start = run_ops.nextStart(run_end)) <= t_value);
+      run_start = run_ops.nextStart(run_end);
+      run_end = run_ops.nextEnd(run_start);
+    }
 
-    if (t_value + is_last_value < run_end) rank -= run_end - t_value;  // rank - 1 - (value - (t_value + 1))
-    auto run_rank = run_ops.currentRun - (run_start != next_run_start && next_run_start != n_);
+    if (is_last_value) ++t_value;
+    if (run_start < t_value) rank += t_value - run_start;
+
+    auto run_rank = run_ops.currentRun + (run_start == n_);
 
     t_report(rank, run_start, run_end, run_rank);
   }
