@@ -17,6 +17,9 @@ struct DataBackwardSearchStep {
   std::size_t step; // Number of LF steps to reach final range
   std::size_t range_start; // Start of range before LF step
   std::size_t range_end; // End of range before LF step
+
+  DataBackwardSearchStep(const TChar &t_c, std::size_t t_step, std::size_t t_range_start, std::size_t t_range_end)
+      : c{t_c}, step{t_step}, range_start{t_range_start}, range_end {t_range_end} {}
 };
 
 template<typename TChar>
@@ -41,10 +44,11 @@ auto buildGetInitialDataBackwardSearchStep(const TChar &t_c, std::size_t t_range
 //! Compute data corresponding to backward-search step for given range and character
 //! \tparam TIsLFTrivial Predicate to check if the LF step in the range with the character is trivial,
 //!     i.e., if lf(range, c) matches with next_range in the corresponding limit or if the next range is empty.
-template<typename TIsLFTrivial>
+template<typename TIsLFTrivial, typename TCreateData>
 class ComputeDataBackwardSearchStep {
  public:
-  explicit ComputeDataBackwardSearchStep(const TIsLFTrivial &t_is_lf_trivial) : is_lf_trivial_{t_is_lf_trivial} {}
+  ComputeDataBackwardSearchStep(const TIsLFTrivial &t_is_lf_trivial, const TCreateData &t_create_data)
+      : is_lf_trivial_{t_is_lf_trivial}, create_data_{t_create_data} {}
 
   template<typename TRange, typename TNewRange, typename TChar, typename TDataBackwardSearchStep>
   auto operator()(const TRange &t_range,
@@ -61,12 +65,12 @@ class ComputeDataBackwardSearchStep {
       return t_last_special_step;
     }
 
-    const auto &[start, end] = t_range;
-    return TDataBackwardSearchStep{t_c, t_step, start, end};
+    return create_data_(t_range, t_c, t_next_range, t_step);
   }
 
  private:
   TIsLFTrivial is_lf_trivial_;
+  TCreateData create_data_;
 };
 
 template<typename TRLEString>
@@ -76,7 +80,12 @@ auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapp
     return next_end < next_start || t_bwt.get()[tt_range.second] == tt_c;
   };
 
-  return ComputeDataBackwardSearchStep(is_lf_trivial_with_bwt);
+  auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_new_range, const auto &tt_step) {
+    const auto &[start, end] = tt_range;
+    return DataBackwardSearchStep{tt_c, tt_step, start, end};
+  };
+
+  return ComputeDataBackwardSearchStep(is_lf_trivial_with_bwt, create_data);
 }
 
 template<typename TPsiCore>
@@ -87,7 +96,12 @@ auto buildComputeDataBackwardSearchStepForPhiForward(const std::reference_wrappe
     return !(next_start < next_end) || t_psi.get().exist(tt_c, start);
   };
 
-  return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi);
+  auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_new_range, const auto &tt_step) {
+    const auto &[start, end] = tt_range;
+    return DataBackwardSearchStep{tt_c, tt_step, start, end};
+  };
+
+  return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi, create_data);
 }
 
 //! Compute toehold value for Phi Backward/Forward using BWT rank and select.

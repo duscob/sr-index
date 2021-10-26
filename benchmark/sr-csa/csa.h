@@ -166,7 +166,12 @@ class CSA : public IndexBaseWithExternalStorage {
       return !(next_start < next_end) || (!(start < next_start.run.start) && start < next_start.run.end);
     };
 
-    return sri::ComputeDataBackwardSearchStep(is_lf_trivial_with_psi);
+    auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_new_range, const auto &tt_step) {
+      const auto &[start, end] = tt_range;
+      return DataBackwardSearchStep{tt_c, tt_step, start, end};
+    };
+
+    return sri::ComputeDataBackwardSearchStep(is_lf_trivial_with_psi, create_data);
   }
 
   using Value = std::size_t;

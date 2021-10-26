@@ -235,6 +235,8 @@ class Factory {
   }
 
   std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> internal_make(const Config &t_config) const {
+    auto get_symbol = [](const auto &tt_c) { return (unsigned char)tt_c; };
+
     switch (t_config.index) {
       case IndexEnum::RIndex: {
         const auto &components = r_index_packs_.at(0);
@@ -247,7 +249,7 @@ class Factory {
                                           makeComputeAllValuesWithPhi(),
                                           seq_size_,
                                           sa_end_value,
-                                          sri::GetSameArg()),
+                                          get_symbol),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -267,7 +269,7 @@ class Factory {
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
                                           seq_size_,
                                           sa_end_value,
-                                          sri::GetSameArg()),
+                                          get_symbol),
                 sizeBasicComponents() + sizeRIndexComponents(components)};
       }
 
@@ -287,7 +289,7 @@ class Factory {
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                           seq_size_,
                                           sa_end_value,
-                                          sri::GetSameArg()),
+                                          get_symbol),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedMarks(components)};
       }
 
@@ -310,7 +312,7 @@ class Factory {
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                           seq_size_,
                                           sa_end_value,
-                                          sri::GetSameArg()),
+                                          get_symbol),
                 sizeBasicComponents() + sizeRIndexComponentsWithTrustedAreas(components)};
       }
     }
