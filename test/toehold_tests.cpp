@@ -103,38 +103,38 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
             Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
-            std::make_tuple(Range{0, 11}, Range{0, 0}, 0, 4, Data{3, 5, 0, 11}), // Input
-            Data{0, 4, 0, 11} // Next data
+            std::make_tuple(Range{0, 12}, Range{0, 1}, 0, 4, Data{3, 5, 0, 12}), // Input
+            Data{0, 4, 0, 12} // Next data
         ),
         std::make_tuple(
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
             Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
-            std::make_tuple(Range{0, 11}, Range{1, 4}, 1, 4, Data{3, 5, 0, 11}), // Input
-            Data{1, 4, 0, 11} // Next data
+            std::make_tuple(Range{0, 12}, Range{1, 5}, 1, 4, Data{3, 5, 0, 12}), // Input
+            Data{1, 4, 0, 12} // Next data
         ),
         std::make_tuple(
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
             Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
-            std::make_tuple(Range{0, 11}, Range{5, 8}, 2, 4, Data{3, 5, 0, 11}), // Input
-            Data{2, 4, 0, 11} // Next data
+            std::make_tuple(Range{0, 12}, Range{5, 9}, 2, 4, Data{3, 5, 0, 12}), // Input
+            Data{2, 4, 0, 12} // Next data
         ),
         std::make_tuple(
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
             Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
-            std::make_tuple(Range{0, 11}, Range{9, 11}, 3, 4, Data{3, 5, 0, 11}), // Input
-            Data{3, 5, 0, 11} // Next data
+            std::make_tuple(Range{0, 12}, Range{9, 12}, 3, 4, Data{3, 5, 0, 12}), // Input
+            Data{3, 5, 0, 12} // Next data
         ),
         std::make_tuple(
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
             Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
-            std::make_tuple(Range{9, 11}, Range{6, 8}, 2, 1, Data{3, 2, 0, 11}), // Input
-            Data{3, 2, 0, 11} // Next data
+            std::make_tuple(Range{9, 12}, Range{6, 9}, 2, 1, Data{3, 2, 0, 12}), // Input
+            Data{3, 2, 0, 12} // Next data
         ),
         std::make_tuple(
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}, // Psi
             Cumulative{0, 1, 5, 9, 12}, // Cumulative number of symbols
-            std::make_tuple(Range{9, 11}, Range{1, 0}, 1, 1, Data{3, 2, 0, 11}), // Input
-            Data{3, 2, 0, 11} // Next data
+            std::make_tuple(Range{9, 12}, Range{1, 0}, 1, 1, Data{3, 2, 0, 12}), // Input
+            Data{3, 2, 0, 12} // Next data
         )
     )
 );

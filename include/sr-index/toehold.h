@@ -40,30 +40,29 @@ auto buildGetInitialDataBackwardSearchStep(const TChar &t_c, std::size_t t_range
 
 //! Compute data corresponding to backward-search step for given range and character
 //! \tparam TIsLFTrivial Predicate to check if the LF step in the range with the character is trivial,
-//!     i.e., if lf(range, c) matches with next_range in the corresponding limit.
+//!     i.e., if lf(range, c) matches with next_range in the corresponding limit or if the next range is empty.
 template<typename TIsLFTrivial>
 class ComputeDataBackwardSearchStep {
  public:
-  explicit ComputeDataBackwardSearchStep(const TIsLFTrivial &t_is_lf_trivial) : is_lf_trivial_{t_is_lf_trivial} {
-  }
+  explicit ComputeDataBackwardSearchStep(const TIsLFTrivial &t_is_lf_trivial) : is_lf_trivial_{t_is_lf_trivial} {}
 
-  template<typename TRange, typename TChar, typename TDataBackwardSearchStep>
-  auto operator()(
-      const TRange &t_range,
-      const TRange &t_next_range,
-      const TChar &t_c,
-      std::size_t t_step,
-      const TDataBackwardSearchStep &t_last_special_step) const {
+  template<typename TRange, typename TNewRange, typename TChar, typename TDataBackwardSearchStep>
+  auto operator()(const TRange &t_range,
+                  const TNewRange &t_next_range,
+                  const TChar &t_c,
+                  std::size_t t_step,
+                  const TDataBackwardSearchStep &t_last_special_step) const {
     // TODO It is required t_next_range? If next range is empty the pattern was not found.
     // TODO Replace TDataBackwardSearchStep by DataBackwardSearchStep<TChar>
 
-    if (t_next_range.second < t_next_range.first || is_lf_trivial_(t_range, t_c)) {
+    if (is_lf_trivial_(t_range, t_c, t_next_range)) {
       // Next range is empty or
       // LF step on a current range limit (range end for backward phi or range start for forward phi) goes to next range limit.
       return t_last_special_step;
     }
 
-    return TDataBackwardSearchStep{t_c, t_step, t_range.first, t_range.second};
+    const auto &[start, end] = t_range;
+    return TDataBackwardSearchStep{t_c, t_step, start, end};
   }
 
  private:
@@ -72,8 +71,9 @@ class ComputeDataBackwardSearchStep {
 
 template<typename TRLEString>
 auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapper<const TRLEString> &t_bwt) {
-  auto is_lf_trivial_with_bwt = [t_bwt](const auto &tt_range, const auto &tt_c) {
-    return t_bwt.get()[tt_range.second] == tt_c;
+  auto is_lf_trivial_with_bwt = [t_bwt](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
+    const auto &[next_start, next_end] = tt_next_range;
+    return next_end < next_start || t_bwt.get()[tt_range.second] == tt_c;
   };
 
   return ComputeDataBackwardSearchStep(is_lf_trivial_with_bwt);
@@ -81,8 +81,10 @@ auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapp
 
 template<typename TPsiCore>
 auto buildComputeDataBackwardSearchStepForPhiForward(const std::reference_wrapper<const TPsiCore> &t_psi) {
-  auto is_lf_trivial_with_psi = [t_psi](const auto &tt_range, const auto &tt_c) {
-    return t_psi.get().exist(tt_c, tt_range.first);
+  auto is_lf_trivial_with_psi = [t_psi](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
+    const auto &[next_start, next_end] = tt_next_range;
+    const auto &[start, end] = tt_range;
+    return !(next_start < next_end) || t_psi.get().exist(tt_c, start);
   };
 
   return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi);
