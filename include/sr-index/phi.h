@@ -623,7 +623,8 @@ template<typename TPhiForwardForRange, typename TGetSAValue>
 auto buildComputeAllValuesWithPhiForwardForRange(const TPhiForwardForRange &t_phi_forward_for_range,
                                                  const TGetSAValue &t_get_sa_value) {
   auto get_new_range = [](auto tt_range) {
-    ++tt_range.first;
+    auto &[start, end] = tt_range;
+    ++start;
     return tt_range;
   };
 
