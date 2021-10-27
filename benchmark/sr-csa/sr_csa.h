@@ -204,7 +204,7 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
 
     auto get_sa_value_for_bwt_run_start = sri::buildComputeSAValueForward(get_sample, psi, this->n_);
 
-    return sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
+    return sri::buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
   }
 
   std::size_t subsample_rate_ = 1;

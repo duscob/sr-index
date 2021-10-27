@@ -160,18 +160,7 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   auto constructComputeDataBackwardSearchStepForPhiForward(TSource &t_source) {
-    auto is_lf_trivial_with_psi = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
-      const auto &[next_start, next_end] = tt_next_range;
-      const auto &[start, end] = tt_range;
-      return !(next_start < next_end) || (!(start < next_start.run.start) && start < next_start.run.end);
-    };
-
-    auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_new_range, const auto &tt_step) {
-      const auto &[start, end] = tt_range;
-      return DataBackwardSearchStep{tt_c, tt_step, start, end};
-    };
-
-    return sri::ComputeDataBackwardSearchStep(is_lf_trivial_with_psi, create_data);
+    return sri::buildComputeDataBackwardSearchStepForPhiForward();
   }
 
   using Value = std::size_t;
@@ -203,7 +192,7 @@ class CSA : public IndexBaseWithExternalStorage {
     return phi_for_range;
   }
 
-  using DataBackwardSearchStep = sri::DataBackwardSearchStep<Char>;
+  using DataBackwardSearchStep = sri::DataBackwardSearchStepForward;
   using TFnComputeToehold = std::function<Value(const DataBackwardSearchStep &)>;
   virtual TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
@@ -214,7 +203,7 @@ class CSA : public IndexBaseWithExternalStorage {
       return cref_samples.get()[run] + 1;
     };
 
-    return sri::buildComputeToeholdForPhiForward(cref_psi_core, get_sa_value_for_bwt_run_start);
+    return sri::buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
   }
 
   using TFnComputeSAValues = std::function<void(const Range &, const DataBackwardSearchStep &, TFnReport)>;
@@ -232,9 +221,7 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   auto constructGetInitialDataBackwardSearchStep(TSource &t_source) {
-    auto cref_psi_core = loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
-
-    return sri::GetInitialDataBackwardSearchStep(cref_psi_core.get().getFirstBWTSymbol(), n_ - 1);
+    return [](const auto &tt_step) { return sri::DataBackwardSearchStep{tt_step, 0ul}; };
   }
 
   auto constructGetSymbol(TSource &t_source) {
