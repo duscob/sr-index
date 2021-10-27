@@ -347,18 +347,20 @@ auto buildPhiForRangeSimple(const TPhi &t_phi,
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
 
-template<typename TPhi, typename TGetSample, typename TSplitInBWTRuns, typename TUpdateRange, typename TIsRangeEmpty>
+template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TUpdateRange, typename TIsRangeEmpty>
 class PhiForwardForRangeSimple {
  public:
   PhiForwardForRangeSimple(const TPhi &t_phi,
                            const TGetSample &t_get_sample,
-                           const TSplitInBWTRuns &t_split,
+                           const TSplitRangeInBWTRuns &t_split_range,
+                           const TSplitRunInBWTRuns &t_split_run,
                            std::size_t t_sampling_size,
                            std::size_t t_seq_size,
                            const TUpdateRange &t_update_range,
                            const TIsRangeEmpty &t_is_range_empty)
       : phi_{t_phi},
-        split_{t_split},
+        split_range_{t_split_range},
+        split_run_{t_split_run},
         get_sample_{t_get_sample},
         sampling_size_{t_sampling_size},
         seq_size_{t_seq_size},
@@ -366,44 +368,44 @@ class PhiForwardForRangeSimple {
         is_empty_{t_is_range_empty} {
   }
 
-  template<typename TReport, typename TRange>
+  template<typename TRange, typename TReport>
   void operator()(const TRange &t_range, std::size_t t_prev_value, TReport t_report) const {
-    auto range = t_range;
-    auto &[first, last] = range;
-    if (last < first) return;
-    ++last;
-    compute(range, t_prev_value, 0, t_report);
+    if (is_empty_(t_range)) return;
+
+    // Split current range in BWT-runs
+    auto runs = split_range_(t_range);
+    for (const auto &run: runs) {
+      t_prev_value = compute(run, t_prev_value, 1, t_report);
+    }
   }
 
-  template<typename TReporter, typename TRange>
-  auto compute(TRange t_range, std::size_t t_prev_value, std::size_t t_level, TReporter t_reporter) const {
+  template<typename TRun, typename TReport>
+  auto compute(TRun t_run, std::size_t t_prev_value, std::size_t t_level, TReport t_report) const {
     if (sampling_size_ < t_level) {
       // Reach the limits of backward jumps, so phi for the previous value is valid
       do {
         t_prev_value = phi_(t_prev_value);
-        t_reporter(t_prev_value);
-        update_range_(t_range);
-      } while (!is_empty_(t_range));
+        t_report(t_prev_value);
+        update_range_(t_run);
+      } while (!is_empty_(t_run));
 
       return t_prev_value;
     }
 
-    if (t_level) {
-      auto sample = get_sample_(t_range);
-      if (sample) {
-        // Extreme position in range is sampled, so we can use the sampled value (SA[i] = i-th BWT char sampled position + 1)
-        t_prev_value = (*sample + 1 + seq_size_ - t_level + 1) % seq_size_;
-        t_reporter(t_prev_value);
-        update_range_(t_range);
-      }
-
-      if (is_empty_(t_range)) { return t_prev_value; }
+    auto sample = get_sample_(t_run);
+    if (sample) {
+      // Extreme position in range is sampled, so we can use the sampled value (SA[i] = i-th BWT char sampled position + 1)
+      t_prev_value = (*sample + 1 + seq_size_ - t_level + 1) % seq_size_;
+      t_report(t_prev_value);
+      update_range_(t_run);
     }
 
+    if (is_empty_(t_run)) { return t_prev_value; }
+
     // Split current range in BWT-runs
-    auto runs = split_(t_range, t_level);
+    auto runs = split_run_(t_run);
     for (const auto &run: runs) {
-      t_prev_value = compute(run, t_prev_value, t_level + 1, t_reporter);
+      t_prev_value = compute(run, t_prev_value, t_level + 1, t_report);
     }
 
     return t_prev_value;
@@ -412,7 +414,8 @@ class PhiForwardForRangeSimple {
  private:
   TPhi phi_;
   TGetSample get_sample_; // Access to extreme value of a BWT run. Note that some tails are not sampled.
-  TSplitInBWTRuns split_; // Split an interval in its internal BWT runs
+  TSplitRangeInBWTRuns split_range_; // Split the first interval(range) in its internal BWT runs
+  TSplitRunInBWTRuns split_run_; // Split an interval(run) in its internal BWT runs
 
   std::size_t sampling_size_;
   std::size_t seq_size_;
@@ -421,9 +424,10 @@ class PhiForwardForRangeSimple {
   TIsRangeEmpty is_empty_;
 };
 
-template<typename TPhi, typename TSplitInBWTRun, typename TGetSample>
+template<typename TPhi, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TGetSample>
 auto buildPhiForwardForRangeSimple(const TPhi &t_phi,
-                                   const TSplitInBWTRun &t_split,
+                                   const TSplitRangeInBWTRuns &t_split_range,
+                                   const TSplitRunInBWTRuns &t_split_run,
                                    const TGetSample &t_get_sample,
                                    std::size_t t_sampling_size,
                                    std::size_t t_bwt_size) {
@@ -446,7 +450,8 @@ auto buildPhiForwardForRangeSimple(const TPhi &t_phi,
     return last <= first;
   };
 
-  return PhiForwardForRangeSimple(phi, get_sample, t_split, t_sampling_size, t_bwt_size, update_range, is_range_empty);
+  return PhiForwardForRangeSimple(
+      phi, get_sample, t_split_range, t_split_run, t_sampling_size, t_bwt_size, update_range, is_range_empty);
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
@@ -618,7 +623,8 @@ template<typename TPhiForwardForRange, typename TGetSAValue>
 auto buildComputeAllValuesWithPhiForwardForRange(const TPhiForwardForRange &t_phi_forward_for_range,
                                                  const TGetSAValue &t_get_sa_value) {
   auto get_new_range = [](auto tt_range) {
-    ++tt_range.first;
+    auto &[start, end] = tt_range;
+    ++start;
     return tt_range;
   };
 

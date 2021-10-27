@@ -55,6 +55,8 @@ template<typename TEncVector = enc_vector<sdsl::coder::elias_delta, 64>,
     typename TChar = uint8_t>
 class PsiCoreRLE {
  public:
+  using Char = TChar;
+
   PsiCoreRLE() = default;
 
   //! Constructor
@@ -127,35 +129,64 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return Rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
   auto rank(TChar t_c, std::size_t t_value) const {
+    assert(("Value must be less or equal than the size of sequence", t_value <= n_));
     const auto &[values, ranks] = partial_psi_[t_c];
 
     auto upper_bound = computeUpperBound(values, t_value);
-    if (upper_bound == 0) { return 0ul; }
+    if (upper_bound == 0) return 0ul;
 
     auto idx = upper_bound - 1; // Index of previous sample to the greater one
-
-    auto value = values.sample_and_pointer[2 * idx]; // Psi value
     auto rank = idx ? ranks[idx - 1] : 0; // Rank
-
-    if (value == t_value) { return rank; }
-
-    DecodeUInt decode_uint(values, idx);
+    RunOps run_ops(values, idx, n_);
 
     // Sequential search of psi value equal to given t_value and its rank
-    auto n_values_to_next_sample = std::min(sample_dens_, values.size() - idx * sample_dens_);
-    std::size_t run_gap = 0;
+    auto next_run_start = run_ops.nextStart(0);
+    decltype(next_run_start) run_start, run_end;
     do {
-      value += run_gap; // Move to the start of next run
+      run_start = next_run_start;
+      run_end = run_ops.nextEnd(run_start);
+      rank += run_end - run_start;
+    } while (run_end < t_value && (next_run_start = run_ops.nextStart(run_end)) < t_value);
 
-      // Move to the run end
-      auto run_length = decode_uint();
-      rank += run_length;
-      value += run_length;
+    if (t_value < run_end) rank -= run_end - t_value;  // rank - 1 - (value - (t_value + 1))
+    return rank;
+  }
 
-      n_values_to_next_sample -= 2;
-    } while (value <= t_value && n_values_to_next_sample && (run_gap = decode_uint()) + value < t_value);
+  //! Rank operation over partial psi function for symbol c
+  //! \tparam TReport
+  //! \param t_c Symbol c
+  //! \param t_value Psi value (or SA position) query
+  //! \param t_report Report rank for symbol c before the position given, i.e., number of symbols c with psi value less than t_value
+  //! and data of run containing the value or the next (upper) run if value does not belong to any run
+  template<typename TReport>
+  void rank(TChar t_c, std::size_t t_value, TReport t_report) const {
+    assert(("Value must be less or equal than the size of sequence", t_value <= n_));
+    const auto &[values, ranks] = partial_psi_[t_c];
 
-    return rank - (t_value < value ? value - t_value : 0);  // rank - 1 - (value - (t_value + 1))
+    bool is_last_value = t_value == n_;
+    if (is_last_value) --t_value;
+
+    auto upper_bound = computeUpperBound(values, t_value);
+
+    auto idx = upper_bound ? upper_bound - 1 : 0; // Index of previous sample to the greater one
+    auto rank = idx ? ranks[idx - 1] : 0; // Rank
+    RunOps run_ops(values, idx, n_);
+
+    // Sequential search of psi value equal to given t_value and its rank
+    auto run_start = run_ops.nextStart(0);
+    auto run_end = run_ops.nextEnd(run_start);
+    while (run_end <= t_value) {
+      rank += run_end - run_start;
+      run_start = run_ops.nextStart(run_end);
+      run_end = run_ops.nextEnd(run_start);
+    }
+
+    if (is_last_value) ++t_value;
+    if (run_start < t_value) rank += t_value - run_start;
+
+    auto run_rank = run_ops.currentRun + (run_start == n_);
+
+    t_report(rank, run_start, run_end, run_rank);
   }
 
   //! Find if the given psi value corresponds to the given symbol (appears in the range of the symbol)
@@ -235,23 +266,54 @@ class PsiCoreRLE {
   //! \param t_last Las position in queried range (not included)
   //! \return Runs (BWT) in the queried range
   auto splitInRuns(std::size_t t_first, std::size_t t_last) const {
-    auto ranges = splitInRuns(0, t_first, t_last);
+    using Run = std::pair<std::size_t, std::size_t>;
 
-    for (int i = 1; i < partial_psi_.size(); ++i) {
-      auto c_ranges = splitInRuns(i, t_first, t_last);
-      ranges.insert(ranges.end(), c_ranges.begin(), c_ranges.end());
+    auto construct_run = [](auto tt_first, auto tt_last, auto, auto, auto) {
+      return Run(tt_first, tt_last);
+    };
+
+    return splitInSortedRuns(t_first, t_last, construct_run);
+  }
+
+  //! Split in runs (BWT runs) on the given range [t_first..t_last)
+  //! \tparam TCreateRun
+  //! \param t_first First position in queried range
+  //! \param t_last Las position in queried range (not included)
+  //! \param t_create_run Create a run from <first, last, symbol, number of run, if first is the real first of run>
+  //! \return Runs (BWT) in the queried range
+  template<typename TCreateRun>
+  auto splitInSortedRuns(std::size_t t_first, std::size_t t_last, TCreateRun t_create_run) const {
+    std::vector<decltype(t_create_run(t_first, t_last, 0, 0, true))> runs;
+
+    auto report = [&runs, &t_create_run](auto tt_first, auto tt_last, auto tt_c, auto tt_n_run, auto tt_is_first) {
+      runs.emplace_back(t_create_run(tt_first, tt_last, tt_c, tt_n_run, tt_is_first));
+    };
+
+    splitInRuns(t_first, t_last, report);
+    std::sort(runs.begin(), runs.end());
+    return runs;
+  }
+
+  //! Split in runs (BWT runs) on the given range [t_first..t_last)
+  //! \tparam TReportRun
+  //! \param t_first
+  //! \param t_last
+  //! \param t_report_run Report runs (BWT) in the queried range
+  template<typename TReportRun>
+  void splitInRuns(std::size_t t_first, std::size_t t_last, TReportRun t_report_run) const {
+    for (int i = 0; i < partial_psi_.size(); ++i) {
+      splitInRuns(i, t_first, t_last, t_report_run);
     }
-
-    std::sort(ranges.begin(), ranges.end());
-    return ranges;
   }
 
   //! Split in runs (BWT runs) of symbol c on the given range [@p t_first..@p t_last)
+  //! \tparam TReportRun
   //! \param t_c Symbol
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)
-  //! \return Runs (BWT) in the queried range for given symbol
-  auto splitInRuns(TChar t_c, std::size_t t_first, std::size_t t_last) const {
+  //! \param t_report_run Report runs (BWT) in the queried range for given symbol
+  template<typename TReportRun>
+  void splitInRuns(TChar t_c, std::size_t t_first, std::size_t t_last, TReportRun t_report_run) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     auto upper_bound = computeUpperBound(values, t_first);
@@ -272,29 +334,23 @@ class PsiCoreRLE {
       next_run_start = run_ops.nextStart(run_end);
     }
 
-    using Range = std::pair<std::size_t, std::size_t>;
-    std::vector<Range> ranges;
-    Range range;
-
-    range.first = std::max(t_first, run_start);
+    auto first = std::max(t_first, run_start), last = run_end;
 
     // Compute first run that starts after t_last (this is the first run not cover by given range)
     while (next_run_start < t_last) {
-      range.second = run_end;
-      ranges.emplace_back(range);
+      last = run_end;
+      t_report_run(first, last, t_c, run_ops.currentRun - 1, first == run_start);
 
-      range.first = run_start = next_run_start;
+      first = run_start = next_run_start;
       run_end = run_ops.nextEnd(run_start);
 
       next_run_start = run_ops.nextStart(run_end);
     }
 
-    range.second = std::min(t_last, run_end);
-    if (range.first < range.second) {
-      ranges.emplace_back(range);
+    last = std::min(t_last, run_end);
+    if (first < last) {
+      t_report_run(first, last, t_c, run_ops.currentRun - 1, first == run_start);
     }
-
-    return ranges;
   }
 
   //! Compute forward runs (BWT runs) of symbol @p c on the given ranks range [@p t_first_rank..@p t_last_rank)
@@ -303,29 +359,43 @@ class PsiCoreRLE {
   //! \param t_last_rank Last rank in queried range
   //! \return Forward runs (BWT) in the queried range for given symbol, i.e., psi ranges from @p t_first_rank -th to @p t_last_rank -th symbol @p c
   auto computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank) const {
+    using Run = std::pair<std::size_t, std::size_t>;
+    std::vector<Run> runs;
+    auto report = [&runs](auto tt_first, auto tt_last, auto, auto, auto) {
+      runs.emplace_back(tt_first, tt_last);
+    };
+
+    computeForwardRuns(t_c, t_first_rank, t_last_rank, report);
+
+    return runs;
+  }
+
+  //! Compute forward runs (BWT runs) of symbol @p c on the given ranks range [@p t_first_rank..@p t_last_rank)
+  //! \tparam TReportRun
+  //! \param t_c Symbol
+  //! \param t_first_rank First rank in queried range
+  //! \param t_last_rank Last rank in queried range
+  //! \param t_report_run Report forward runs (BWT) in the queried range for given symbol, i.e., psi ranges from @p t_first_rank -th to @p t_last_rank -th symbol @p c
+  template<typename TReportRun>
+  void computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank, TReportRun t_report_run) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
     auto[run, run_ops] = selectCore(t_first_rank, values, ranks);
 
-    using Range = std::pair<std::size_t, std::size_t>;
-    std::vector<Range> ranges;
-    Range range;
-    range.first = run.end - 1 - (run.rank_end - (t_first_rank));
+    auto first = run.end - 1 - (run.rank_end - (t_first_rank)), last = run.end;
 
     --t_last_rank;
     while (run.rank_end < t_last_rank) {
-      range.second = run.end;
-      ranges.emplace_back(range);
+      last = run.end;
+      t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
 
-      range.first = run.start = run_ops.nextStart(run.end);
+      first = run.start = run_ops.nextStart(run.end);
       run.end = run_ops.nextEnd(run.start);
       run.rank_end += run.end - run.start;
     }
 
-    range.second = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
-    ranges.emplace_back(range);
-
-    return ranges;
+    last = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
+    t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
   }
 
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
@@ -402,12 +472,14 @@ class PsiCoreRLE {
     auto nextStart(std::size_t t_run_end) {
       if (n_runs_to_next_sample_) {
         // Still remaining runs until the next sampled value, so next run start value is in the current interval
+        ++curr_run_;
         --n_runs_to_next_sample_;
         return t_run_end + decode_uint_();
       }
 
       if (idx_ < n_samples_) {
         // No remaining runs until the next sampled value, so next run start value is the next sample
+        curr_run_ = idx_ * sample_dens_ / 2;
         n_runs_to_next_sample_ = std::min(sample_dens_, cr_values_.size() - idx_ * sample_dens_) / 2 - 1;
         return cr_values_.sample_and_pointer[2 * idx_++]; // Psi value at run start
       }
@@ -420,20 +492,24 @@ class PsiCoreRLE {
       return (t_run_start != n_) ? t_run_start + decode_uint_() : n_;
     }
 
+    const std::size_t &currentRun = curr_run_;
+
    private:
+
     const TEncVector &cr_values_;
     std::size_t idx_;
+
+    std::size_t n_;
 
     DecodeUInt decode_uint_;
 
     std::size_t sample_dens_;
     std::size_t n_samples_;
     std::size_t n_runs_to_next_sample_ = 0;
-
-    std::size_t n_;
+    std::size_t curr_run_ = 0; // Number of current run (runs in psi are equal to bwt run)
   };
 
-  struct Run {
+  struct RunSelect {
     std::size_t start = 0;
     std::size_t end = 0;
 
@@ -466,7 +542,7 @@ class PsiCoreRLE {
 
     } while (rank_run_end <= t_rnk);
 
-    return std::make_pair(Run{run_start, run_end, rank_run_end}, run_ops);
+    return std::make_pair(RunSelect{run_start, run_end, rank_run_end}, run_ops);
   }
 
   std::size_t n_ = 0; // Size of sequence
@@ -632,50 +708,6 @@ class Psi {
   TCumulativeC cumulative_c_; // Cumulative count for alphabet [0..sigma]
 };
 
-//! LFOnPsi function using partial psi function
-/**
- * @tparam TRankPartialPsi Rank function for partial psis
- * @tparam TCumulativeC Random access container
- */
-template<typename TRankPartialPsi, typename TCumulativeC>
-class LFOnPsi {
- public:
-  LFOnPsi(const TRankPartialPsi &t_rank_partial_psi, const TCumulativeC &t_cumulative_c)
-      : rank_partial_psi_{t_rank_partial_psi}, cumulative_c_{t_cumulative_c} {
-  }
-
-  //! LFOnPsi function
-  /**
-   * @tparam TRange Range type {sp; ep}
-   * @tparam TChar Character type for compact alphabet
-   * @param t_range Range [sp; ep]
-   * @param t_c Character for compact alphabet in [0..sigma]
-   * @return [new_sp; new_ep]
-   */
-  template<typename TRange, typename TChar>
-  auto operator()(const TRange &t_range, const TChar &t_c) const {
-    auto[sp, ep] = t_range;
-
-    // Number of c before the interval
-    auto c_before_sp = rank_partial_psi_(t_c, sp);
-
-    // Number of c before the interval + number of c inside the interval range
-    auto c_until_ep = rank_partial_psi_(t_c, ep + 1);
-
-    // If there are no c in the interval, return empty range
-    if (c_before_sp == c_until_ep)
-      return TRange{1, 0};
-
-    // Number of characters smaller than c
-    auto prev_to_c = cumulative_c_[t_c];
-
-    return TRange{prev_to_c + c_before_sp, prev_to_c + c_until_ep - 1};
-  }
-
- private:
-  TRankPartialPsi rank_partial_psi_; // Rank function for partial psis
-  TCumulativeC cumulative_c_; // Cumulative count for alphabet [0..sigma]
-};
 }
 
 #endif //SRI_PSI_H_
