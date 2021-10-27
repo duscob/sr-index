@@ -122,9 +122,6 @@ class ComputeToehold {
   //! \return Toehold value for final range.
   template<typename TRunData>
   auto operator()(const DataBackwardSearchStep<TRunData> &t_data) const {
-    // Find first/last symbol c in range (there must be one because final range is not empty)
-    // and get its sample (there must be sampled because it is at the start/end of a run).
-
     const auto &[n_steps, run_data] = t_data;
     return (get_sa_value_(run_data) + n_ - n_steps - 1) % n_;
   }
@@ -146,7 +143,7 @@ auto buildComputeToeholdForPhiBackward(const std::reference_wrapper<const TRLESt
 
     // Note that for rle_string.select, rnk starts in 0.
     auto j = t_bwt.get().select(rnk - 1, c); // Corresponding BWT position for last symbol c in range
-    assert(("Symbol c must be in the range", sp <= j && j <= ep));
+    assert(("Symbol c must be in the range", j <= run_end));
 
     return t_get_sa_value(j);
   };
