@@ -96,6 +96,10 @@ auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_conf
   BM_ConstructSrIndex<SrCSA<>>(t_state, t_config, t_data_path);
 };
 
+auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<SrCSASlim<>>(t_state, t_config, t_data_path);
+};
+
 auto BM_ConstructSrCSAWithBv = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
   BM_ConstructSrIndex<SrCSAWithBv<>>(t_state, t_config, t_data_path);
 };
@@ -121,6 +125,11 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark("Construct-R-CSA", BM_ConstructCSA, config, data_path)->Iterations(1);
 
   benchmark::RegisterBenchmark("Construct-SR-CSA", BM_ConstructSrCSA, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-CSA-Slim", BM_ConstructSrCSASlim, config, data_path)
       ->Iterations(1)
       ->RangeMultiplier(2)
       ->Range(4, 2u << 8u);
