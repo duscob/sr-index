@@ -211,6 +211,22 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
   std::string key_prefix_;
 };
 
+
+template<uint8_t t_width = 8,
+    typename TAlphabet = sdsl::byte_alphabet,
+    typename TPsiRLE = sri::PsiCoreRLE<>,
+    typename TBvMark = sdsl::sd_vector<>,
+    typename TMarkToSampleIdx = sdsl::int_vector<>,
+    typename TSample = sdsl::int_vector<>,
+    typename TBvSamplePos = sdsl::sd_vector<>,
+    typename TRun = RunSimpleSrCSA>
+class SrCSASlim : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos, TRun> {
+ public:
+  using BaseClass = SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos, TRun>;
+
+  SrCSASlim(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+};
+
 template<uint8_t t_width = 8,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
@@ -314,8 +330,8 @@ class SrCSAWithBv : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSa
 template<uint8_t t_width, typename TBVMark>
 void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample, typename TBVOriginalSampleIdx>
-void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample, TBVOriginalSampleIdx> &t_index,
+template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample, typename TBVSampleIdx, typename TRun>
+void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample, TBVSampleIdx, TRun> &t_index,
                sdsl::cache_config &t_config) {
   auto subsample_rate = t_index.SubsampleRate();
 
@@ -333,8 +349,44 @@ void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TS
     // Construct subsampling backward of samples (text positions of BWT-run last letter)
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
-    if (!sdsl::cache_file_exists<TBVOriginalSampleIdx>(key, t_config)) {
-      sri::constructBitVectorFromIntVector<TBVOriginalSampleIdx>(key, t_config, r);
+    if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
+      sri::constructBitVectorFromIntVector<TBVSampleIdx>(key, t_config, r);
+    }
+  }
+
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width>
+void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config);
+
+template<uint8_t t_width>
+void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+
+template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample, typename TBVSampleIdx, typename TRun>
+void construct(SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample, TBVSampleIdx, TRun> &t_index,
+               sdsl::cache_config &t_config) {
+  auto subsample_rate = t_index.SubsampleRate();
+
+  constructSrCSACommons<t_width, TBVMark>(subsample_rate, t_config);
+
+  {
+    // Construct subsampling backward of samples (text positions of BWT-run last letter)
+    auto event = sdsl::memory_monitor::event("Samples");
+    auto key = sri::KeySortedByAlphabet(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX);
+    if (!sdsl::cache_file_exists(key, t_config)) {
+      constructSamplesSortedByAlphabet<t_width>(t_config);
+    }
+  }
+
+  auto prefix_key = std::to_string(subsample_rate) + "_";
+
+  {
+    // Construct subsampling backward of samples (text positions of BWT-run last letter)
+    auto event = sdsl::memory_monitor::event("Subsampling");
+    auto key = sri::KeySortedByAlphabet(prefix_key + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS);
+    if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
+      constructSubsamplingBackwardSamplesSortedByAlphabet<t_width>(subsample_rate, t_config);
     }
   }
 
@@ -572,6 +624,100 @@ void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_c
       sri::constructBitVectorFromIntVector<TBvMark>(key, t_config, n);
     }
   }
+}
+
+template<uint8_t t_width>
+void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
+  sri::PsiCoreRLE<> psi_rle;
+  sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
+
+  // Samples positions
+  sdsl::int_vector<> samples;
+  sdsl::load_from_cache(samples, sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config);
+
+  const std::size_t buffer_size = 1 << 20;
+  auto r = samples.size();
+  auto log_r = sdsl::bits::hi(r) + 1;
+  // BWT-run samples sorted by alphabet
+  auto key = sdsl::cache_file_name(sri::KeySortedByAlphabet(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX), t_config);
+  sdsl::int_vector_buffer<> samples_idx_sorted(key, std::ios::out, buffer_size, log_r);
+  std::size_t n_runs = 0;
+  auto report = [&samples, &samples_idx_sorted, &n_runs](const auto &tt_run_start, const auto &tt_run_end) {
+    auto lower = std::lower_bound(samples.begin(), samples.end(), tt_run_start);
+    samples_idx_sorted.push_back(lower - samples.begin());
+    ++n_runs;
+  };
+
+  // Cumulative number of BWT-runs per symbols
+  auto key_cum = sdsl::cache_file_name(sri::key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE, t_config);
+  sdsl::int_vector_buffer<> cumulative(key_cum, std::ios::out, buffer_size, log_r);
+
+  auto sigma = psi_rle.sigma();
+  for (decltype(sigma) c = 0; c < sigma; ++c) {
+    psi_rle.traverse(c, report);
+    cumulative.push_back(n_runs);
+  }
+
+  samples_idx_sorted.close();
+  cumulative.close();
+}
+
+template<uint8_t t_width>
+void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+  auto key_prefix = std::to_string(t_subsample_rate) + "_";
+  const std::size_t buffer_size = 1 << 20;
+
+  sdsl::int_vector<> subsamples_idx_sorted;
+  {
+    sdsl::int_vector<> samples_idx_sorted;
+    sdsl::load_from_cache(samples_idx_sorted,
+                          sri::KeySortedByAlphabet(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX),
+                          t_config);
+
+    sdsl::bit_vector subsamples_idx_bv;
+    {
+      sdsl::int_vector<> subsamples_idx;
+      sdsl::load_from_cache(subsamples_idx, key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX, t_config);
+
+      subsamples_idx_bv = sri::constructBitVectorFromIntVector(subsamples_idx, samples_idx_sorted.size());
+
+      subsamples_idx_sorted = sdsl::int_vector<>(subsamples_idx.size(), 0, subsamples_idx.width());
+    }
+    sdsl::bit_vector::rank_1_type rank_subsamples_idx_bv(&subsamples_idx_bv);
+
+    sdsl::int_vector<> subsamples;
+    sdsl::load_from_cache(subsamples, key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
+
+    auto key = sdsl::cache_file_name(sri::KeySortedByAlphabet(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS),
+                                     t_config);
+    sdsl::int_vector_buffer<> subsamples_sorted(key, std::ios::out, buffer_size, subsamples.width());
+
+    std::size_t c_subsamples = 0;
+    for (auto &&idx: samples_idx_sorted) {
+      if (subsamples_idx_bv[idx] == true) {
+        auto rnk = rank_subsamples_idx_bv(idx);
+        subsamples_sorted.push_back(subsamples[rnk]);
+
+        subsamples_idx_sorted[rnk] = c_subsamples++;
+      }
+    }
+
+    subsamples_sorted.close();
+  }
+
+  sdsl::int_vector<> mark_to_sample_idx;
+  sdsl::load_from_cache(mark_to_sample_idx,
+                        key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX,
+                        t_config);
+  auto key = sdsl::cache_file_name(
+      sri::KeySortedByAlphabet(key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX),
+      t_config);
+  sdsl::int_vector_buffer<> mark_to_sample_idx_sorted(key, std::ios::out, buffer_size, mark_to_sample_idx.width());
+  for (const auto &idx: mark_to_sample_idx) {
+    mark_to_sample_idx_sorted.push_back(subsamples_idx_sorted[idx]);
+  }
+
+  mark_to_sample_idx_sorted.close();
 }
 
 template<uint8_t t_width>
