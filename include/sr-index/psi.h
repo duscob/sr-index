@@ -398,7 +398,25 @@ class PsiCoreRLE {
     t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
   }
 
+  template<typename TReportRun>
+  void traverse(TChar t_c, TReportRun t_report_run) const {
+    const auto &[values, ranks] = partial_psi_[t_c];
+
+    RunOps run_ops(values, 0, n_);
+
+    auto run_start = run_ops.nextStart(0);
+    auto run_end = run_ops.nextEnd(run_start);
+    while (run_start < n_) {
+      t_report_run(run_start, run_end);
+
+      run_start = run_ops.nextStart(run_end);
+      run_end = run_ops.nextEnd(run_start);
+    }
+  }
+
   inline auto getFirstBWTSymbol() const { return first_bwt_symbol_; }
+
+  inline auto sigma() const { return partial_psi_.size(); }
 
   typedef std::size_t size_type;
 
@@ -550,7 +568,7 @@ class PsiCoreRLE {
 
   TChar first_bwt_symbol_ = 0; // BWT[0]
 
-  // For each symbol: {run-length encoded partial psi function; rank for each RLE sampled psi value }
+  // For each symbol: {run-length encoded partial psi function; rank for each RLE sampled psi value}
   std::vector<std::pair<TEncVector, TIntVector>> partial_psi_;
 };
 
