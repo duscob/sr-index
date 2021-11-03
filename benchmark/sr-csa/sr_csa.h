@@ -44,56 +44,60 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(
-        sri::key_trait<t_width>::KEY_ALPHABET, out, child, "alphabet");
+    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
 
-    written_bytes += this->template serializeItem<TPsiRLE>(sdsl::conf::KEY_PSI, out, child, "psi");
+    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
 
-    written_bytes += this->template serializeItem<TBvMark>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, out, child, "marks_select");
+    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
 
-    written_bytes += this->template serializeItem<TMarkToSampleIdx>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX,
-        out,
-        child,
-        "mark_to_sample");
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
 
-    written_bytes += this->template serializeItem<TSample>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, out, child, "samples");
+    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
 
-    written_bytes += this->template serializeItem<TBvSampleIdx>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX, out, child, "samples_idx");
+    written_bytes +=
+        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
 
     return written_bytes;
   }
 
  protected:
 
+  using BaseClass::key;
+  void setupKeyNames() override {
+    if (!this->keys_.empty()) return;
+
+    BaseClass::setupKeyNames();
+    this->keys_.resize(6);
+//    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
+//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+    key(SrIndexKey::MARKS) = key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+    key(SrIndexKey::SAMPLES) = key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(SrIndexKey::MARK_TO_SAMPLE) =
+        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+    key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
+  }
+
   using typename BaseClass::TSource;
 
   using typename BaseClass::Value;
   using TFnGetSample = std::function<std::optional<Value>(std::size_t)>;
   virtual TFnGetSample constructGetSampleForSAIdx(TSource &t_source) {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
     auto get_run = [cref_psi_core](auto tt_sa_pos) {
       auto[run, run_start] = cref_psi_core.get().rankSoftRun(tt_sa_pos);
       return std::make_pair(run - 1, run_start);
     };
 
-    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX, t_source, true);
+    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     auto is_run_sampled = [cref_bv_sample_idx](auto tt_i) {
       return cref_bv_sample_idx.get()[tt_i];
     };
 
-    auto cref_samples = this->template loadItem<TSample>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_source);
-    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX, t_source, true);
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     auto get_sample = [cref_samples, bv_sample_idx_rank](auto tt_run) {
       auto sampled_run = bv_sample_idx_rank(tt_run);
       return cref_samples.get()[sampled_run];
@@ -117,7 +121,7 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
   using typename BaseClass::Position;
   using TFnSplitRange = std::function<Runs(Range)>;
   virtual TFnSplitRange constructSplitRangeInBWTRuns(TSource &t_source) {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
     auto create_run = constructCreateRun();
 
     auto split = [cref_psi_core, create_run](const auto &tt_range) -> auto {
@@ -130,8 +134,8 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
 
   using TFnSplitRun = std::function<Runs(TRun)>;
   virtual TFnSplitRun constructSplitRunInBWTRuns(TSource &t_source) {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
-    auto cref_alphabet = this->template loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
     auto create_run = constructCreateRun();
 
     auto split = [cref_psi_core, cref_alphabet, create_run](const auto &tt_run) -> auto {
@@ -165,18 +169,14 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
 
   using typename BaseClass::TFnPhiForRange;
   TFnPhiForRange constructPhiForRange(TSource &t_source) override {
-    auto bv_mark_rank = this->template loadBVRank<TBvMark>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, t_source, true);
-    auto bv_mark_select = this->template loadBVSelect<TBvMark>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, t_source, true);
+    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
 
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_source);
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
     auto get_mark_to_sample_idx = sri::RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, false);
 
-    auto cref_samples = this->template loadItem<TSample>(
-        key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_source);
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = sri::RandomAccessForCRefContainer(cref_samples);
     sri::SampleValidatorDefault sample_validator_default;
 
@@ -192,12 +192,12 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
 
   using typename BaseClass::TFnComputeToehold;
   TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) override {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(sdsl::conf::KEY_PSI, t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     auto get_sample = constructGetSampleForSAIdx(t_source);
 
     auto psi_select = [cref_psi_core](auto tt_c, auto tt_rnk) { return cref_psi_core.get().select(tt_c, tt_rnk); };
-    auto cref_alphabet = this->template loadItem<TAlphabet>(sri::key_trait<t_width>::KEY_ALPHABET, t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
     auto get_c = [cref_alphabet](auto tt_index) { return sri::computeCForSAIndex(cref_alphabet.get().C, tt_index); };
     auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     auto psi = sri::Psi(psi_select, get_c, cumulative);
@@ -241,51 +241,30 @@ class SrCSAWithBv : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSa
 
   SrCSAWithBv(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
 
-  using typename BaseClass::size_type;
-
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
-    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
-
-    size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(
-        sri::key_trait<t_width>::KEY_ALPHABET, out, child, "alphabet");
-
-    written_bytes += this->template serializeItem<TPsiRLE>(sdsl::conf::KEY_PSI, out, child, "psi");
-
-    written_bytes += this->template serializeItem<TBvMark>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, out, child, "marks_select");
-
-    written_bytes += this->template serializeItem<TMarkToSampleIdx>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX,
-        out,
-        child,
-        "mark_to_sample");
-
-    written_bytes += this->template serializeItem<TSample>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, out, child, "samples");
-
-    written_bytes += this->template serializeItem<TBvSamplePos>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, out, child, "samples_pos");
-
-    return written_bytes;
-  }
-
  protected:
+
+  using BaseClass::key;
+  void setupKeyNames() override {
+    if (!this->keys_.empty()) return;
+
+    BaseClass::setupKeyNames();
+//    this->keys_.resize(6);
+//    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
+//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+//    key(SrIndexKey::SAMPLES) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARK_TO_SAMPLE) =
+//        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST;
+  }
 
   using typename BaseClass::TSource;
 
   using typename BaseClass::TFnGetSample;
   TFnGetSample constructGetSampleForSAIdx(TSource &t_source) override {
-    auto cref_samples = this->template loadItem<TSample>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_source);
-    auto cref_bv_sample_pos = this->template loadItem<TBvSamplePos>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_source, true);
-    auto bv_sample_pos_rank = this->template loadBVRank<TBvSamplePos>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_source, true);
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_bv_sample_pos = this->template loadItem<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    auto bv_sample_pos_rank = this->template loadBVRank<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
 
     auto get_sample = [cref_samples, cref_bv_sample_pos, bv_sample_pos_rank](auto tt_pos) {
       return cref_bv_sample_pos.get()[tt_pos]
@@ -299,10 +278,8 @@ class SrCSAWithBv : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSa
   using typename BaseClass::Runs;
   using typename BaseClass::TFnSplitRange;
   TFnSplitRange constructSplitRangeInBWTRuns(TSource &t_source) override {
-    auto bv_sample_pos_rank = this->template loadBVRank<TBvSamplePos>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_source, true);
-    auto bv_sample_pos_select = this->template loadBVSelect<TBvSamplePos>(
-        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_source, true);
+    auto bv_sample_pos_rank = this->template loadBVRank<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    auto bv_sample_pos_select = this->template loadBVSelect<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
 
     auto split = [bv_sample_pos_rank, bv_sample_pos_select](const auto &tt_range) -> auto {
       const auto &[first, last] = tt_range;
