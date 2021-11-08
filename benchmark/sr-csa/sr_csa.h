@@ -239,7 +239,7 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
   }
 
   using typename BaseClass::TFnComputeToehold;
-  TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) override {
+  TFnComputeToehold constructComputeToehold(TSource &t_source) override {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     auto get_sample = constructGetSampleForRunData(t_source);

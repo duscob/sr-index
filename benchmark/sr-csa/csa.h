@@ -75,7 +75,7 @@ class CSA : public IndexBaseWithExternalStorage {
     auto lf = constructLF(t_source);
 
     // Create getter for backward search step data
-    auto compute_data_backward_search_step = constructComputeDataBackwardSearchStepForPhiForward(t_source);
+    auto compute_data_backward_search_step = constructComputeDataBackwardSearchStep(t_source);
 
     // Create function to compute SA values in the range
     auto compute_sa_values = constructComputeSAValues(t_source);
@@ -186,7 +186,7 @@ class CSA : public IndexBaseWithExternalStorage {
     };
   }
 
-  auto constructComputeDataBackwardSearchStepForPhiForward(TSource &t_source) {
+  auto constructComputeDataBackwardSearchStep(TSource &t_source) {
     auto create_data = constructCreateDataBackwardSearchStep();
     return sri::buildComputeDataBackwardSearchStepForPhiForward(create_data);
   }
@@ -220,7 +220,7 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   using TFnComputeToehold = std::function<Value(const DataBackwardSearchStep &)>;
-  virtual TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) {
+  virtual TFnComputeToehold constructComputeToehold(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     auto cref_samples = loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
@@ -238,7 +238,7 @@ class CSA : public IndexBaseWithExternalStorage {
     auto phi_for_range = constructPhiForRange(t_source);
 
     // Create toehold for phi forward
-    auto compute_toehold = constructComputeToeholdForPhiForward(t_source);
+    auto compute_toehold = constructComputeToehold(t_source);
 
     // Create ComputeAllValuesWithPhiForRange
     auto compute_sa_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
