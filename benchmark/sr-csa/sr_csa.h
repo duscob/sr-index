@@ -403,7 +403,7 @@ void construct(SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx
   constructSrCSACommons<t_width, TBVMark>(subsample_rate, t_config);
 
   {
-    // Construct subsampling backward of samples (text positions of BWT-run last letter)
+    // Construct samples' indices sorted by alphabet
     auto event = sdsl::memory_monitor::event("Samples");
     auto key = sri::KeySortedByAlphabet(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX);
     if (!sdsl::cache_file_exists(key, t_config)) {
@@ -414,11 +414,26 @@ void construct(SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx
   auto prefix_key = std::to_string(subsample_rate) + "_";
 
   {
-    // Construct subsampling backward of samples (text positions of BWT-run last letter)
+    // Construct subsampling backward of samples sorted by alphabet
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = sri::KeySortedByAlphabet(prefix_key + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS);
     if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
       constructSubsamplingBackwardSamplesSortedByAlphabet<t_width>(subsample_rate, t_config);
+    }
+  }
+
+  {
+    // Construct subsampling indices backward of samples sorted by alphabet
+    auto event = sdsl::memory_monitor::event("Subsampling");
+    auto key = sri::KeySortedByAlphabet(prefix_key + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX);
+    if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
+      std::size_t r;
+      {
+        sdsl::int_vector_buffer<> bwt(sdsl::cache_file_name(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config));
+        r = bwt.size();
+      }
+
+      sri::constructBitVectorFromIntVector<TBVSampleIdx>(key, t_config, r);
     }
   }
 
@@ -699,7 +714,7 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
   auto key_prefix = std::to_string(t_subsample_rate) + "_";
   const std::size_t buffer_size = 1 << 20;
 
-  sdsl::int_vector<> subsamples_idx_sorted;
+  sdsl::int_vector<> subsamples_idx_to_sorted;
   {
     sdsl::int_vector<> samples_idx_sorted;
     sdsl::load_from_cache(samples_idx_sorted,
@@ -713,28 +728,36 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
 
       subsamples_idx_bv = sri::constructBitVectorFromIntVector(subsamples_idx, samples_idx_sorted.size());
 
-      subsamples_idx_sorted = sdsl::int_vector<>(subsamples_idx.size(), 0, subsamples_idx.width());
+      subsamples_idx_to_sorted = sdsl::int_vector<>(subsamples_idx.size(), 0, subsamples_idx.width());
     }
     sdsl::bit_vector::rank_1_type rank_subsamples_idx_bv(&subsamples_idx_bv);
 
     sdsl::int_vector<> subsamples;
     sdsl::load_from_cache(subsamples, key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
 
-    auto key = sdsl::cache_file_name(sri::KeySortedByAlphabet(sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS),
-                                     t_config);
+    auto key = sdsl::cache_file_name(
+        sri::KeySortedByAlphabet(key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS), t_config);
     sdsl::int_vector_buffer<> subsamples_sorted(key, std::ios::out, buffer_size, subsamples.width());
 
+    key = sdsl::cache_file_name(
+        sri::KeySortedByAlphabet(key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX), t_config);
+    sdsl::int_vector_buffer<> subsamples_idx_sorted(key, std::ios::out, buffer_size, subsamples_idx_to_sorted.width());
+
+    std::size_t i = 0;
     std::size_t c_subsamples = 0;
     for (auto &&idx: samples_idx_sorted) {
       if (subsamples_idx_bv[idx] == true) {
         auto rnk = rank_subsamples_idx_bv(idx);
         subsamples_sorted.push_back(subsamples[rnk]);
+        subsamples_idx_sorted.push_back(i);
 
-        subsamples_idx_sorted[rnk] = c_subsamples++;
+        subsamples_idx_to_sorted[rnk] = c_subsamples++;
       }
+      ++i;
     }
 
     subsamples_sorted.close();
+    subsamples_idx_sorted.close();
   }
 
   sdsl::int_vector<> mark_to_sample_idx;
@@ -746,7 +769,7 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
       t_config);
   sdsl::int_vector_buffer<> mark_to_sample_idx_sorted(key, std::ios::out, buffer_size, mark_to_sample_idx.width());
   for (const auto &idx: mark_to_sample_idx) {
-    mark_to_sample_idx_sorted.push_back(subsamples_idx_sorted[idx]);
+    mark_to_sample_idx_sorted.push_back(subsamples_idx_to_sorted[idx]);
   }
 
   mark_to_sample_idx_sorted.close();
