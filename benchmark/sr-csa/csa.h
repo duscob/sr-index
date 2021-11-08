@@ -168,8 +168,26 @@ class CSA : public IndexBaseWithExternalStorage {
     return sri::LF(psi_rank, cumulative, create_range, empty_range);
   }
 
+  struct RunData {
+    std::size_t pos;
+
+    explicit RunData(std::size_t t_pos = 0) : pos{t_pos} {}
+  };
+
+  // TODO Use unique_ptr instead shared_ptr
+  using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
+  using TFnCreateDataBackwardSearchStep = std::function<DataBackwardSearchStep(
+      const Range &, Char, const RangeLF &, std::size_t)>;
+  virtual TFnCreateDataBackwardSearchStep constructCreateDataBackwardSearchStep() {
+    return [](const Range &tt_range, Char tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
+      const auto &[start, end] = tt_next_range;
+      return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
+    };
+  }
+
   auto constructComputeDataBackwardSearchStepForPhiForward(TSource &t_source) {
-    return sri::buildComputeDataBackwardSearchStepForPhiForward();
+    auto create_data = constructCreateDataBackwardSearchStep();
+    return sri::buildComputeDataBackwardSearchStepForPhiForward(create_data);
   }
 
   using Value = std::size_t;
@@ -200,14 +218,13 @@ class CSA : public IndexBaseWithExternalStorage {
     return phi_for_range;
   }
 
-  using DataBackwardSearchStep = sri::DataBackwardSearchStepForward;
   using TFnComputeToehold = std::function<Value(const DataBackwardSearchStep &)>;
   virtual TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     auto cref_samples = loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const auto &tt_pos) {
-      auto run = cref_psi_core.get().rankRun(tt_pos);
+    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
+      auto run = cref_psi_core.get().rankRun(tt_run_data->pos);
       return cref_samples.get()[run] + 1;
     };
 
@@ -229,7 +246,7 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   auto constructGetInitialDataBackwardSearchStep(TSource &t_source) {
-    return [](const auto &tt_step) { return sri::DataBackwardSearchStep{tt_step, 0ul}; };
+    return [](const auto &tt_step) { return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(0)}; };
   }
 
   auto constructGetSymbol(TSource &t_source) {
