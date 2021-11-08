@@ -88,10 +88,7 @@ class CSA : public IndexBaseWithExternalStorage {
 
     auto create_full_range = [](auto tt_seq_size) { return Range{0, tt_seq_size}; };
 
-    auto is_range_empty = [](const auto &tt_range) {
-      const auto &[start, end] = tt_range;
-      return !(start < end);
-    };
+    auto is_range_empty = constructIsRangeEmpty();
 
     index_.reset(new sri::RIndex(lf,
                                  compute_data_backward_search_step,
@@ -140,6 +137,10 @@ class CSA : public IndexBaseWithExternalStorage {
     DataLF start;
     DataLF end;
   };
+
+  auto constructIsRangeEmpty() {
+    return [](const Range &tt_range) { return !(tt_range.start < tt_range.end); };
+  }
 
   auto constructLF(TSource &t_source) {
     auto cref_alphabet = loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);

@@ -347,7 +347,7 @@ auto buildPhiForRangeSimple(const TPhi &t_phi,
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
 
-template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TUpdateRange, typename TIsRangeEmpty>
+template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
 class PhiForwardForRangeSimple {
  public:
   PhiForwardForRangeSimple(const TPhi &t_phi,
@@ -356,21 +356,23 @@ class PhiForwardForRangeSimple {
                            const TSplitRunInBWTRuns &t_split_run,
                            std::size_t t_sampling_size,
                            std::size_t t_seq_size,
-                           const TUpdateRange &t_update_range,
-                           const TIsRangeEmpty &t_is_range_empty)
+                           const TIsRangeEmpty &t_is_range_empty,
+                           const TUpdateRun &t_update_run,
+                           const TIsRunEmpty &t_is_run_empty)
       : phi_{t_phi},
         split_range_{t_split_range},
         split_run_{t_split_run},
         get_sample_{t_get_sample},
         sampling_size_{t_sampling_size},
         seq_size_{t_seq_size},
-        update_range_{t_update_range},
-        is_empty_{t_is_range_empty} {
+        is_range_empty_{t_is_range_empty},
+        update_run_{t_update_run},
+        is_run_empty_{t_is_run_empty} {
   }
 
   template<typename TRange, typename TReport>
   void operator()(const TRange &t_range, std::size_t t_prev_value, TReport t_report) const {
-    if (is_empty_(t_range)) return;
+    if (is_range_empty_(t_range)) return;
 
     // Split current range in BWT-runs
     auto runs = split_range_(t_range);
@@ -386,8 +388,8 @@ class PhiForwardForRangeSimple {
       do {
         t_prev_value = phi_(t_prev_value);
         t_report(t_prev_value);
-        update_range_(t_run);
-      } while (!is_empty_(t_run));
+        update_run_(t_run);
+      } while (!is_run_empty_(t_run));
 
       return t_prev_value;
     }
@@ -397,10 +399,10 @@ class PhiForwardForRangeSimple {
       // Extreme position in range is sampled, so we can use the sampled value (SA[i] = i-th BWT char sampled position + 1)
       t_prev_value = (*sample + 1 + seq_size_ - t_level + 1) % seq_size_;
       t_report(t_prev_value);
-      update_range_(t_run);
+      update_run_(t_run);
     }
 
-    if (is_empty_(t_run)) { return t_prev_value; }
+    if (is_run_empty_(t_run)) { return t_prev_value; }
 
     // Split current range in BWT-runs
     auto runs = split_run_(t_run);
@@ -420,8 +422,9 @@ class PhiForwardForRangeSimple {
   std::size_t sampling_size_;
   std::size_t seq_size_;
 
-  TUpdateRange update_range_;
-  TIsRangeEmpty is_empty_;
+  TIsRangeEmpty is_range_empty_;
+  TUpdateRun update_run_;
+  TIsRunEmpty is_run_empty_;
 };
 
 template<typename TPhi, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TGetSample>
@@ -434,24 +437,24 @@ auto buildPhiForwardForRangeSimple(const TPhi &t_phi,
 
   auto phi = [t_phi](const auto tt_prev_value) { return t_phi(tt_prev_value).first; };
 
-  auto get_sample = [t_get_sample](const auto &tt_range) {
-    auto &[first, last] = tt_range;
-    return t_get_sample(first);
-  };
-
-  auto update_range = [](auto &tt_range) {
-    auto &[first, last] = tt_range;
-    ++first;
-    return tt_range;
-  };
-
   auto is_range_empty = [](const auto &tt_range) {
-    auto &[first, last] = tt_range;
+    const auto &[first, last] = tt_range;
+    return last <= first;
+  };
+
+  auto update_run = [](auto &tt_run) {
+    auto &[first, last] = limits(tt_run);
+    ++first;
+    return tt_run;
+  };
+
+  auto is_run_empty = [](const auto &tt_run) {
+    const auto &[first, last] = limits(tt_run);
     return last <= first;
   };
 
   return PhiForwardForRangeSimple(
-      phi, get_sample, t_split_range, t_split_run, t_sampling_size, t_bwt_size, update_range, is_range_empty);
+      phi, t_get_sample, t_split_range, t_split_run, t_sampling_size, t_bwt_size, is_range_empty, update_run, is_run_empty);
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>

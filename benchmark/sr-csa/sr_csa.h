@@ -11,13 +11,21 @@
 
 #include "csa.h"
 
-struct RunSimpleSrCSA {
-  std::size_t first;
-  std::size_t last;
+struct RunCSA {
+  std::size_t start = 0;
+  std::size_t end = 0;
 };
 
-bool operator<(const RunSimpleSrCSA &lhs, const RunSimpleSrCSA &rhs) {
-  return lhs.first < rhs.first;
+auto limits(const RunCSA &t_run) {
+  return t_run;
+}
+
+auto &limits(RunCSA &t_run) {
+  return t_run;
+}
+
+bool operator<(const RunCSA &lhs, const RunCSA &rhs) {
+  return lhs.start < rhs.start;
 }
 
 template<uint8_t t_width = 8,
@@ -27,7 +35,7 @@ template<uint8_t t_width = 8,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>,
-    typename TRun = RunSimpleSrCSA>
+    typename TRun = RunCSA>
 class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
   using BaseClass = CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
@@ -83,7 +91,7 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
   using typename BaseClass::TSource;
 
   using typename BaseClass::Value;
-  using TFnGetSample = std::function<std::optional<Value>(std::size_t)>;
+  using TFnGetSample = std::function<std::optional<Value>(Value)>;
   virtual TFnGetSample constructGetSampleForSAIdx(TSource &t_source) {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
     auto get_run = [cref_psi_core](auto tt_sa_pos) {
@@ -104,6 +112,25 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
     };
 
     return sri::GetSampleForSAPosition(get_run, is_run_sampled, get_sample);
+  }
+
+  using typename BaseClass::RunData;
+  using TFnGetSampleForRunData = std::function<std::optional<Value>(const RunData &)>;
+  virtual TFnGetSampleForRunData constructGetSampleForRunData(TSource &t_source) {
+    auto get_sample_for_sa_idx = constructGetSampleForSAIdx(t_source);
+
+    return [get_sample_for_sa_idx](const RunData &tt_run_data) {
+      return get_sample_for_sa_idx(tt_run_data.pos);
+    };
+  }
+
+  using TFnGetSampleForRun = std::function<std::optional<Value>(const TRun &)>;
+  virtual TFnGetSampleForRun constructGetSampleForRun(TSource &t_source) {
+    auto get_sample_for_sa_idx = constructGetSampleForSAIdx(t_source);
+
+    return [get_sample_for_sa_idx](const TRun &tt_run) {
+      return get_sample_for_sa_idx(tt_run.start);
+    };
   }
 
   using Char = typename TPsiRLE::Char;
@@ -139,7 +166,7 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
     auto create_run = constructCreateRun();
 
     auto split = [cref_psi_core, cref_alphabet, create_run](const auto &tt_run) -> auto {
-      const auto &[first, last] = tt_run;
+      const auto &[first, last] = limits(tt_run);
       const auto &cumulative = cref_alphabet.get().C;
       auto c = sri::computeCForSAIndex(cumulative, first);
 
@@ -181,30 +208,58 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
     sri::SampleValidatorDefault sample_validator_default;
 
     auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    auto phi_simple = [phi](const auto tt_prev_value) { return phi(tt_prev_value).first; };
 
     auto split_range = constructSplitRangeInBWTRuns(t_source);
     auto split_run = constructSplitRunInBWTRuns(t_source);
-    auto get_sample_x_sa_idx = constructGetSampleForSAIdx(t_source);
+    auto get_sample_4_run = constructGetSampleForRun(t_source);
 
-    return sri::buildPhiForwardForRangeSimple(
-        phi, split_range, split_run, get_sample_x_sa_idx, subsample_rate_, this->n_);
+    auto is_range_empty = this->constructIsRangeEmpty();
+
+    auto update_run = [](TRun &tt_run) {
+      auto &[first, last] = limits(tt_run);
+      ++first;
+      return tt_run;
+    };
+
+    auto is_run_empty = [](const TRun &tt_run) {
+      const auto &[first, last] = limits(tt_run);
+      return !(first < last);
+    };
+
+    return sri::PhiForwardForRangeSimple(phi_simple,
+                                         get_sample_4_run,
+                                         split_range,
+                                         split_run,
+                                         subsample_rate_,
+                                         this->n_,
+                                         is_range_empty,
+                                         update_run,
+                                         is_run_empty);
   }
 
   using typename BaseClass::TFnComputeToehold;
   TFnComputeToehold constructComputeToeholdForPhiForward(TSource &t_source) override {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
-    auto get_sample = constructGetSampleForSAIdx(t_source);
+    auto get_sample = constructGetSampleForRunData(t_source);
 
     auto psi_select = [cref_psi_core](auto tt_c, auto tt_rnk) { return cref_psi_core.get().select(tt_c, tt_rnk); };
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
     auto get_c = [cref_alphabet](auto tt_index) { return sri::computeCForSAIndex(cref_alphabet.get().C, tt_index); };
     auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     auto psi = sri::Psi(psi_select, get_c, cumulative);
+    auto psi_4_run_data = [psi](RunData tt_run_data) {
+      tt_run_data.pos = psi(tt_run_data.pos);
+      return tt_run_data;
+    };
 
-    auto get_sa_value_for_bwt_run_start = sri::buildComputeSAValueForward(get_sample, psi, this->n_);
+    auto compute_sa_value_for_bwt_run_start = sri::buildComputeSAValueForward(get_sample, psi_4_run_data, this->n_);
+    auto compute_sa_value = [compute_sa_value_for_bwt_run_start](const std::shared_ptr<RunData> &tt_run_data) {
+      return compute_sa_value_for_bwt_run_start(*tt_run_data);
+    };
 
-    return sri::buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
+    return sri::buildComputeToeholdForPhiForward(compute_sa_value, cref_psi_core.get().size());
   }
 
   std::size_t subsample_rate_ = 1;
@@ -234,7 +289,7 @@ template<uint8_t t_width = 8,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSamplePos = sdsl::sd_vector<>,
-    typename TRun = RunSimpleSrCSA>
+    typename TRun = RunCSA>
 class SrCSAWithBv : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos, TRun> {
  public:
   using BaseClass = SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos, TRun>;
