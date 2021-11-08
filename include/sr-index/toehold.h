@@ -95,19 +95,25 @@ auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapp
   return ComputeDataBackwardSearchStep(is_lf_trivial_with_bwt, create_data);
 }
 
-auto buildComputeDataBackwardSearchStepForPhiForward() {
+template<typename TCreateData>
+auto buildComputeDataBackwardSearchStepForPhiForward(const TCreateData &t_create_data) {
   auto is_lf_trivial_with_psi = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
     const auto &[next_start, next_end] = tt_next_range;
     const auto &[start, end] = tt_range;
     return !(next_start < next_end) || (!(start < next_start.run.start) && start < next_start.run.end);
   };
 
+  return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi, t_create_data);
+}
+
+//TODO Remove this function if is not used
+auto buildComputeDataBackwardSearchStepForPhiForward() {
   auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
     const auto &[start, end] = tt_next_range;
     return DataBackwardSearchStepForward{tt_step, start.run.start};
   };
 
-  return ComputeDataBackwardSearchStep(is_lf_trivial_with_psi, create_data);
+  return buildComputeDataBackwardSearchStepForPhiForward(create_data);
 }
 
 //! Compute toehold value for Phi Backward/Forward using BWT rank and select.
