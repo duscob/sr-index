@@ -36,7 +36,7 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 
-  static const std::string KEY_BWT_RUN_CUMULATIVE;
+  static const std::string KEY_BWT_RUN_CUMULATIVE_COUNT;
 
   static const std::string KEY_ALPHABET;
 };
@@ -71,7 +71,8 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
 
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE = key_trait<t_width>::KEY_BWT + "_run_cumulative";
+const std::string key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT =
+    key_trait<t_width>::KEY_BWT + "_run_cumulative_count";
 
 template<>
 const std::string key_trait<8>::KEY_ALPHABET = "alphabet";
