@@ -17,6 +17,20 @@
 
 using ExternalStorage = std::map<std::string, std::any>;
 
+enum class SrIndexKey : unsigned char {
+  ALPHABET = 0,
+  NAVIGATE,
+  MARKS,
+  SAMPLES,
+  MARK_TO_SAMPLE,
+  SAMPLES_IDX,
+  RUN_CUMULATIVE_COUNT
+};
+
+auto toInt(SrIndexKey t_k) {
+  return static_cast<unsigned char>(t_k);
+}
+
 class IndexBaseWithExternalStorage : public sri::LocateIndex {
  public:
   explicit IndexBaseWithExternalStorage(const std::reference_wrapper<ExternalStorage> &t_storage)
@@ -41,6 +55,14 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
   virtual size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const = 0;
 
  protected:
+
+  auto &key(const SrIndexKey &t_key_enum) {
+    return keys_[toInt(t_key_enum)];
+  }
+
+  const auto &key(const SrIndexKey &t_key_enum) const {
+    return keys_[toInt(t_key_enum)];
+  }
 
   using TSource = std::variant<std::reference_wrapper<sdsl::cache_config>, std::reference_wrapper<std::istream>>;
 
@@ -153,6 +175,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
 
   std::size_t n_ = 0;
   std::reference_wrapper<ExternalStorage> storage_;
+  std::vector<std::string> keys_;
 
   std::unique_ptr<sri::LocateIndex> index_ = nullptr;
 };

@@ -36,6 +36,8 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 
+  static const std::string KEY_BWT_RUN_CUMULATIVE_COUNT;
+
   static const std::string KEY_ALPHABET;
 };
 
@@ -68,10 +70,18 @@ template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
 
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT =
+    key_trait<t_width>::KEY_BWT + "_run_cumulative_count";
+
 template<>
 const std::string key_trait<8>::KEY_ALPHABET = "alphabet";
 template<>
 const std::string key_trait<0>::KEY_ALPHABET = "alphabet_int";
+
+auto KeySortedByAlphabet(const std::string &t_key) {
+  return t_key + "_sorted_alphabet";
+}
 
 template<uint8_t t_width>
 struct alphabet_trait {
@@ -422,16 +432,22 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   construct(t_index, t_config);
 }
 
-template<typename TBitVector, typename TValues>
-void constructBitVectorFromIntVector(TValues &t_values,
-                                     const std::string &t_key,
-                                     sdsl::cache_config &t_config,
-                                     std::size_t t_bv_size) {
+template<typename TValues>
+auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size) {
   sdsl::bit_vector bv_tmp(t_bv_size, 0);
 
   for (auto &&item: t_values) {
     bv_tmp[item] = true;
   }
+  return bv_tmp;
+}
+
+template<typename TBitVector, typename TValues>
+void constructBitVectorFromIntVector(TValues &t_values,
+                                     const std::string &t_key,
+                                     sdsl::cache_config &t_config,
+                                     std::size_t t_bv_size) {
+  sdsl::bit_vector bv_tmp = constructBitVectorFromIntVector(t_values, t_bv_size);
 
   TBitVector bv(std::move(bv_tmp));
   sri::store_to_cache(bv, t_key, t_config, true);

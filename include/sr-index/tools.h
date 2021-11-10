@@ -353,13 +353,14 @@ class ComputeSAValue {
       : get_sample_{t_get_sample}, navigate_{t_navigate}, seq_size_{t_seq_size}, is_backward_nav_{t_is_backward_nav} {
   }
 
-  std::size_t operator()(std::size_t t_idx) const {
+  template <typename TRunData>
+  std::size_t operator()(TRunData t_run_data) const {
     std::size_t n_jumps = 0;
-    auto sample = get_sample_(t_idx); // std::optional
+    auto sample = get_sample_(t_run_data); // std::optional
 
     while (!sample) {
-      t_idx = navigate_(t_idx);
-      sample = get_sample_(t_idx);
+      t_run_data = navigate_(t_run_data);
+      sample = get_sample_(t_run_data);
       ++n_jumps;
     }
 
