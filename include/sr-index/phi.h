@@ -348,17 +348,17 @@ auto buildPhiForRangeSimple(const TPhi &t_phi,
 }
 
 template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
-class PhiForwardForRangeSimple {
+class PhiForwardForRange {
  public:
-  PhiForwardForRangeSimple(const TPhi &t_phi,
-                           const TGetSample &t_get_sample,
-                           const TSplitRangeInBWTRuns &t_split_range,
-                           const TSplitRunInBWTRuns &t_split_run,
-                           std::size_t t_sampling_size,
-                           std::size_t t_seq_size,
-                           const TIsRangeEmpty &t_is_range_empty,
-                           const TUpdateRun &t_update_run,
-                           const TIsRunEmpty &t_is_run_empty)
+  PhiForwardForRange(const TPhi &t_phi,
+                     const TGetSample &t_get_sample,
+                     const TSplitRangeInBWTRuns &t_split_range,
+                     const TSplitRunInBWTRuns &t_split_run,
+                     std::size_t t_sampling_size,
+                     std::size_t t_seq_size,
+                     const TIsRangeEmpty &t_is_range_empty,
+                     const TUpdateRun &t_update_run,
+                     const TIsRunEmpty &t_is_run_empty)
       : phi_{t_phi},
         split_range_{t_split_range},
         split_run_{t_split_run},
@@ -428,12 +428,12 @@ class PhiForwardForRangeSimple {
 };
 
 template<typename TPhi, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TGetSample>
-auto buildPhiForwardForRangeSimple(const TPhi &t_phi,
-                                   const TSplitRangeInBWTRuns &t_split_range,
-                                   const TSplitRunInBWTRuns &t_split_run,
-                                   const TGetSample &t_get_sample,
-                                   std::size_t t_sampling_size,
-                                   std::size_t t_bwt_size) {
+auto buildPhiForwardForRange(const TPhi &t_phi,
+                             const TSplitRangeInBWTRuns &t_split_range,
+                             const TSplitRunInBWTRuns &t_split_run,
+                             const TGetSample &t_get_sample,
+                             std::size_t t_sampling_size,
+                             std::size_t t_bwt_size) {
 
   auto phi = [t_phi](const auto tt_prev_value) { return t_phi(tt_prev_value).first; };
 
@@ -453,7 +453,7 @@ auto buildPhiForwardForRangeSimple(const TPhi &t_phi,
     return last <= first;
   };
 
-  return PhiForwardForRangeSimple(
+  return PhiForwardForRange(
       phi, t_get_sample, t_split_range, t_split_run, t_sampling_size, t_bwt_size, is_range_empty, update_run, is_run_empty);
 }
 

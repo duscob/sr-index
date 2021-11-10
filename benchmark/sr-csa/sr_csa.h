@@ -227,15 +227,15 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
       return !(first < last);
     };
 
-    return sri::PhiForwardForRangeSimple(phi_simple,
-                                         get_sample_4_run,
-                                         split_range,
-                                         split_run,
-                                         subsample_rate_,
-                                         this->n_,
-                                         is_range_empty,
-                                         update_run,
-                                         is_run_empty);
+    return sri::PhiForwardForRange(phi_simple,
+                                   get_sample_4_run,
+                                   split_range,
+                                   split_run,
+                                   subsample_rate_,
+                                   this->n_,
+                                   is_range_empty,
+                                   update_run,
+                                   is_run_empty);
   }
 
   using TFnPsiForRunData = std::function<RunData * (RunData * )>;
