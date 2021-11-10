@@ -124,6 +124,20 @@ class PsiCoreRLE {
     return run.end - 1 - (run.rank_end - (t_rnk));
   }
 
+  //! Select operation over partial psi function for symbol c
+  //! \param t_c Symbol c
+  //! \param t_rnk Rank (or number of symbols c) query. It must be less or equal than the number of symbol c
+  //! \param t_report Report psi value for t_rnk-th symbol c and data of run containing that value
+  template<typename TReport>
+  void select(TChar t_c, std::size_t t_rnk, TReport t_report) const {
+    const auto &[values, ranks] = partial_psi_[t_c];
+
+    auto[run, run_ops] = selectCore(t_rnk, values, ranks);
+
+    auto run_rank = run_ops.runSoftRank();
+    t_report(run.end - 1 - (run.rank_end - (t_rnk)), run.start, run.end, run_rank);
+  }
+
   //! Rank operation over partial psi function for symbol c
   //! \param t_c Symbol c
   //! \param t_value Psi value (or SA position) query
@@ -184,7 +198,7 @@ class PsiCoreRLE {
     if (is_last_value) ++t_value;
     if (run_start < t_value) rank += t_value - run_start;
 
-    auto run_rank = run_ops.currentRun + (run_start == n_);
+    auto run_rank = run_ops.runSoftRank();
 
     t_report(rank, run_start, run_end, run_rank);
   }
@@ -339,7 +353,7 @@ class PsiCoreRLE {
     // Compute first run that starts after t_last (this is the first run not cover by given range)
     while (next_run_start < t_last) {
       last = run_end;
-      t_report_run(first, last, t_c, run_ops.currentRun - 1, first == run_start);
+      t_report_run(first, last, t_c, run_ops.runSoftRank() - 1, first == run_start);
 
       first = run_start = next_run_start;
       run_end = run_ops.nextEnd(run_start);
@@ -349,7 +363,7 @@ class PsiCoreRLE {
 
     last = std::min(t_last, run_end);
     if (first < last) {
-      t_report_run(first, last, t_c, run_ops.currentRun - 1, first == run_start);
+      t_report_run(first, last, t_c, run_ops.runSoftRank() - 1, first == run_start);
     }
   }
 
@@ -387,7 +401,7 @@ class PsiCoreRLE {
     --t_last_rank;
     while (run.rank_end < t_last_rank) {
       last = run.end;
-      t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
+      t_report_run(first, last, t_c, run_ops.runSoftRank(), first == run.start);
 
       first = run.start = run_ops.nextStart(run.end);
       run.end = run_ops.nextEnd(run.start);
@@ -395,7 +409,7 @@ class PsiCoreRLE {
     }
 
     last = run.end - 1 - (run.rank_end - (t_last_rank)) + 1;
-    t_report_run(first, last, t_c, run_ops.currentRun, first == run.start);
+    t_report_run(first, last, t_c, run_ops.runSoftRank(), first == run.start);
   }
 
   template<typename TReportRun>
@@ -490,19 +504,20 @@ class PsiCoreRLE {
     auto nextStart(std::size_t t_run_end) {
       if (n_runs_to_next_sample_) {
         // Still remaining runs until the next sampled value, so next run start value is in the current interval
-        ++curr_run_;
+        ++run_soft_rank_;
         --n_runs_to_next_sample_;
         return t_run_end + decode_uint_();
       }
 
       if (idx_ < n_samples_) {
         // No remaining runs until the next sampled value, so next run start value is the next sample
-        curr_run_ = idx_ * sample_dens_ / 2;
+        run_soft_rank_ = idx_ * sample_dens_ / 2;
         n_runs_to_next_sample_ = std::min(sample_dens_, cr_values_.size() - idx_ * sample_dens_) / 2 - 1;
         return cr_values_.sample_and_pointer[2 * idx_++]; // Psi value at run start
       }
 
       // No remaining runs
+      run_soft_rank_ = cr_values_.size() / 2;
       return n_;
     }
 
@@ -510,7 +525,8 @@ class PsiCoreRLE {
       return (t_run_start != n_) ? t_run_start + decode_uint_() : n_;
     }
 
-    const std::size_t &currentRun = curr_run_;
+    //! Rank or index of current run starting at 0
+    auto runSoftRank() const { return run_soft_rank_; }
 
    private:
 
@@ -524,7 +540,7 @@ class PsiCoreRLE {
     std::size_t sample_dens_;
     std::size_t n_samples_;
     std::size_t n_runs_to_next_sample_ = 0;
-    std::size_t curr_run_ = 0; // Number of current run (runs in psi are equal to bwt run)
+    std::size_t run_soft_rank_ = 0; // Number of current run (runs in psi are equal to bwt run)
   };
 
   struct RunSelect {
