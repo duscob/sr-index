@@ -273,6 +273,12 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
   std::string key_prefix_;
 };
 
+template<typename TChar>
+struct RunSrCSA : RunCSA {
+  TChar c;
+  std::size_t partial_rank;
+  bool is_run_start;
+};
 
 template<uint8_t t_width = 8,
     typename TAlphabet = sdsl::byte_alphabet,
@@ -280,13 +286,168 @@ template<uint8_t t_width = 8,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
-    typename TBvSamplePos = sdsl::sd_vector<>,
-    typename TRun = RunSimpleSrCSA>
-class SrCSASlim : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos, TRun> {
+    typename TBvSampleIdx = sdsl::sd_vector<>,
+    typename TRunCumulativeCount = sdsl::int_vector<>,
+    typename TRun = RunSrCSA<typename TPsiRLE::Char>>
+class SrCSASlim : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TRun> {
  public:
-  using BaseClass = SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos, TRun>;
+  using BaseClass = SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TRun>;
 
   SrCSASlim(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+
+  using typename BaseClass::size_type;
+
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = 0;
+    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
+
+    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
+
+    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
+
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+
+    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
+
+    written_bytes +=
+        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
+
+    written_bytes += this->template serializeItem<TRunCumulativeCount>(
+        key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
+
+    return written_bytes;
+  }
+
+ protected:
+
+  using BaseClass::key;
+  void setupKeyNames() override {
+    if (!this->keys_.empty()) return;
+
+    BaseClass::setupKeyNames();
+    this->keys_.resize(7);
+//    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
+//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+    key(SrIndexKey::MARKS) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+    key(SrIndexKey::SAMPLES) = sri::KeySortedByAlphabet(
+        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS);
+    key(SrIndexKey::MARK_TO_SAMPLE) = sri::KeySortedByAlphabet(
+        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX);
+    key(SrIndexKey::SAMPLES_IDX) = sri::KeySortedByAlphabet(
+        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX);
+    key(SrIndexKey::RUN_CUMULATIVE_COUNT) = sri::key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT;
+  }
+
+  using typename BaseClass::TSource;
+
+  using typename BaseClass::RunData;
+  using typename BaseClass::Char;
+  struct RunDataExt : RunData {
+    Char c;
+    std::size_t partial_rank;
+    bool is_run_start;
+
+    RunDataExt(std::size_t t_pos = 0, Char t_c = 0, std::size_t t_partial_rank = 0, bool t_is_run_start = true)
+        : RunData(t_pos), c{t_c}, partial_rank{t_partial_rank}, is_run_start{t_is_run_start} {}
+  };
+
+  using typename BaseClass::Range;
+  using typename BaseClass::RangeLF;
+  using typename BaseClass::DataBackwardSearchStep;
+  using typename BaseClass::TFnCreateDataBackwardSearchStep;
+  TFnCreateDataBackwardSearchStep constructCreateDataBackwardSearchStep() override {
+    return [](const Range &tt_range, Char tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
+      const auto &[start, end] = tt_next_range;
+      return DataBackwardSearchStep{tt_step,
+                                    std::make_shared<RunDataExt>(
+                                        start.run.start, tt_c, start.run.rank, tt_range.start != start.run.start)};
+    };
+  }
+
+  using typename BaseClass::TFnGetInitialDataBackwardSearchStep;
+  TFnGetInitialDataBackwardSearchStep constructGetInitialDataBackwardSearchStep(TSource &t_source) override {
+    return [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunDataExt>()}; };
+  }
+
+  using typename BaseClass::Value;
+  auto constructGetSample(TSource &t_source) {
+    auto cref_run_cum_c = this->template loadItem<TRunCumulativeCount>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
+    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+
+    auto get_sample = [cref_run_cum_c, cref_bv_sample_idx, bv_sample_idx_rank, cref_samples](
+        auto tt_char, auto tt_partial_rank, bool tt_is_run_start) -> std::optional<Value> {
+      if (!tt_is_run_start) return std::nullopt;
+
+      std::size_t cc = 0 < tt_char ? cref_run_cum_c.get()[tt_char - 1] : 0;
+      auto idx = cc + tt_partial_rank;
+      if (!cref_bv_sample_idx.get()[idx]) return std::nullopt;
+
+      auto rank = bv_sample_idx_rank(idx);
+      return cref_samples.get()[rank];
+    };
+
+    return get_sample;
+  }
+
+  using typename BaseClass::TFnGetSampleForRunData;
+  virtual TFnGetSampleForRunData constructGetSampleForRunData(TSource &t_source) {
+    auto get_sample = constructGetSample(t_source);
+
+    return [get_sample](const RunData *tt_run_data) {
+      auto run_data_ext = dynamic_cast<const RunDataExt *>(tt_run_data);
+      return get_sample(run_data_ext->c, run_data_ext->partial_rank, run_data_ext->is_run_start);
+    };
+  }
+
+  using typename BaseClass::TFnGetSampleForRun;
+  virtual TFnGetSampleForRun constructGetSampleForRun(TSource &t_source) {
+    auto get_sample = constructGetSample(t_source);
+
+    return [get_sample](const TRun &tt_run) {
+      return get_sample(tt_run.c, tt_run.partial_rank, tt_run.is_run_start);
+    };
+  }
+
+  using typename BaseClass::TFnCreateRun;
+  TFnCreateRun constructCreateRun() override {
+    auto create_run = [](auto tt_first, auto tt_last, auto tt_c, auto tt_partial_rank, auto tt_is_first) {
+      return TRun{tt_first, tt_last, tt_c, tt_partial_rank, tt_is_first};
+    };
+
+    return create_run;
+  }
+
+  using typename BaseClass::TFnPsiForRunData;
+  TFnPsiForRunData constructPsiForRunData(TSource &t_source) override {
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto psi_select = [cref_psi_core](Char tt_c, auto tt_rnk) {
+      RunDataExt run_data;
+      auto report = [&run_data, &tt_c](auto tt_pos, auto tt_run_start, auto tt_run_end, auto tt_run_rank) {
+        run_data = RunDataExt{tt_pos, tt_c, tt_run_rank, tt_pos == tt_run_start};
+      };
+      cref_psi_core.get().select(tt_c, tt_rnk, report);
+      return run_data;
+    };
+
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto get_c = [cref_alphabet](auto tt_index) { return sri::computeCForSAIndex(cref_alphabet.get().C, tt_index); };
+    auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
+
+    auto psi = sri::Psi(psi_select, get_c, cumulative);
+
+    return [psi](RunData *tt_run_data) {
+      auto run_data_ext = dynamic_cast<RunDataExt *>(tt_run_data);
+      *run_data_ext = psi(tt_run_data->pos);
+      return run_data_ext;
+    };
+  }
 };
 
 template<uint8_t t_width = 8,
@@ -402,8 +563,9 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config);
 template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSampleIdx, typename TSample, typename TBVSampleIdx, typename TRun>
-void construct(SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TSample, TBVSampleIdx, TRun> &t_index,
+template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSample, typename TSample, typename TBVSampleIdx, typename TRunCumCnt, typename TRun>
+void construct(
+    SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt, TRun> &t_index,
                sdsl::cache_config &t_config) {
   auto subsample_rate = t_index.SubsampleRate();
 

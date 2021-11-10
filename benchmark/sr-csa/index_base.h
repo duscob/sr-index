@@ -24,6 +24,7 @@ enum class SrIndexKey : unsigned char {
   SAMPLES,
   MARK_TO_SAMPLE,
   SAMPLES_IDX,
+  RUN_CUMULATIVE_COUNT
 };
 
 auto toInt(SrIndexKey t_k) {
