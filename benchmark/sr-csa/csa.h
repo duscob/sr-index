@@ -173,6 +173,7 @@ class CSA : public IndexBaseWithExternalStorage {
     std::size_t pos;
 
     explicit RunData(std::size_t t_pos = 0) : pos{t_pos} {}
+    virtual ~RunData(){}
   };
 
   // TODO Use unique_ptr instead shared_ptr
@@ -185,6 +186,12 @@ class CSA : public IndexBaseWithExternalStorage {
       return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
     };
   }
+
+  using TFnGetInitialDataBackwardSearchStep = std::function<DataBackwardSearchStep(std::size_t)>;
+  virtual TFnGetInitialDataBackwardSearchStep constructGetInitialDataBackwardSearchStep(TSource &t_source) {
+    return [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; };
+  }
+
 
   auto constructComputeDataBackwardSearchStep(TSource &t_source) {
     auto create_data = constructCreateDataBackwardSearchStep();
@@ -244,10 +251,6 @@ class CSA : public IndexBaseWithExternalStorage {
     auto compute_sa_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
 
     return compute_sa_values;
-  }
-
-  auto constructGetInitialDataBackwardSearchStep(TSource &t_source) {
-    return [](const auto &tt_step) { return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(0)}; };
   }
 
   auto constructGetSymbol(TSource &t_source) {

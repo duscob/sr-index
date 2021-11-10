@@ -115,12 +115,12 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
   }
 
   using typename BaseClass::RunData;
-  using TFnGetSampleForRunData = std::function<std::optional<Value>(const RunData &)>;
+  using TFnGetSampleForRunData = std::function<std::optional<Value>(const RunData *)>;
   virtual TFnGetSampleForRunData constructGetSampleForRunData(TSource &t_source) {
     auto get_sample_for_sa_idx = constructGetSampleForSAIdx(t_source);
 
-    return [get_sample_for_sa_idx](const RunData &tt_run_data) {
-      return get_sample_for_sa_idx(tt_run_data.pos);
+    return [get_sample_for_sa_idx](const RunData *tt_run_data) {
+      return get_sample_for_sa_idx(tt_run_data->pos);
     };
   }
 
@@ -238,26 +238,33 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
                                          is_run_empty);
   }
 
-  using typename BaseClass::TFnComputeToehold;
-  TFnComputeToehold constructComputeToehold(TSource &t_source) override {
+  using TFnPsiForRunData = std::function<RunData * (RunData * )>;
+  virtual TFnPsiForRunData constructPsiForRunData(TSource &t_source) {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
-
-    auto get_sample = constructGetSampleForRunData(t_source);
-
     auto psi_select = [cref_psi_core](auto tt_c, auto tt_rnk) { return cref_psi_core.get().select(tt_c, tt_rnk); };
+
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
     auto get_c = [cref_alphabet](auto tt_index) { return sri::computeCForSAIndex(cref_alphabet.get().C, tt_index); };
     auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
+
     auto psi = sri::Psi(psi_select, get_c, cumulative);
-    auto psi_4_run_data = [psi](RunData tt_run_data) {
-      tt_run_data.pos = psi(tt_run_data.pos);
+
+    return [psi](RunData *tt_run_data) {
+      tt_run_data->pos = psi(tt_run_data->pos);
       return tt_run_data;
     };
+  }
 
+  using typename BaseClass::TFnComputeToehold;
+  TFnComputeToehold constructComputeToehold(TSource &t_source) override {
+    auto get_sample = constructGetSampleForRunData(t_source);
+    auto psi_4_run_data = constructPsiForRunData(t_source);
     auto compute_sa_value_for_bwt_run_start = sri::buildComputeSAValueForward(get_sample, psi_4_run_data, this->n_);
     auto compute_sa_value = [compute_sa_value_for_bwt_run_start](const std::shared_ptr<RunData> &tt_run_data) {
-      return compute_sa_value_for_bwt_run_start(*tt_run_data);
+      return compute_sa_value_for_bwt_run_start(tt_run_data.get());
     };
+
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     return sri::buildComputeToeholdForPhiForward(compute_sa_value, cref_psi_core.get().size());
   }
@@ -696,7 +703,7 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   };
 
   // Cumulative number of BWT-runs per symbols
-  auto key_cum = sdsl::cache_file_name(sri::key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE, t_config);
+  auto key_cum = sdsl::cache_file_name(sri::key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT, t_config);
   sdsl::int_vector_buffer<> cumulative(key_cum, std::ios::out, buffer_size, log_r);
 
   auto sigma = psi_rle.sigma();

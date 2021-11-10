@@ -66,7 +66,7 @@ class ComputeDataBackwardSearchStep {
                   const TChar &t_c,
                   std::size_t t_step,
                   const DataBackwardSearchStep<TRunData> &t_last_special_step) const {
-    if (is_lf_trivial_(t_range, t_c, t_next_range)) {
+    if (t_last_special_step.step != 0 && is_lf_trivial_(t_range, t_c, t_next_range)) {
       // Next range is empty or
       // LF step on a current range limit (range end for backward phi or range start for forward phi) goes to next range limit.
       return t_last_special_step;
