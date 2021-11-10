@@ -139,6 +139,12 @@ int main(int argc, char *argv[]) {
       {"SR-CSA-WS/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 32}},
       {"SR-CSA-WS/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 64}},
 
+      {"SR-CSA-SLIM-WS/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 4}},
+      {"SR-CSA-SLIM-WS/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 8}},
+      {"SR-CSA-SLIM-WS/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 16}},
+      {"SR-CSA-SLIM-WS/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 32}},
+      {"SR-CSA-SLIM-WS/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 64}},
+
       {"SR-CSA-BV-WS/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 4}},
       {"SR-CSA-BV-WS/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 8}},
       {"SR-CSA-BV-WS/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 16}},
