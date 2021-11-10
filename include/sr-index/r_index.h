@@ -57,6 +57,7 @@ class RIndex : public LocateIndex {
       auto c = get_symbol_(*it);
 
       auto next_range = lf_(range, c);
+      // TODO refactor get_last_value to avoid unneeded copy of last_value in trivial case (parameter as reference)
       last_value = get_last_value_(range, next_range, c, i, last_value);
 
       range = next_range;
