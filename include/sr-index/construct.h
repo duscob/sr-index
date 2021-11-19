@@ -33,8 +33,10 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA;
 
   static const std::string KEY_BWT_RUN_CUMULATIVE_COUNT;
 
@@ -64,11 +66,17 @@ template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_idx";
 template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
+template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_mark";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_area";
 
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT =
