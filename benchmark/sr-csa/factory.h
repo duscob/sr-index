@@ -22,7 +22,8 @@ class Factory {
     CSA_RAW = 1,
     SR_CSA = 2,
     SR_CSA_SLIM = 3,
-    SR_CSA_BV = 4
+    SR_CSA_BV = 4,
+    SR_CSA_BV_VM = 5
   };
 
   struct Config {
@@ -65,6 +66,12 @@ class Factory {
 
       case IndexEnum::SR_CSA_BV: {
         auto idx = std::make_shared<SrCSAWithBv<t_width>>(std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
+      case IndexEnum::SR_CSA_BV_VM: {
+        auto idx = std::make_shared<SrCSAValidMark<SrCSAWithBv<t_width>>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
