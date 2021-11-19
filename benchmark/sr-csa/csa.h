@@ -30,6 +30,8 @@ template<uint8_t t_width = 8,
 class CSA : public IndexBaseWithExternalStorage {
  public:
 
+  static constexpr uint8_t AlphabetWidth = t_width;
+
   explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : IndexBaseWithExternalStorage(t_storage) {}
 
   void load(sdsl::cache_config t_config) override {
@@ -173,7 +175,7 @@ class CSA : public IndexBaseWithExternalStorage {
     std::size_t pos;
 
     explicit RunData(std::size_t t_pos = 0) : pos{t_pos} {}
-    virtual ~RunData(){}
+    virtual ~RunData() = default;
   };
 
   // TODO Use unique_ptr instead shared_ptr

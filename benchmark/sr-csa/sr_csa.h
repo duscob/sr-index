@@ -194,6 +194,10 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
     return split;
   }
 
+  using BvMark = TBvMark;
+  using MarkToSampleIdx = TMarkToSampleIdx;
+  using Sample = TSample;
+  using Run = TRun;
   using typename BaseClass::TFnPhiForRange;
   TFnPhiForRange constructPhiForRange(TSource &t_source) override {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
@@ -208,11 +212,11 @@ class SrCSA : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx,
     sri::SampleValidatorDefault sample_validator_default;
 
     auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
-    auto phi_simple = [phi](const auto tt_prev_value) { return phi(tt_prev_value).first; };
+    auto phi_simple = [phi](const auto &tt_prev_value) { return phi(tt_prev_value).first; };
 
+    auto get_sample_4_run = constructGetSampleForRun(t_source);
     auto split_range = constructSplitRangeInBWTRuns(t_source);
     auto split_run = constructSplitRunInBWTRuns(t_source);
-    auto get_sample_4_run = constructGetSampleForRun(t_source);
 
     auto is_range_empty = this->constructIsRangeEmpty();
 
@@ -527,6 +531,95 @@ class SrCSAWithBv : public SrCSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSa
   }
 };
 
+template<typename TSrCSA, typename TBvValidMark = sdsl::bit_vector>
+class SrCSAValidMark : public TSrCSA {
+ public:
+  using BaseClass = TSrCSA;
+
+  SrCSAValidMark(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+
+  using typename BaseClass::size_type;
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = BaseClass::serialize(out, v, name);
+    written_bytes +=
+        this->template serializeItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
+
+    return written_bytes;
+  }
+
+ protected:
+
+  using BaseClass::key;
+  void setupKeyNames() override {
+    if (!this->keys_.empty()) return;
+
+    BaseClass::setupKeyNames();
+    this->keys_.resize(8);
+    constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
+//    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
+//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+//    key(SrIndexKey::SAMPLES) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARK_TO_SAMPLE) =
+//        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+//    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
+    key(SrIndexKey::VALID_MARKS) =
+        this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
+  }
+
+  using typename BaseClass::TSource;
+
+  using typename BaseClass::BvMark;
+  using typename BaseClass::MarkToSampleIdx;
+  using typename BaseClass::Sample;
+  using typename BaseClass::Run;
+  using typename BaseClass::TFnPhiForRange;
+  TFnPhiForRange constructPhiForRange(TSource &t_source) override {
+    auto bv_mark_rank = this->template loadBVRank<BvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<BvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
+
+    auto cref_mark_to_sample_idx = this->template loadItem<MarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    auto cref_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    auto get_mark_to_sample_idx = sri::RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_valid_mark);
+
+    auto cref_samples = this->template loadItem<Sample>(key(SrIndexKey::SAMPLES), t_source);
+    auto get_sample = sri::RandomAccessForCRefContainer(cref_samples);
+    sri::SampleValidatorDefault sample_validator_default;
+
+    auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+
+    auto get_sample_4_run = this->constructGetSampleForRun(t_source);
+    auto split_range = this->constructSplitRangeInBWTRuns(t_source);
+    auto split_run = this->constructSplitRunInBWTRuns(t_source);
+
+    auto is_range_empty = this->constructIsRangeEmpty();
+
+    auto update_run = [](Run &tt_run) {
+      auto &[first, last] = limits(tt_run);
+      ++first;
+      return tt_run;
+    };
+
+    auto is_run_empty = [](const Run &tt_run) {
+      const auto &[first, last] = limits(tt_run);
+      return !(first < last);
+    };
+
+    return sri::PhiForwardForRangeWithValidity(phi,
+                                               get_sample_4_run,
+                                               split_range,
+                                               split_run,
+                                               this->subsample_rate_,
+                                               this->n_,
+                                               is_range_empty,
+                                               update_run,
+                                               is_run_empty);
+  }
+};
+
 template<uint8_t t_width, typename TBVMark>
 void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
@@ -637,6 +730,41 @@ void construct(SrCSAWithBv<t_width, TAlphabet, TPsiCore, TBvMark, TMarkToSampleI
 
     if (!sdsl::cache_file_exists<TBvSamplePos>(key, t_config)) {
       sri::constructBitVectorFromIntVector<TBvSamplePos>(key, t_config, n, false);
+    }
+  }
+
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width>
+void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+
+template<typename TSrCSA, typename TBvValidMark>
+void construct(SrCSAValidMark<TSrCSA, TBvValidMark> &t_index, sdsl::cache_config &t_config) {
+//  construct(dynamic_cast<TSrCSA &>(t_index), t_config);
+  auto base_index = TSrCSA(t_index);
+  construct(base_index, t_config);
+
+  auto subsample_rate = t_index.SubsampleRate();
+  auto prefix_key = std::to_string(subsample_rate) + "_";
+
+  {
+    // Construct subsampling validity marks and areas
+    auto event = sdsl::memory_monitor::event("Subsampling Validity");
+    constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
+    auto key = prefix_key + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
+    if (!sdsl::cache_file_exists(key, t_config)) {
+      constructSubsamplingBackwardMarksValidity<t_width>(subsample_rate, t_config);
+    }
+
+    if (!sdsl::cache_file_exists<TBvValidMark>(key, t_config)) {
+      std::size_t r_prime;
+      {
+        sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(
+            prefix_key + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config));
+        r_prime = buf.size();
+      }
+      sri::constructBitVectorFromIntVector<TBvValidMark>(key, t_config, r_prime, true);
     }
   }
 
@@ -960,6 +1088,83 @@ void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, s
                  [&samples_pos](auto tt_i) { return samples_pos[tt_i]; });
 
   sdsl::store_to_cache(subsamples_pos, prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config);
+}
+
+template<typename TGetNextMark, typename TGetNextSubmark, typename TReport>
+void computeSubmarksValidity(std::size_t t_r_prime,
+                             TGetNextMark t_get_next_mark,
+                             TGetNextSubmark t_get_next_submark,
+                             TReport t_report) {
+  // Marks sampled BWT run heads indices in text and if they are trustworthy
+  std::size_t mark = t_get_next_mark();
+  std::size_t submark = t_get_next_submark();
+  for (std::size_t i = 0, j = 0; i < t_r_prime - 1; ++i) {
+    std::size_t next_mark = t_get_next_mark();
+    std::size_t next_submark = t_get_next_submark();
+    if (next_mark != next_submark) {
+      // Report current submark as invalid, and what is the next mark to compute valid area
+      t_report(i, submark, next_mark);
+
+      do {
+        next_mark = t_get_next_mark();
+      } while (next_mark != next_submark);
+    }
+
+    submark = next_submark;
+  }
+}
+
+template<uint8_t t_width>
+void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+  auto prefix = std::to_string(t_subsample_rate) + "_";
+
+  sdsl::int_vector<> marks;
+  sdsl::load_from_cache(marks, sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
+  sdsl::int_vector<> sorted_marks_idx;
+  sdsl::load_from_cache(sorted_marks_idx, sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
+  auto it_marks_idx = sorted_marks_idx.end();
+  auto get_next_mark = [&marks, &it_marks_idx]() { return marks[*(--it_marks_idx)]; };
+
+  sdsl::int_vector<> submarks;
+  sdsl::load_from_cache(submarks, prefix + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, t_config);
+  std::sort(submarks.begin(), submarks.end());
+  auto it_submarks = submarks.end();
+  auto get_next_submark = [&it_submarks]() { return *(--it_submarks); };
+
+  auto r_prime = submarks.size();
+  std::vector<std::pair<std::size_t, std::size_t>> validity;
+  validity.reserve(r_prime / 4);
+  std::size_t max_valid_area = 0;
+  auto report = [r_prime, &validity, &max_valid_area](auto tt_i, auto tt_submark, auto tt_next_mark) {
+    auto valid_area = tt_submark - tt_next_mark + 1;
+    validity.emplace_back(r_prime - tt_i - 1, valid_area);
+
+    if (max_valid_area < valid_area) max_valid_area = valid_area;
+  };
+
+  computeSubmarksValidity(r_prime, get_next_mark, get_next_submark, report);
+
+  const std::size_t buffer_size = 1 << 20;
+  sdsl::int_vector_buffer<> valid_submarks(
+      sdsl::cache_file_name(prefix + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK, t_config),
+      std::ios::out,
+      buffer_size,
+      sdsl::bits::hi(r_prime) + 1);
+
+  sdsl::int_vector_buffer<> valid_areas(
+      sdsl::cache_file_name(prefix + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA, t_config),
+      std::ios::out,
+      buffer_size,
+      sdsl::bits::hi(max_valid_area) + 1);
+
+  for (auto it = validity.rbegin(); it != validity.rend(); ++it) {
+    auto[idx, area] = *it;
+    valid_submarks.push_back(it->first);
+    valid_areas.push_back(it->second);
+  }
+
+  valid_submarks.close();
+  valid_areas.close();
 }
 
 #endif //SRI_BENCHMARK_SR_CSA_SR_CSA_H_

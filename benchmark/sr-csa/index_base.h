@@ -24,7 +24,9 @@ enum class SrIndexKey : unsigned char {
   SAMPLES,
   MARK_TO_SAMPLE,
   SAMPLES_IDX,
-  RUN_CUMULATIVE_COUNT
+  RUN_CUMULATIVE_COUNT,
+  VALID_MARKS,
+  VALID_AREA
 };
 
 auto toInt(SrIndexKey t_k) {
@@ -177,7 +179,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
   std::reference_wrapper<ExternalStorage> storage_;
   std::vector<std::string> keys_;
 
-  std::unique_ptr<sri::LocateIndex> index_ = nullptr;
+  std::shared_ptr<sri::LocateIndex> index_ = nullptr;
 };
 
 #endif //SRI_BENCHMARK_SR_CSA_INDEX_BASE_H_
