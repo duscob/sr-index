@@ -153,8 +153,8 @@ class PhiForward {
     };
 
     // Next value using sample and delta
-    auto get_next_value = [](std::size_t t_sample, std::size_t t_delta) {
-      return t_sample - t_delta;
+    auto get_next_value = [size = this->size_](std::size_t t_sample, std::size_t t_delta) {
+      return (t_sample + size - t_delta) % size;
     };
 
     return phi(t_prev_value, soft_successor_, get_sample_, get_delta, get_next_value);
