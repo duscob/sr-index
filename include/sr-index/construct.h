@@ -433,11 +433,11 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
 }
 
 template<typename TValues>
-auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size) {
-  sdsl::bit_vector bv_tmp(t_bv_size, 0);
+auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size, bool t_init_value) {
+  sdsl::bit_vector bv_tmp(t_bv_size, t_init_value);
 
   for (auto &&item: t_values) {
-    bv_tmp[item] = true;
+    bv_tmp[item] = !t_init_value;
   }
   return bv_tmp;
 }
@@ -446,8 +446,9 @@ template<typename TBitVector, typename TValues>
 void constructBitVectorFromIntVector(TValues &t_values,
                                      const std::string &t_key,
                                      sdsl::cache_config &t_config,
-                                     std::size_t t_bv_size) {
-  sdsl::bit_vector bv_tmp = constructBitVectorFromIntVector(t_values, t_bv_size);
+                                     std::size_t t_bv_size,
+                                     bool t_init_value) {
+  sdsl::bit_vector bv_tmp = constructBitVectorFromIntVector(t_values, t_bv_size, t_init_value);
 
   TBitVector bv(std::move(bv_tmp));
   sri::store_to_cache(bv, t_key, t_config, true);
@@ -460,9 +461,10 @@ void constructBitVectorFromIntVector(TValues &t_values,
 }
 
 template<typename TBitVector>
-void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size) {
+void constructBitVectorFromIntVector(
+    const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size, bool t_init_value) {
   sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
-  constructBitVectorFromIntVector<TBitVector>(int_buf, t_key, t_config, t_bv_size);
+  constructBitVectorFromIntVector<TBitVector>(int_buf, t_key, t_config, t_bv_size, t_init_value);
 }
 
 void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {

@@ -550,7 +550,7 @@ void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSampleIdx, TS
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
     if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
-      sri::constructBitVectorFromIntVector<TBVSampleIdx>(key, t_config, r);
+      sri::constructBitVectorFromIntVector<TBVSampleIdx>(key, t_config, r, false);
     }
   }
 
@@ -566,7 +566,7 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
 template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSample, typename TSample, typename TBVSampleIdx, typename TRunCumCnt, typename TRun>
 void construct(
     SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt, TRun> &t_index,
-               sdsl::cache_config &t_config) {
+    sdsl::cache_config &t_config) {
   auto subsample_rate = t_index.SubsampleRate();
 
   constructSrCSACommons<t_width, TBVMark>(subsample_rate, t_config);
@@ -602,7 +602,7 @@ void construct(
         r = bwt.size();
       }
 
-      sri::constructBitVectorFromIntVector<TBVSampleIdx>(key, t_config, r);
+      sri::constructBitVectorFromIntVector<TBVSampleIdx>(key, t_config, r, false);
     }
   }
 
@@ -636,7 +636,7 @@ void construct(SrCSAWithBv<t_width, TAlphabet, TPsiCore, TBvMark, TMarkToSampleI
     }
 
     if (!sdsl::cache_file_exists<TBvSamplePos>(key, t_config)) {
-      sri::constructBitVectorFromIntVector<TBvSamplePos>(key, t_config, n);
+      sri::constructBitVectorFromIntVector<TBvSamplePos>(key, t_config, n, false);
     }
   }
 
@@ -837,7 +837,7 @@ void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_c
     auto event = sdsl::memory_monitor::event("Successor");
     const auto key = prefix + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
     if (!sdsl::cache_file_exists<TBvMark>(key, t_config)) {
-      sri::constructBitVectorFromIntVector<TBvMark>(key, t_config, n);
+      sri::constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
     }
   }
 }
@@ -895,7 +895,7 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
       sdsl::int_vector<> subsamples_idx;
       sdsl::load_from_cache(subsamples_idx, key_prefix + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX, t_config);
 
-      subsamples_idx_bv = sri::constructBitVectorFromIntVector(subsamples_idx, samples_idx_sorted.size());
+      subsamples_idx_bv = sri::constructBitVectorFromIntVector(subsamples_idx, samples_idx_sorted.size(), false);
 
       subsamples_idx_to_sorted = sdsl::int_vector<>(subsamples_idx.size(), 0, subsamples_idx.width());
     }
