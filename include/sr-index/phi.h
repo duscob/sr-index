@@ -559,6 +559,97 @@ auto buildPhiForRange(const TPhi &t_phi,
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
 
+template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
+class PhiForwardForRangeWithValidity {
+ public:
+  PhiForwardForRangeWithValidity(const TPhi &t_phi,
+                                 const TGetSample &t_get_sample,
+                                 const TSplitRangeInBWTRuns &t_split_range,
+                                 const TSplitRunInBWTRuns &t_split_run,
+                                 std::size_t t_sampling_size,
+                                 std::size_t t_seq_size,
+                                 const TIsRangeEmpty &t_is_range_empty,
+                                 const TUpdateRun &t_update_run,
+                                 const TIsRunEmpty &t_is_run_empty)
+      : phi_{t_phi},
+        split_range_{t_split_range},
+        split_run_{t_split_run},
+        get_sample_{t_get_sample},
+        sampling_size_{t_sampling_size},
+        seq_size_{t_seq_size},
+        is_range_empty_{t_is_range_empty},
+        update_run_{t_update_run},
+        is_run_empty_{t_is_run_empty} {
+  }
+
+  template<typename TRange, typename TReport>
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport t_report) const {
+    if (is_range_empty_(t_range)) return;
+
+    auto t_value = phi_(t_prev_value);
+
+    // Split current range in BWT-runs
+    auto runs = split_range_(t_range);
+    for (const auto &run: runs) {
+      t_value = compute(run, t_value, 1, t_report);
+    }
+  }
+
+  template<typename TRun, typename TReport>
+  auto compute(TRun t_run, std::pair<std::size_t, bool> t_value, std::size_t t_level, TReport t_report) const {
+    if (sampling_size_ < t_level) {
+      // Reach the limits of backward jumps, so phi for the previous value is valid
+      do {
+        t_report(t_value.first);
+
+        update_run_(t_run);
+        t_value = phi_(t_value.first);
+      } while (!is_run_empty_(t_run));
+
+      return t_value;
+    }
+
+    do {
+      // Report the last values while they are valid
+      while (!is_run_empty_(t_run) && t_value.second) {
+        t_report(t_value.first);
+
+        update_run_(t_run);
+        t_value = phi_(t_value.first);
+      }
+
+      if (is_run_empty_(t_run)) { return t_value; }
+
+      auto sample = get_sample_(t_run);
+      if (sample) {
+        // Extreme position in range is sampled, so we can use the sampled value (SA[i] = i-th BWT char sampled position + 1)
+        t_value = {(*sample + 1 + seq_size_ - t_level + 1) % seq_size_, true};
+      }
+    } while (t_value.second);
+
+    // Split current range in BWT-runs
+    auto runs = split_run_(t_run);
+    for (const auto &run: runs) {
+      t_value = compute(run, t_value, t_level + 1, t_report);
+    }
+
+    return t_value;
+  }
+
+ private:
+  TPhi phi_;
+  TGetSample get_sample_; // Access to extreme value of a BWT run. Note that some tails are not sampled.
+  TSplitRangeInBWTRuns split_range_; // Split the first interval(range) in its internal BWT runs
+  TSplitRunInBWTRuns split_run_; // Split an interval(run) in its internal BWT runs
+
+  std::size_t sampling_size_;
+  std::size_t seq_size_;
+
+  TIsRangeEmpty is_range_empty_;
+  TUpdateRun update_run_;
+  TIsRunEmpty is_run_empty_;
+};
+
 template<typename TPhi>
 class ComputeAllValuesWithPhi {
  public:
