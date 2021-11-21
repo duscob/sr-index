@@ -26,7 +26,7 @@ enum class SrIndexKey : unsigned char {
   SAMPLES_IDX,
   RUN_CUMULATIVE_COUNT,
   VALID_MARKS,
-  VALID_AREA
+  VALID_AREAS
 };
 
 auto toInt(SrIndexKey t_k) {
@@ -106,14 +106,14 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
     return std::cref(std::any_cast<const TItem &>(it->second));
   }
 
-  template<typename TBv>
+  template<typename TBv, typename TBvRank = typename TBv::rank_1_type>
   auto loadBVRank(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
     auto key_rank = t_key + "_rank";
     auto it = storage_.get().find(key_rank);
     if (it == storage_.get().end()) {
       auto it_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
-      typename TBv::rank_1_type rank;
+      TBvRank rank;
       load(rank, t_source, t_key, t_add_type_hash);
       rank.set_vector(std::any_cast<TBv>(&it_bv->second));
 
@@ -121,17 +121,17 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
       std::tie(it, inserted) = storage_.get().emplace(key_rank, std::move(rank));
     }
 
-    return std::cref(std::any_cast<const typename TBv::rank_1_type &>(it->second));
+    return std::cref(std::any_cast<const TBvRank &>(it->second));
   }
 
-  template<typename TBv>
+  template<typename TBv, typename TBvSelect = typename TBv::select_1_type>
   auto loadBVSelect(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
     auto key_select = t_key + "_select";
     auto it = storage_.get().find(key_select);
     if (it == storage_.get().end()) {
       auto it_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
-      typename TBv::select_1_type select;
+      TBvSelect select;
       load(select, t_source, t_key, t_add_type_hash);
       select.set_vector(std::any_cast<TBv>(&it_bv->second));
 
@@ -139,7 +139,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
       std::tie(it, inserted) = storage_.get().emplace(key_select, std::move(select));
     }
 
-    return std::cref(std::any_cast<const typename TBv::select_1_type &>(it->second));
+    return std::cref(std::any_cast<const TBvSelect &>(it->second));
   }
 
   template<typename TItem>
