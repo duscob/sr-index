@@ -73,33 +73,20 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   virtual void loadAllItems(TSource &t_source) {
-    // Create LF function
-    auto lf = constructLF(t_source);
-
-    // Create getter for backward search step data
-    auto compute_data_backward_search_step = constructComputeDataBackwardSearchStep(t_source);
-
-    // Create function to compute SA values in the range
-    auto compute_sa_values = constructComputeSAValues(t_source);
-
-    // Create getter for initial data for backward search step
-    auto get_initial_data_backward_search_step = constructGetInitialDataBackwardSearchStep(t_source);
-
-    // Create getter for symbol
-    auto get_symbol = constructGetSymbol(t_source);
-
-    auto create_full_range = [](auto tt_seq_size) { return Range{0, tt_seq_size}; };
-
-    auto is_range_empty = constructIsRangeEmpty();
-
-    index_.reset(new sri::RIndex(lf,
-                                 compute_data_backward_search_step,
-                                 compute_sa_values,
-                                 n_,
-                                 get_initial_data_backward_search_step,
-                                 get_symbol,
-                                 create_full_range,
-                                 is_range_empty));
+    index_.reset(new sri::RIndex(
+        constructLF(t_source),
+        constructComputeDataBackwardSearchStep(
+            [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
+              const auto &[start, end] = tt_next_range;
+              return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
+            }),
+        constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
+        n_,
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; },
+        constructGetSymbol(t_source),
+        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
+        constructIsRangeEmpty()
+    ));
   }
 
   struct DataLF {
@@ -180,30 +167,14 @@ class CSA : public IndexBaseWithExternalStorage {
 
   // TODO Use unique_ptr instead shared_ptr
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
-  using TFnCreateDataBackwardSearchStep = std::function<DataBackwardSearchStep(
-      const Range &, Char, const RangeLF &, std::size_t)>;
-  virtual TFnCreateDataBackwardSearchStep constructCreateDataBackwardSearchStep() {
-    return [](const Range &tt_range, Char tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
-      const auto &[start, end] = tt_next_range;
-      return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
-    };
-  }
 
-  using TFnGetInitialDataBackwardSearchStep = std::function<DataBackwardSearchStep(std::size_t)>;
-  virtual TFnGetInitialDataBackwardSearchStep constructGetInitialDataBackwardSearchStep(TSource &t_source) {
-    return [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; };
-  }
-
-
-  auto constructComputeDataBackwardSearchStep(TSource &t_source) {
-    auto create_data = constructCreateDataBackwardSearchStep();
-    return sri::buildComputeDataBackwardSearchStepForPhiForward(create_data);
+  template<typename TCreateData>
+  auto constructComputeDataBackwardSearchStep(const TCreateData &t_create_data) {
+    return sri::buildComputeDataBackwardSearchStepForPhiForward(t_create_data);
   }
 
   using Value = std::size_t;
-  using TFnReport = std::function<void(std::size_t)>;
-  using TFnPhiForRange = std::function<void(const Range &, Value, TFnReport)>;
-  virtual TFnPhiForRange constructPhiForRange(TSource &t_source) {
+  auto constructPhiForRange(TSource &t_source) {
     auto bv_mark_rank = loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, n_);
@@ -228,8 +199,7 @@ class CSA : public IndexBaseWithExternalStorage {
     return phi_for_range;
   }
 
-  using TFnComputeToehold = std::function<Value(const DataBackwardSearchStep &)>;
-  virtual TFnComputeToehold constructComputeToehold(TSource &t_source) {
+  auto constructComputeToehold(TSource &t_source) {
     auto cref_psi_core = loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     auto cref_samples = loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
@@ -241,18 +211,15 @@ class CSA : public IndexBaseWithExternalStorage {
     return sri::buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
   }
 
-  using TFnComputeSAValues = std::function<void(const Range &, const DataBackwardSearchStep &, TFnReport)>;
-  virtual TFnComputeSAValues constructComputeSAValues(TSource &t_source) {
-    // Create Phi function using PhiForward
-    auto phi_for_range = constructPhiForRange(t_source);
+  template<typename TPhiRange, typename TComputeToehold>
+  auto constructComputeSAValues(const TPhiRange &t_phi_range, const TComputeToehold &t_compute_toehold) {
+    auto update_range = [](Range tt_range) {
+      auto &[start, end] = tt_range;
+      ++start;
+      return tt_range;
+    };
 
-    // Create toehold for phi forward
-    auto compute_toehold = constructComputeToehold(t_source);
-
-    // Create ComputeAllValuesWithPhiForRange
-    auto compute_sa_values = sri::buildComputeAllValuesWithPhiForwardForRange(phi_for_range, compute_toehold);
-
-    return compute_sa_values;
+    return sri::ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
   }
 
   auto constructGetSymbol(TSource &t_source) {

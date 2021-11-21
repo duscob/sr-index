@@ -51,7 +51,7 @@ class RIndex : public LocateIndex {
     auto range = create_full_range_(bwt_size_);
 
     auto i = t_pattern.size() - 1;
-    auto last_value = get_final_value_(i);
+    auto last_value = get_final_value_(i); //TODO use default value (step == 0) instead of get_final_value_
 
     for (auto it = rbegin(t_pattern); it != rend(t_pattern) && !is_range_empty_(range); ++it, --i) {
       auto c = get_symbol_(*it);
