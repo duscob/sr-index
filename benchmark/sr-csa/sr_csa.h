@@ -672,32 +672,35 @@ class SrCSAValidMark : public TSrCSA {
                               return constructPhiForRange(t_source,
                                                           BaseClass::constructGetSampleForRun(t_source),
                                                           BaseClass::constructSplitRangeInBWTRuns(t_source),
-                                                          BaseClass::constructSplitRunInBWTRuns(t_source));
+                                                          BaseClass::constructSplitRunInBWTRuns(t_source),
+                                                          sri::SampleValidatorDefault());
                             });
   }
+
+  using BaseClass::loadAllItems;
 
   using typename BaseClass::BvMark;
   using typename BaseClass::MarkToSampleIdx;
   using typename BaseClass::Sample;
   using typename BaseClass::Run;
-  template<typename TGetSampleRun, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns>
+  template<typename TGetSampleRun, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TValidateSample>
   auto constructPhiForRange(TSource &t_source,
                             const TGetSampleRun &t_get_sample,
                             const TSplitRangeInBWTRuns &t_split_range,
-                            const TSplitRunInBWTRuns &t_split_run) {
+                            const TSplitRunInBWTRuns &t_split_run,
+                            const TValidateSample &t_validate_sample) {
     auto bv_mark_rank = this->template loadBVRank<BvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<BvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
 
     auto cref_mark_to_sample_idx = this->template loadItem<MarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
-    auto cref_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
-    auto get_mark_to_sample_idx = sri::RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_valid_mark);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    auto get_mark_to_sample_idx = sri::RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
 
     auto cref_samples = this->template loadItem<Sample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = sri::RandomAccessForCRefContainer(cref_samples);
-    sri::SampleValidatorDefault sample_validator_default;
 
-    auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_validate_sample, this->n_);
 
     auto is_range_empty = this->constructIsRangeEmpty();
 
