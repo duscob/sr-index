@@ -35,8 +35,29 @@ class CSARaw : public CSA<t_width, TAlphabet, TPsiRLE> {
  protected:
 
   using typename BaseClass::TSource;
-  using typename BaseClass::TFnComputeSAValues;
-  TFnComputeSAValues constructComputeSAValues(TSource &t_source) override {
+
+  using typename BaseClass::Range;
+  using typename BaseClass::RangeLF;
+  using typename BaseClass::DataBackwardSearchStep;
+  using typename BaseClass::RunData;
+  virtual void loadAllItems(TSource &t_source) {
+    this->index_.reset(new sri::RIndex(
+        this->constructLF(t_source),
+        this->constructComputeDataBackwardSearchStep(
+            [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
+              const auto &[start, end] = tt_next_range;
+              return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
+            }),
+        constructComputeSAValues(t_source),
+        this->n_,
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; },
+        this->constructGetSymbol(t_source),
+        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
+        this->constructIsRangeEmpty()
+    ));
+  }
+
+  auto constructComputeSAValues(TSource &t_source) {
     auto cref_sa = this->template loadItem<TSA>(sdsl::conf::KEY_SA, t_source);
 
     auto compute_sa_values = [cref_sa](const auto &tt_range, const auto &, auto tt_report) {

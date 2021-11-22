@@ -150,6 +150,18 @@ int main(int argc, char *argv[]) {
       {"SR-CSA-BV-WS/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 16}},
       {"SR-CSA-BV-WS/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 32}},
       {"SR-CSA-BV-WS/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV, 64}},
+
+      {"SR-CSA-BV-VM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VM, 4}},
+      {"SR-CSA-BV-VM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VM, 8}},
+      {"SR-CSA-BV-VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VM, 16}},
+      {"SR-CSA-BV-VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VM, 32}},
+      {"SR-CSA-BV-VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VM, 64}},
+
+      {"SR-CSA-BV-VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VA, 4}},
+      {"SR-CSA-BV-VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VA, 8}},
+      {"SR-CSA-BV-VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VA, 16}},
+      {"SR-CSA-BV-VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VA, 32}},
+      {"SR-CSA-BV-VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BV_VA, 64}},
   };
 
   std::string print_bm_prefix = "Print-";

@@ -297,7 +297,7 @@ class PsiCoreRLE {
   //! \return Runs (BWT) in the queried range
   template<typename TCreateRun>
   auto splitInSortedRuns(std::size_t t_first, std::size_t t_last, TCreateRun t_create_run) const {
-    std::vector<decltype(t_create_run(t_first, t_last, 0, 0, true))> runs;
+    std::vector<decltype(t_create_run(t_first, t_last, (Char)0u, 0u, true))> runs;
 
     auto report = [&runs, &t_create_run](auto tt_first, auto tt_last, auto tt_c, auto tt_n_run, auto tt_is_first) {
       runs.emplace_back(t_create_run(tt_first, tt_last, tt_c, tt_n_run, tt_is_first));

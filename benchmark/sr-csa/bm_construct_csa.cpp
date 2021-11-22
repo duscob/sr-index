@@ -104,6 +104,14 @@ auto BM_ConstructSrCSAWithBv = [](benchmark::State &t_state, sdsl::cache_config 
   BM_ConstructSrIndex<SrCSAWithBv<>>(t_state, t_config, t_data_path);
 };
 
+auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<SrCSAValidMark<SrCSAWithBv<>>>(t_state, t_config, t_data_path);
+};
+
+auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<SrCSAValidArea<SrCSAWithBv<>>>(t_state, t_config, t_data_path);
+};
+
 int main(int argc, char **argv) {
   gflags::SetUsageMessage("This program calculates the sr-csa items for the given text.");
   gflags::AllowCommandLineReparsing();
@@ -135,6 +143,16 @@ int main(int argc, char **argv) {
       ->Range(4, 2u << 8u);
 
   benchmark::RegisterBenchmark("Construct-SR-CSA-Bv", BM_ConstructSrCSAWithBv, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-CSA-ValidMark", BM_ConstructSrCSAValidMark, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-CSA-ValidArea", BM_ConstructSrCSAValidArea, config, data_path)
       ->Iterations(1)
       ->RangeMultiplier(2)
       ->Range(4, 2u << 8u);

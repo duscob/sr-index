@@ -33,8 +33,10 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA;
 
   static const std::string KEY_BWT_RUN_CUMULATIVE_COUNT;
 
@@ -64,11 +66,17 @@ template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_idx";
 template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
+template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_mark";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_area";
 
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT =
@@ -433,36 +441,39 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
 }
 
 template<typename TValues>
-auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size) {
-  sdsl::bit_vector bv_tmp(t_bv_size, 0);
+auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size, bool t_init_value) {
+  sdsl::bit_vector bv_tmp(t_bv_size, t_init_value);
 
   for (auto &&item: t_values) {
-    bv_tmp[item] = true;
+    bv_tmp[item] = !t_init_value;
   }
   return bv_tmp;
 }
 
-template<typename TBitVector, typename TValues>
+template<typename TBitVector, typename TValues, typename TBVRank = typename TBitVector::rank_1_type, typename TBVSelect = typename TBitVector::select_1_type>
 void constructBitVectorFromIntVector(TValues &t_values,
                                      const std::string &t_key,
                                      sdsl::cache_config &t_config,
-                                     std::size_t t_bv_size) {
-  sdsl::bit_vector bv_tmp = constructBitVectorFromIntVector(t_values, t_bv_size);
+                                     std::size_t t_bv_size,
+                                     bool t_init_value) {
+  sdsl::bit_vector bv_tmp = constructBitVectorFromIntVector(t_values, t_bv_size, t_init_value);
 
   TBitVector bv(std::move(bv_tmp));
   sri::store_to_cache(bv, t_key, t_config, true);
 
-  typename TBitVector::rank_1_type bv_rank(&bv);
+  TBVRank bv_rank(&bv);
   sri::store_to_cache(bv_rank, t_key, t_config, true);
 
-  typename TBitVector::select_1_type bv_select(&bv);
+  TBVSelect bv_select(&bv);
   sri::store_to_cache(bv_select, t_key, t_config, true);
 }
 
-template<typename TBitVector>
-void constructBitVectorFromIntVector(const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size) {
+template<typename TBitVector, typename TBVRank = typename TBitVector::rank_1_type, typename TBVSelect = typename TBitVector::select_1_type>
+void constructBitVectorFromIntVector(
+    const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size, bool t_init_value) {
   sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
-  constructBitVectorFromIntVector<TBitVector>(int_buf, t_key, t_config, t_bv_size);
+  constructBitVectorFromIntVector<TBitVector, sdsl::int_vector_buffer<>, TBVRank, TBVSelect>(
+      int_buf, t_key, t_config, t_bv_size, t_init_value);
 }
 
 void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {

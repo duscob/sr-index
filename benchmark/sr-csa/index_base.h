@@ -24,7 +24,9 @@ enum class SrIndexKey : unsigned char {
   SAMPLES,
   MARK_TO_SAMPLE,
   SAMPLES_IDX,
-  RUN_CUMULATIVE_COUNT
+  RUN_CUMULATIVE_COUNT,
+  VALID_MARKS,
+  VALID_AREAS
 };
 
 auto toInt(SrIndexKey t_k) {
@@ -104,14 +106,14 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
     return std::cref(std::any_cast<const TItem &>(it->second));
   }
 
-  template<typename TBv>
+  template<typename TBv, typename TBvRank = typename TBv::rank_1_type>
   auto loadBVRank(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
     auto key_rank = t_key + "_rank";
     auto it = storage_.get().find(key_rank);
     if (it == storage_.get().end()) {
       auto it_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
-      typename TBv::rank_1_type rank;
+      TBvRank rank;
       load(rank, t_source, t_key, t_add_type_hash);
       rank.set_vector(std::any_cast<TBv>(&it_bv->second));
 
@@ -119,17 +121,17 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
       std::tie(it, inserted) = storage_.get().emplace(key_rank, std::move(rank));
     }
 
-    return std::cref(std::any_cast<const typename TBv::rank_1_type &>(it->second));
+    return std::cref(std::any_cast<const TBvRank &>(it->second));
   }
 
-  template<typename TBv>
+  template<typename TBv, typename TBvSelect = typename TBv::select_1_type>
   auto loadBVSelect(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
     auto key_select = t_key + "_select";
     auto it = storage_.get().find(key_select);
     if (it == storage_.get().end()) {
       auto it_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
-      typename TBv::select_1_type select;
+      TBvSelect select;
       load(select, t_source, t_key, t_add_type_hash);
       select.set_vector(std::any_cast<TBv>(&it_bv->second));
 
@@ -137,7 +139,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
       std::tie(it, inserted) = storage_.get().emplace(key_select, std::move(select));
     }
 
-    return std::cref(std::any_cast<const typename TBv::select_1_type &>(it->second));
+    return std::cref(std::any_cast<const TBvSelect &>(it->second));
   }
 
   template<typename TItem>
@@ -153,20 +155,20 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
     return sdsl::serialize_empty_object<TItem>(out, v, name);
   }
 
-  template<typename TItem>
+  template<typename TItem, typename TItemRank = typename TItem::rank_1_type>
   std::size_t serializeRank(const std::string &t_key,
                             std::ostream &out,
                             sdsl::structure_tree_node *v,
                             const std::string &name) const {
-    return serializeItem<typename TItem::rank_1_type>(t_key + "_rank", out, v, name);
+    return serializeItem<TItemRank>(t_key + "_rank", out, v, name);
   }
 
-  template<typename TItem>
+  template<typename TItem, typename TItemSelect = typename TItem::select_1_type>
   std::size_t serializeSelect(const std::string &t_key,
                               std::ostream &out,
                               sdsl::structure_tree_node *v,
                               const std::string &name) const {
-    return serializeItem<typename TItem::select_1_type>(t_key + "_select", out, v, name);
+    return serializeItem<TItemSelect>(t_key + "_select", out, v, name);
   }
 
   //********************
@@ -177,7 +179,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
   std::reference_wrapper<ExternalStorage> storage_;
   std::vector<std::string> keys_;
 
-  std::unique_ptr<sri::LocateIndex> index_ = nullptr;
+  std::shared_ptr<sri::LocateIndex> index_ = nullptr;
 };
 
 #endif //SRI_BENCHMARK_SR_CSA_INDEX_BASE_H_
