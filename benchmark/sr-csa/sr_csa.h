@@ -739,8 +739,9 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = BaseClass::serialize(out, v, name);
-    written_bytes +=
-        this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
+    written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
+        key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
+    written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
 
     return written_bytes;
   }

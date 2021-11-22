@@ -155,20 +155,20 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
     return sdsl::serialize_empty_object<TItem>(out, v, name);
   }
 
-  template<typename TItem>
+  template<typename TItem, typename TItemRank = typename TItem::rank_1_type>
   std::size_t serializeRank(const std::string &t_key,
                             std::ostream &out,
                             sdsl::structure_tree_node *v,
                             const std::string &name) const {
-    return serializeItem<typename TItem::rank_1_type>(t_key + "_rank", out, v, name);
+    return serializeItem<TItemRank>(t_key + "_rank", out, v, name);
   }
 
-  template<typename TItem>
+  template<typename TItem, typename TItemSelect = typename TItem::select_1_type>
   std::size_t serializeSelect(const std::string &t_key,
                               std::ostream &out,
                               sdsl::structure_tree_node *v,
                               const std::string &name) const {
-    return serializeItem<typename TItem::select_1_type>(t_key + "_select", out, v, name);
+    return serializeItem<TItemSelect>(t_key + "_select", out, v, name);
   }
 
   //********************
