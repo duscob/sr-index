@@ -19,12 +19,13 @@ class Factory {
  public:
   enum class IndexEnum {
     R_CSA = 0,
-    CSA_RAW = 1,
-    SR_CSA = 2,
-    SR_CSA_SLIM = 3,
-    SR_CSA_BV = 4,
-    SR_CSA_BV_VM = 5,
-    SR_CSA_BV_VA = 6
+    CSA_RAW,
+    SR_CSA,
+    SR_CSA_VM,
+    SR_CSA_VA,
+    SR_CSA_SLIM,
+    SR_CSA_SLIM_VM,
+    SR_CSA_SLIM_VA
   };
 
   struct Config {
@@ -59,26 +60,32 @@ class Factory {
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
+      case IndexEnum::SR_CSA_VM: {
+        auto idx = std::make_shared<SrCSAValidMark<SrCSA<t_width>>>(std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
+      case IndexEnum::SR_CSA_VA: {
+        auto idx = std::make_shared<SrCSAValidArea<SrCSA<t_width>>>(std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
       case IndexEnum::SR_CSA_SLIM: {
         auto idx = std::make_shared<SrCSASlim<t_width>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
-      case IndexEnum::SR_CSA_BV: {
-        auto idx = std::make_shared<SrCSAWithBv<t_width>>(std::ref(storage_), t_config.sampling_size);
+      case IndexEnum::SR_CSA_SLIM_VM: {
+        auto idx = std::make_shared<SrCSAValidMark<SrCSASlim<t_width>>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
-      case IndexEnum::SR_CSA_BV_VM: {
-        auto idx = std::make_shared<SrCSAValidMark<SrCSAWithBv<t_width>>>(std::ref(storage_), t_config.sampling_size);
-        idx->load(config_);
-        return {idx, sdsl::size_in_bytes(*idx)};
-      }
-
-      case IndexEnum::SR_CSA_BV_VA: {
-        auto idx = std::make_shared<SrCSAValidArea<SrCSAWithBv<t_width>>>(std::ref(storage_), t_config.sampling_size);
+      case IndexEnum::SR_CSA_SLIM_VA: {
+        auto idx = std::make_shared<SrCSAValidArea<SrCSASlim<t_width>>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
