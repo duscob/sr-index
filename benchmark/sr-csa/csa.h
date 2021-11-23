@@ -107,7 +107,7 @@ class CSA : public IndexBaseWithExternalStorage {
     }
   };
 
-  using Char = sri::uchar;
+  using Char = typename TAlphabet::comp_char_type;
   using Position = std::size_t;
   struct RangeLF;
 
