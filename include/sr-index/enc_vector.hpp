@@ -90,8 +90,6 @@ class enc_vector
         }
 
     public:
-        const sdsl::int_vector<0> &delta = m_z;
-        const int_vector_type &sample_and_pointer = m_sample_vals_and_pointer;
 
         enc_vector() = default;
         enc_vector(const enc_vector&) = default;
@@ -161,6 +159,10 @@ class enc_vector
 
         //! Load the enc_vector from a stream.
         void load(std::istream& in);
+
+        const auto &delta() const { return m_z; }
+
+        const auto &sample_and_pointer() const { return m_sample_vals_and_pointer; }
 
         //! Returns the i-th sample of enc_vector
         /*! \param i The index of the sample. 0 <= i < size()/get_sample_dens()
