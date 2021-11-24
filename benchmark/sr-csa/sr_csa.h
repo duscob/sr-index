@@ -12,15 +12,16 @@
 #include "csa.h"
 
 template<uint8_t t_width = 8,
+    typename TStorage = std::reference_wrapper<ExternalStorage>,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>>
-class SrCSABase : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using BaseClass = CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using BaseClass = CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSABase(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr)
       : BaseClass(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {
@@ -162,6 +163,7 @@ class SrCSABase : public CSA<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSample
 };
 
 template<uint8_t t_width = 8,
+    typename TStorage = std::reference_wrapper<ExternalStorage>,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
@@ -169,9 +171,10 @@ template<uint8_t t_width = 8,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>,
     typename TRunCumulativeCount = sdsl::int_vector<>>
-class SrCSASlim : public SrCSABase<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
+class SrCSASlim
+    : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
  public:
-  using BaseClass = SrCSABase<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
+  using BaseClass = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
 
   SrCSASlim(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
 
@@ -384,15 +387,17 @@ class SrCSASlim : public SrCSABase<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkTo
 };
 
 template<uint8_t t_width = 8,
+    typename TStorage = std::reference_wrapper<ExternalStorage>,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSamplePos = sdsl::sd_vector<>>
-class SrCSA : public SrCSABase<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> {
+class SrCSA
+    : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> {
  public:
-  using BaseClass = SrCSABase<t_width, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>;
+  using BaseClass = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>;
 
   SrCSA(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
 
@@ -713,10 +718,10 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config);
 template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSample, typename TSample, typename TBVSampleIdx, typename TRunCumCnt>
-void construct(
-    SrCSASlim<t_width, TAlphabet, TPsiCore, TBVMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt> &t_index,
-    sdsl::cache_config &t_config) {
+template<typename TStorage, uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBVMark, typename TMarkToSample, typename TSample, typename TBVSampleIdx, typename TRunCumCnt>
+void construct(SrCSASlim<
+    t_width, TStorage, TAlphabet, TPsiCore, TBVMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt> &t_index,
+               sdsl::cache_config &t_config) {
   auto subsample_rate = t_index.SubsampleRate();
 
   constructSrCSACommons<t_width, TBVMark>(subsample_rate, t_config);
@@ -762,8 +767,8 @@ void construct(
 template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
-void construct(SrCSA<t_width, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> &t_index,
+template<typename TStorage, uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
+void construct(SrCSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> &t_index,
                sdsl::cache_config &t_config) {
   auto subsample_rate = t_index.SubsampleRate();
 

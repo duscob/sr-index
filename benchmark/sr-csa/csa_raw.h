@@ -6,13 +6,14 @@
 #define SRI_BENCHMARK_SR_CSA_CSA_RAW_H_
 
 template<uint8_t t_width = 8,
+    typename TStorage = std::reference_wrapper<ExternalStorage>,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TSA = sdsl::int_vector<>>
-class CSARaw : public CSA<t_width, TAlphabet, TPsiRLE> {
+class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
  public:
 
-  using BaseClass = CSA<t_width, TAlphabet, TPsiRLE>;
+  using BaseClass = CSA<t_width, TStorage, TAlphabet, TPsiRLE>;
 
   explicit CSARaw(std::reference_wrapper<ExternalStorage> t_storage) : BaseClass(t_storage) {}
 

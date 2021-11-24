@@ -17,6 +17,18 @@
 
 using ExternalStorage = std::map<std::string, std::any>;
 
+template<typename TItem>
+const TItem *get(const std::reference_wrapper<ExternalStorage> &t_storage, const std::string &t_key) {
+  auto it = t_storage.get().find(t_key);
+  return (it != t_storage.get().end()) ? std::any_cast<TItem>(&it->second) : nullptr;
+}
+
+template<typename TItem>
+const TItem *set(std::reference_wrapper<ExternalStorage> t_storage, const std::string &t_key, TItem &&t_item) {
+  auto[it, inserted] = t_storage.get().emplace(t_key, t_item);
+  return std::any_cast<TItem>(&it->second);
+}
+
 enum class SrIndexKey : unsigned char {
   ALPHABET = 0,
   NAVIGATE,
@@ -33,11 +45,14 @@ auto toInt(SrIndexKey t_k) {
   return static_cast<unsigned char>(t_k);
 }
 
+template<typename TStorage = std::reference_wrapper<ExternalStorage>>
 class IndexBaseWithExternalStorage : public sri::LocateIndex {
  public:
-  explicit IndexBaseWithExternalStorage(const std::reference_wrapper<ExternalStorage> &t_storage)
+  explicit IndexBaseWithExternalStorage(const TStorage &t_storage)
       : storage_{t_storage} {
   }
+
+  IndexBaseWithExternalStorage() = default;
 
   std::vector<std::size_t> Locate(const std::string &t_pattern) const override {
     return index_->Locate(t_pattern);
@@ -70,16 +85,14 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
 
   template<typename TItem>
   auto loadRawItem(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
-    auto it = storage_.get().find(t_key);
-    if (it == storage_.get().end()) {
+    auto item = get<TItem>(storage_, t_key);
+    if (!item) {
       TItem data;
       load(data, t_source, t_key, t_add_type_hash);
 
-      bool inserted = false;
-      std::tie(it, inserted) = storage_.get().emplace(t_key, std::move(data));
+      item = set(storage_, t_key, std::move(data));
     }
-
-    return it;
+    return item;
   }
 
   template<typename TItem>
@@ -102,44 +115,42 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
 
   template<typename TItem>
   auto loadItem(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
-    auto it = loadRawItem<TItem>(t_key, t_source, t_add_type_hash);
-    return std::cref(std::any_cast<const TItem &>(it->second));
+    auto item = loadRawItem<TItem>(t_key, t_source, t_add_type_hash);
+    return std::cref(*item);
   }
 
   template<typename TBv, typename TBvRank = typename TBv::rank_1_type>
   auto loadBVRank(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
     auto key_rank = t_key + "_rank";
-    auto it = storage_.get().find(key_rank);
-    if (it == storage_.get().end()) {
-      auto it_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
+    auto item_rank = get<TBvRank>(storage_, key_rank);
+    if (!item_rank) {
+      auto item_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
       TBvRank rank;
       load(rank, t_source, t_key, t_add_type_hash);
-      rank.set_vector(std::any_cast<TBv>(&it_bv->second));
+      rank.set_vector(item_bv);
 
-      bool inserted = false;
-      std::tie(it, inserted) = storage_.get().emplace(key_rank, std::move(rank));
+      item_rank = set(storage_, key_rank, std::move(rank));
     }
 
-    return std::cref(std::any_cast<const TBvRank &>(it->second));
+    return std::cref(*item_rank);
   }
 
   template<typename TBv, typename TBvSelect = typename TBv::select_1_type>
   auto loadBVSelect(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {
     auto key_select = t_key + "_select";
-    auto it = storage_.get().find(key_select);
-    if (it == storage_.get().end()) {
-      auto it_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
+    auto item_select = get<TBvSelect>(storage_, key_select);
+    if (!item_select) {
+      auto item_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
       TBvSelect select;
       load(select, t_source, t_key, t_add_type_hash);
-      select.set_vector(std::any_cast<TBv>(&it_bv->second));
+      select.set_vector(item_bv);
 
-      bool inserted = false;
-      std::tie(it, inserted) = storage_.get().emplace(key_select, std::move(select));
+      item_select = set(storage_, key_select, std::move(select));
     }
 
-    return std::cref(std::any_cast<const TBvSelect &>(it->second));
+    return std::cref(*item_select);
   }
 
   template<typename TItem>
@@ -147,10 +158,9 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
                             std::ostream &out,
                             sdsl::structure_tree_node *v,
                             const std::string &name) const {
-    auto it = storage_.get().find(t_key);
-    if (it != storage_.get().end()) {
-      auto cref_item = std::cref(std::any_cast<const TItem &>(it->second));
-      return sdsl::serialize(cref_item.get(), out, v, name);
+    auto item = get<TItem>(storage_, t_key);
+    if (item) {
+      return sdsl::serialize(*item, out, v, name);
     }
     return sdsl::serialize_empty_object<TItem>(out, v, name);
   }
@@ -176,7 +186,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
   //********************
 
   std::size_t n_ = 0;
-  std::reference_wrapper<ExternalStorage> storage_;
+  TStorage storage_;
   std::vector<std::string> keys_;
 
   std::shared_ptr<sri::LocateIndex> index_ = nullptr;

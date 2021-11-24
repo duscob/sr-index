@@ -252,7 +252,7 @@ class PsiCoreRLE {
 
     auto idx = upper_bound - 1; // Index of previous sample to the greater one
 
-    auto run_start = values.sample_and_pointer[2 * idx]; // Psi value at run start
+    auto run_start = values.sample_and_pointer()[2 * idx]; // Psi value at run start
     auto n_runs = idx * sample_dens_ / 2 + 1; // Number of runs (runs in psi are equal to bwt run)
 
     if (run_start == t_value) { return {n_runs, run_start}; }
@@ -480,8 +480,8 @@ class PsiCoreRLE {
   class DecodeUInt {
    public:
     DecodeUInt(const TEncVector &t_values, std::size_t t_i) {
-      data_ = t_values.delta.data(); // RLE data
-      pointer_ = t_values.sample_and_pointer[2 * t_i + 1]; // Pointer to next coded value
+      data_ = t_values.delta().data(); // RLE data
+      pointer_ = t_values.sample_and_pointer()[2 * t_i + 1]; // Pointer to next coded value
     }
 
     auto operator()() {
@@ -513,7 +513,7 @@ class PsiCoreRLE {
         // No remaining runs until the next sampled value, so next run start value is the next sample
         run_soft_rank_ = idx_ * sample_dens_ / 2;
         n_runs_to_next_sample_ = std::min(sample_dens_, cr_values_.size() - idx_ * sample_dens_) / 2 - 1;
-        return cr_values_.sample_and_pointer[2 * idx_++]; // Psi value at run start
+        return cr_values_.sample_and_pointer()[2 * idx_++]; // Psi value at run start
       }
 
       // No remaining runs
