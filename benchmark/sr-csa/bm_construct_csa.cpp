@@ -28,8 +28,7 @@ void setupCommonCounters(benchmark::State &t_state) {
 }
 
 auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  ExternalStorage storage;
-  CSA<> index(storage);
+  CSA<> index;
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
@@ -63,8 +62,7 @@ template<typename TSrIndex>
 void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config, const std::string &t_data_path) {
   std::size_t subsample_rate = t_state.range(0); // Subsampling rate
 
-  ExternalStorage storage;
-  TSrIndex index(storage, subsample_rate);
+  TSrIndex index(subsample_rate);
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
