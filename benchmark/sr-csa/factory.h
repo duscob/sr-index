@@ -15,18 +15,6 @@
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
 
-template<typename TItem>
-const TItem *get(const ExternalGenericStorage &t_storage, const std::string &t_key) {
-  auto it = t_storage.get().find(t_key);
-  return (it != t_storage.get().end()) ? std::any_cast<TItem>(&it->second) : nullptr;
-}
-
-template<typename TItem>
-const TItem *set(ExternalGenericStorage t_storage, const std::string &t_key, TItem &&t_item) {
-  auto[it, inserted] = t_storage.get().emplace(t_key, t_item);
-  return std::any_cast<TItem>(&it->second);
-}
-
 template<uint8_t t_width = 8>
 class Factory {
  public:
