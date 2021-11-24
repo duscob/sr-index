@@ -22,17 +22,20 @@
 #include "index_base.h"
 
 template<uint8_t t_width = 8,
+    typename TStorage = std::reference_wrapper<ExternalStorage>,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>>
-class CSA : public IndexBaseWithExternalStorage {
+class CSA : public IndexBaseWithExternalStorage<TStorage> {
  public:
+
+  using Base = IndexBaseWithExternalStorage<TStorage>;
 
   static constexpr uint8_t AlphabetWidth = t_width;
 
-  explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : IndexBaseWithExternalStorage(t_storage) {}
+  explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : Base(t_storage) {}
 
   void load(sdsl::cache_config t_config) override {
     setupKeyNames();
@@ -40,31 +43,35 @@ class CSA : public IndexBaseWithExternalStorage {
     loadAllItems(source);
   }
 
+  using typename Base::size_type;
+
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
-    written_bytes += serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
+    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
 
-    written_bytes += serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
+    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
 
-    written_bytes += serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
-    written_bytes += serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
-    written_bytes += serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
+    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
 
-    written_bytes += serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
 
-    written_bytes += serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
+    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
 
     return written_bytes;
   }
 
  protected:
 
+  using Base::key;
   virtual void setupKeyNames() {
-    if (!keys_.empty()) return;
+    if (!this->keys_.empty()) return;
 
-    keys_.resize(5);
+    this->keys_.resize(5);
     key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
     key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
     key(SrIndexKey::MARKS) = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
@@ -72,8 +79,10 @@ class CSA : public IndexBaseWithExternalStorage {
     key(SrIndexKey::MARK_TO_SAMPLE) = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   }
 
+  using typename Base::TSource;
+
   virtual void loadAllItems(TSource &t_source) {
-    index_.reset(new sri::RIndex(
+    this->index_.reset(new sri::RIndex(
         constructLF(t_source),
         constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -81,7 +90,7 @@ class CSA : public IndexBaseWithExternalStorage {
               return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
             }),
         constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
-        n_,
+        this->n_,
         [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; },
         constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
@@ -132,11 +141,11 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   auto constructLF(TSource &t_source) {
-    auto cref_alphabet = loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
     auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
-    n_ = cumulative[cref_alphabet.get().sigma];
+    this->n_ = cumulative[cref_alphabet.get().sigma];
 
-    auto cref_psi_core = loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
     auto psi_rank = [cref_psi_core](auto tt_c, auto tt_rnk) {
       DataLF data;
       auto report =
@@ -175,18 +184,18 @@ class CSA : public IndexBaseWithExternalStorage {
 
   using Value = std::size_t;
   auto constructPhiForRange(TSource &t_source) {
-    auto bv_mark_rank = loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    auto bv_mark_select = loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, n_);
+    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
 
-    auto cref_mark_to_sample_idx = loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
     auto get_mark_to_sample_idx = sri::RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, true);
 
-    auto cref_samples = loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = sri::RandomAccessForCRefContainer(cref_samples);
     sri::SampleValidatorDefault sample_validator_default;
 
-    auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, n_);
+    auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
     auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
       const auto &[start, end] = t_range;
@@ -200,9 +209,9 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   auto constructComputeToehold(TSource &t_source) {
-    auto cref_psi_core = loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
-    auto cref_samples = loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
       auto run = cref_psi_core.get().rankRun(tt_run_data->pos);
       return cref_samples.get()[run] + 1;
@@ -223,7 +232,7 @@ class CSA : public IndexBaseWithExternalStorage {
   }
 
   auto constructGetSymbol(TSource &t_source) {
-    auto cref_alphabet = loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
 
     auto get_symbol = [cref_alphabet](const auto &tt_c) { return cref_alphabet.get().char2comp[tt_c]; };
     return get_symbol;
@@ -231,8 +240,8 @@ class CSA : public IndexBaseWithExternalStorage {
 
 };
 
-template<uint8_t t_width, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(CSA<t_width, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
+template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
+void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                sdsl::cache_config &t_config) {
   std::size_t n;
   {

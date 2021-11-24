@@ -45,9 +45,10 @@ auto toInt(SrIndexKey t_k) {
   return static_cast<unsigned char>(t_k);
 }
 
+template<typename TStorage = std::reference_wrapper<ExternalStorage>>
 class IndexBaseWithExternalStorage : public sri::LocateIndex {
  public:
-  explicit IndexBaseWithExternalStorage(const std::reference_wrapper<ExternalStorage> &t_storage)
+  explicit IndexBaseWithExternalStorage(const TStorage &t_storage)
       : storage_{t_storage} {
   }
 
@@ -185,7 +186,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
   //********************
 
   std::size_t n_ = 0;
-  std::reference_wrapper<ExternalStorage> storage_;
+  TStorage storage_;
   std::vector<std::string> keys_;
 
   std::shared_ptr<sri::LocateIndex> index_ = nullptr;
