@@ -12,7 +12,6 @@
 
 #include "csa.h"
 #include "sr_csa.h"
-#include "csa_raw.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
 
