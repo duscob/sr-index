@@ -12,7 +12,7 @@
 #include "csa.h"
 
 template<uint8_t t_width = 8,
-    typename TStorage = std::reference_wrapper<ExternalStorage>,
+    typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
@@ -21,15 +21,18 @@ template<uint8_t t_width = 8,
     typename TBvSampleIdx = sdsl::sd_vector<>>
 class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using BaseClass = CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrCSABase(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr)
-      : BaseClass(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {
+  SrCSABase(const TStorage &t_storage, std::size_t t_sr)
+      : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {
   }
+
+  explicit SrCSABase(std::size_t t_sr)
+      : Base(), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
   std::size_t SubsampleRate() const { return subsample_rate_; }
 
-  using typename BaseClass::size_type;
+  using typename Base::size_type;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -56,11 +59,11 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
 
  protected:
 
-  using BaseClass::key;
+  using Base::key;
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
-    BaseClass::setupKeyNames();
+    Base::setupKeyNames();
     this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
@@ -71,9 +74,9 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
     key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
   }
 
-  using typename BaseClass::TSource;
+  using typename Base::TSource;
 
-  using typename BaseClass::Char;
+  using typename Base::Char;
 
   template<typename TCreateRun>
   auto constructSplitRunInBWTRuns(TSource &t_source, const TCreateRun &t_create_run) {
@@ -144,7 +147,7 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
                                    t_is_run_empty);
   }
 
-  using typename BaseClass::RunData;
+  using typename Base::RunData;
 
   template<typename TGetSampleRunData, typename TPsiRunData>
   auto constructComputeToehold(TSource &t_source, const TGetSampleRunData &t_get_sample, const TPsiRunData &t_psi) {
@@ -163,7 +166,7 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
 };
 
 template<uint8_t t_width = 8,
-    typename TStorage = std::reference_wrapper<ExternalStorage>,
+    typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
@@ -174,11 +177,13 @@ template<uint8_t t_width = 8,
 class SrCSASlim
     : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
  public:
-  using BaseClass = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
+  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
 
-  SrCSASlim(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+  SrCSASlim(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  using typename BaseClass::size_type;
+  explicit SrCSASlim(std::size_t t_sr) : Base(t_sr) {}
+
+  using typename Base::size_type;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -208,11 +213,11 @@ class SrCSASlim
 
  protected:
 
-  using BaseClass::key;
+  using Base::key;
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
-    BaseClass::setupKeyNames();
+    Base::setupKeyNames();
     this->keys_.resize(7);
 //    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
@@ -226,7 +231,7 @@ class SrCSASlim
     key(SrIndexKey::RUN_CUMULATIVE_COUNT) = sri::key_trait<t_width>::KEY_BWT_RUN_CUMULATIVE_COUNT;
   }
 
-  using typename BaseClass::TSource;
+  using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
     loadAllItems(t_source,
@@ -240,9 +245,9 @@ class SrCSASlim
                  });
   }
 
-  using typename BaseClass::Range;
-  using typename BaseClass::RangeLF;
-  using typename BaseClass::DataBackwardSearchStep;
+  using typename Base::Range;
+  using typename Base::RangeLF;
+  using typename Base::DataBackwardSearchStep;
   template<typename TPhiRange>
   void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new sri::RIndex(
@@ -266,8 +271,8 @@ class SrCSASlim
     ));
   }
 
-  using typename BaseClass::RunData;
-  using typename BaseClass::Char;
+  using typename Base::RunData;
+  using typename Base::Char;
   struct RunDataExt : RunData {
     Char c;
     std::size_t partial_rank;
@@ -277,7 +282,7 @@ class SrCSASlim
         : RunData(t_pos), c{t_c}, partial_rank{t_partial_rank}, is_run_start{t_is_run_start} {}
   };
 
-  using typename BaseClass::Value;
+  using typename Base::Value;
   auto constructGetSample(TSource &t_source) {
     auto cref_run_cum_c = this->template loadItem<TRunCumulativeCount>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
     auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
@@ -358,7 +363,7 @@ class SrCSASlim
   }
 
   auto constructSplitRunInBWTRuns(TSource &t_source) {
-    return BaseClass::constructSplitRunInBWTRuns(t_source, constructCreateRun());
+    return Base::constructSplitRunInBWTRuns(t_source, constructCreateRun());
   }
 
   auto constructPsiForRunData(TSource &t_source) {
@@ -387,7 +392,7 @@ class SrCSASlim
 };
 
 template<uint8_t t_width = 8,
-    typename TStorage = std::reference_wrapper<ExternalStorage>,
+    typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
@@ -397,17 +402,19 @@ template<uint8_t t_width = 8,
 class SrCSA
     : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> {
  public:
-  using BaseClass = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>;
+  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>;
 
-  SrCSA(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+  SrCSA(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+
+  explicit SrCSA(std::size_t t_sr) : Base(t_sr) {}
 
  protected:
 
-  using BaseClass::key;
+  using Base::key;
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
-    BaseClass::setupKeyNames();
+    Base::setupKeyNames();
 //    this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
@@ -418,7 +425,7 @@ class SrCSA
     key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_FIRST;
   }
 
-  using typename BaseClass::TSource;
+  using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
     loadAllItems(t_source,
@@ -432,10 +439,10 @@ class SrCSA
                  });
   }
 
-  using typename BaseClass::Range;
-  using typename BaseClass::RangeLF;
-  using typename BaseClass::DataBackwardSearchStep;
-  using typename BaseClass::RunData;
+  using typename Base::Range;
+  using typename Base::RangeLF;
+  using typename Base::DataBackwardSearchStep;
+  using typename Base::RunData;
   template<typename TPhiRange>
   void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new sri::RIndex(
@@ -532,7 +539,7 @@ class SrCSA
   }
 
   auto constructSplitRunInBWTRuns(TSource &t_source) {
-    return BaseClass::constructSplitRunInBWTRuns(t_source, constructCreateRun());
+    return Base::constructSplitRunInBWTRuns(t_source, constructCreateRun());
   }
 
   auto constructPsiForRunData(TSource &t_source) {
@@ -555,15 +562,18 @@ class SrCSA
 template<typename TSrCSA, typename TBvValidMark = sdsl::bit_vector>
 class SrCSAValidMark : public TSrCSA {
  public:
-  using BaseClass = TSrCSA;
+  using Base = TSrCSA;
 
-  SrCSAValidMark(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+  template<typename TStorage>
+  SrCSAValidMark(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  using typename BaseClass::size_type;
+  explicit SrCSAValidMark(std::size_t t_sr) : Base(t_sr) {}
+
+  using typename Base::size_type;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
-    size_type written_bytes = BaseClass::serialize(out, v, name);
+    size_type written_bytes = Base::serialize(out, v, name);
     written_bytes +=
         this->template serializeItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
 
@@ -572,11 +582,11 @@ class SrCSAValidMark : public TSrCSA {
 
  protected:
 
-  using BaseClass::key;
+  using Base::key;
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
-    BaseClass::setupKeyNames();
+    Base::setupKeyNames();
     this->keys_.resize(8);
     constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
 //    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
@@ -590,26 +600,26 @@ class SrCSAValidMark : public TSrCSA {
         this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
   }
 
-  using typename BaseClass::TSource;
+  using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    BaseClass::loadAllItems(t_source,
-                            [this](auto &t_source) {
-                              return constructPhiForRange(t_source,
-                                                          BaseClass::constructGetSampleForRun(t_source),
-                                                          BaseClass::constructSplitRangeInBWTRuns(t_source),
-                                                          BaseClass::constructSplitRunInBWTRuns(t_source),
-                                                          BaseClass::constructUpdateRun(),
-                                                          BaseClass::constructIsRunEmpty(),
-                                                          sri::SampleValidatorDefault());
-                            });
+    Base::loadAllItems(t_source,
+                       [this](auto &t_source) {
+                         return constructPhiForRange(t_source,
+                                                     Base::constructGetSampleForRun(t_source),
+                                                     Base::constructSplitRangeInBWTRuns(t_source),
+                                                     Base::constructSplitRunInBWTRuns(t_source),
+                                                     Base::constructUpdateRun(),
+                                                     Base::constructIsRunEmpty(),
+                                                     sri::SampleValidatorDefault());
+                       });
   }
 
-  using BaseClass::loadAllItems;
+  using Base::loadAllItems;
 
-  using typename BaseClass::BvMark;
-  using typename BaseClass::MarkToSampleIdx;
-  using typename BaseClass::Sample;
+  using typename Base::BvMark;
+  using typename Base::MarkToSampleIdx;
+  using typename Base::Sample;
   template<typename TGetSampleRun, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TUpdateRun, typename TIsRunEmpty, typename TValidateSample>
   auto constructPhiForRange(TSource &t_source,
                             const TGetSampleRun &t_get_sample,
@@ -646,15 +656,18 @@ class SrCSAValidMark : public TSrCSA {
 template<typename TSrCSA, typename TBvValidMark = sdsl::bit_vector, typename TValidArea = sdsl::int_vector<>>
 class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
  public:
-  using BaseClass = SrCSAValidMark<TSrCSA, TBvValidMark>;
+  using Base = SrCSAValidMark<TSrCSA, TBvValidMark>;
 
-  SrCSAValidArea(std::reference_wrapper<ExternalStorage> t_storage, std::size_t t_sr) : BaseClass(t_storage, t_sr) {}
+  template<typename TStorage>
+  SrCSAValidArea(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  using typename BaseClass::size_type;
+  explicit SrCSAValidArea(std::size_t t_sr) : Base(t_sr) {}
+
+  using typename Base::size_type;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
-    size_type written_bytes = BaseClass::serialize(out, v, name);
+    size_type written_bytes = Base::serialize(out, v, name);
     written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
         key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
     written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
@@ -664,11 +677,11 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
 
  protected:
 
-  using BaseClass::key;
+  using Base::key;
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
-    BaseClass::setupKeyNames();
+    Base::setupKeyNames();
     this->keys_.resize(9);
     constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
 //    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
@@ -684,19 +697,19 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
         this->key_prefix_ + sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA;
   }
 
-  using typename BaseClass::TSource;
+  using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    BaseClass::loadAllItems(t_source,
-                            [this](auto &t_source) {
-                              return BaseClass::constructPhiForRange(t_source,
-                                                                     BaseClass::constructGetSampleForRun(t_source),
-                                                                     BaseClass::constructSplitRangeInBWTRuns(t_source),
-                                                                     BaseClass::constructSplitRunInBWTRuns(t_source),
-                                                                     BaseClass::constructUpdateRun(),
-                                                                     BaseClass::constructIsRunEmpty(),
-                                                                     constructValidateSample(t_source));
-                            });
+    Base::loadAllItems(t_source,
+                       [this](auto &t_source) {
+                         return Base::constructPhiForRange(t_source,
+                                                           Base::constructGetSampleForRun(t_source),
+                                                           Base::constructSplitRangeInBWTRuns(t_source),
+                                                           Base::constructSplitRunInBWTRuns(t_source),
+                                                           Base::constructUpdateRun(),
+                                                           Base::constructIsRunEmpty(),
+                                                           constructValidateSample(t_source));
+                       });
   }
 
   auto constructValidateSample(TSource &t_source) {

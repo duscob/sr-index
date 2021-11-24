@@ -22,7 +22,7 @@
 #include "index_base.h"
 
 template<uint8_t t_width = 8,
-    typename TStorage = std::reference_wrapper<ExternalStorage>,
+    typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
@@ -30,12 +30,13 @@ template<uint8_t t_width = 8,
     typename TSample = sdsl::int_vector<>>
 class CSA : public IndexBaseWithExternalStorage<TStorage> {
  public:
-
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
   static constexpr uint8_t AlphabetWidth = t_width;
 
-  explicit CSA(std::reference_wrapper<ExternalStorage> t_storage) : Base(t_storage) {}
+  explicit CSA(const TStorage &t_storage) : Base(t_storage) {}
+
+  CSA() = default;
 
   void load(sdsl::cache_config t_config) override {
     setupKeyNames();

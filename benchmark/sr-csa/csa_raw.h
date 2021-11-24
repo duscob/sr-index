@@ -6,18 +6,19 @@
 #define SRI_BENCHMARK_SR_CSA_CSA_RAW_H_
 
 template<uint8_t t_width = 8,
-    typename TStorage = std::reference_wrapper<ExternalStorage>,
+    typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
     typename TPsiRLE = sri::PsiCoreRLE<>,
     typename TSA = sdsl::int_vector<>>
 class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
  public:
+  using Base = CSA<t_width, TStorage, TAlphabet, TPsiRLE>;
 
-  using BaseClass = CSA<t_width, TStorage, TAlphabet, TPsiRLE>;
+  explicit CSARaw(const TStorage &t_storage) : Base(t_storage) {}
 
-  explicit CSARaw(std::reference_wrapper<ExternalStorage> t_storage) : BaseClass(t_storage) {}
+  CSARaw() = default;
 
-  using typename BaseClass::size_type;
+  using typename Base::size_type;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -35,12 +36,12 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
 
  protected:
 
-  using typename BaseClass::TSource;
+  using typename Base::TSource;
 
-  using typename BaseClass::Range;
-  using typename BaseClass::RangeLF;
-  using typename BaseClass::DataBackwardSearchStep;
-  using typename BaseClass::RunData;
+  using typename Base::Range;
+  using typename Base::RangeLF;
+  using typename Base::DataBackwardSearchStep;
+  using typename Base::RunData;
   virtual void loadAllItems(TSource &t_source) {
     this->index_.reset(new sri::RIndex(
         this->constructLF(t_source),

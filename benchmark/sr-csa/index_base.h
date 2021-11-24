@@ -15,17 +15,17 @@
 
 #include "sr-index/r_index.h"
 
-using ExternalStorage = std::map<std::string, std::any>;
+using GenericStorage = std::map<std::string, std::any>;
 
 template<typename TItem>
-const TItem *get(const std::reference_wrapper<ExternalStorage> &t_storage, const std::string &t_key) {
-  auto it = t_storage.get().find(t_key);
-  return (it != t_storage.get().end()) ? std::any_cast<TItem>(&it->second) : nullptr;
+const TItem *get(const GenericStorage &t_storage, const std::string &t_key) {
+  auto it = t_storage.find(t_key);
+  return (it != t_storage.end()) ? std::any_cast<TItem>(&it->second) : nullptr;
 }
 
 template<typename TItem>
-const TItem *set(std::reference_wrapper<ExternalStorage> t_storage, const std::string &t_key, TItem &&t_item) {
-  auto[it, inserted] = t_storage.get().emplace(t_key, t_item);
+const TItem *set(GenericStorage &t_storage, const std::string &t_key, TItem &&t_item) {
+  auto[it, inserted] = t_storage.emplace(t_key, t_item);
   return std::any_cast<TItem>(&it->second);
 }
 
@@ -45,12 +45,10 @@ auto toInt(SrIndexKey t_k) {
   return static_cast<unsigned char>(t_k);
 }
 
-template<typename TStorage = std::reference_wrapper<ExternalStorage>>
+template<typename TStorage = GenericStorage>
 class IndexBaseWithExternalStorage : public sri::LocateIndex {
  public:
-  explicit IndexBaseWithExternalStorage(const TStorage &t_storage)
-      : storage_{t_storage} {
-  }
+  explicit IndexBaseWithExternalStorage(const TStorage &t_storage) : storage_{t_storage} {}
 
   IndexBaseWithExternalStorage() = default;
 
