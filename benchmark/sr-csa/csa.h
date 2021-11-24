@@ -21,6 +21,8 @@
 
 #include "index_base.h"
 
+namespace sri {
+
 template<uint8_t t_width = 8,
     typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
@@ -260,6 +262,8 @@ void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampl
   }
 
   t_index.load(t_config);
+}
+
 }
 
 #endif //SRI_BENCHMARK_SR_CSA_CSA_H_

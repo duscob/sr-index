@@ -11,6 +11,8 @@
 
 #include "csa.h"
 
+namespace sri {
+
 template<uint8_t t_width = 8,
     typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
@@ -1249,6 +1251,8 @@ void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sds
 
   valid_submarks.close();
   valid_areas.close();
+}
+
 }
 
 #endif //SRI_BENCHMARK_SR_CSA_SR_CSA_H_

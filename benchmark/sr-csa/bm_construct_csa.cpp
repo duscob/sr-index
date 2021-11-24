@@ -28,7 +28,7 @@ void setupCommonCounters(benchmark::State &t_state) {
 }
 
 auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  CSA<> index;
+  sri::CSA<> index;
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
@@ -91,19 +91,19 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config,
 };
 
 auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSA<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSASlim<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSASlim<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSAValidMark<SrCSA<>>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSAValidMark<sri::SrCSA<>>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSAValidArea<SrCSA<>>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSAValidArea<sri::SrCSA<>>>(t_state, t_config, t_data_path);
 };
 
 int main(int argc, char **argv) {

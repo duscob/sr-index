@@ -15,6 +15,7 @@
 
 #include "sr-index/r_index.h"
 
+namespace sri {
 using GenericStorage = std::map<std::string, std::any>;
 
 template<typename TItem>
@@ -189,5 +190,7 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
 
   std::shared_ptr<sri::LocateIndex> index_ = nullptr;
 };
+
+}
 
 #endif //SRI_BENCHMARK_SR_CSA_INDEX_BASE_H_

@@ -5,6 +5,8 @@
 #ifndef SRI_BENCHMARK_SR_CSA_CSA_RAW_H_
 #define SRI_BENCHMARK_SR_CSA_CSA_RAW_H_
 
+namespace sri {
+
 template<uint8_t t_width = 8,
     typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
@@ -74,5 +76,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
   }
 
 };
+
+}
 
 #endif //SRI_BENCHMARK_SR_CSA_CSA_RAW_H_
