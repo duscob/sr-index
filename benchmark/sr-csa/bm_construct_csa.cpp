@@ -11,9 +11,8 @@
 #include <sdsl/memory_management.hpp>
 
 #include "sr-index/construct.h"
-
-#include "csa.h"
-#include "sr_csa.h"
+#include "sr-index/csa.h"
+#include "sr-index/sr_csa.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 //DEFINE_bool(rebuild, false, "Rebuild all the items.");
@@ -28,8 +27,7 @@ void setupCommonCounters(benchmark::State &t_state) {
 }
 
 auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  ExternalStorage storage;
-  CSA<> index(storage);
+  sri::CSA<> index;
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
@@ -63,8 +61,7 @@ template<typename TSrIndex>
 void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config, const std::string &t_data_path) {
   std::size_t subsample_rate = t_state.range(0); // Subsampling rate
 
-  ExternalStorage storage;
-  TSrIndex index(storage, subsample_rate);
+  TSrIndex index(subsample_rate);
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
@@ -93,19 +90,19 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config,
 };
 
 auto BM_ConstructSrCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSA<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSASlim<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSASlim<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSAValidMark<SrCSA<>>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSAValidMark<sri::SrCSA<>>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<SrCSAValidArea<SrCSA<>>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSAValidArea<sri::SrCSA<>>>(t_state, t_config, t_data_path);
 };
 
 int main(int argc, char **argv) {

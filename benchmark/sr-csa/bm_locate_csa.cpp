@@ -150,6 +150,8 @@ int main(int argc, char *argv[]) {
       {"SR-CSA-VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 16}},
       {"SR-CSA-VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 32}},
       {"SR-CSA-VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 64}},
+      {"SR-CSA_VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 128}},
+      {"SR-CSA_VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 256}},
 
       {"SR-CSA-SLIM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 4}},
       {"SR-CSA-SLIM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 8}},
@@ -168,6 +170,8 @@ int main(int argc, char *argv[]) {
       {"SR-CSA_SLIM_VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 16}},
       {"SR-CSA_SLIM_VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 32}},
       {"SR-CSA_SLIM_VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 64}},
+      {"SR-CSA_SLIM_VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 128}},
+      {"SR-CSA_SLIM_VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 256}},
   };
 
   std::string print_bm_prefix = "Print-";
