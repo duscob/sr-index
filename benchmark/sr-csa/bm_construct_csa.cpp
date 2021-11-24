@@ -11,9 +11,8 @@
 #include <sdsl/memory_management.hpp>
 
 #include "sr-index/construct.h"
-
-#include "csa.h"
-#include "sr_csa.h"
+#include "sr-index/csa.h"
+#include "sr-index/sr_csa.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 //DEFINE_bool(rebuild, false, "Rebuild all the items.");

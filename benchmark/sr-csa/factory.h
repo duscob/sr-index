@@ -10,8 +10,8 @@
 #include <sdsl/config.hpp>
 #include <sdsl/int_vector_buffer.hpp>
 
-#include "csa.h"
-#include "sr_csa.h"
+#include "sr-index/csa.h"
+#include "sr-index/sr_csa.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
 

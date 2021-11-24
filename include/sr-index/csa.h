@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/15/21.
 //
 
-#ifndef SRI_BENCHMARK_SR_CSA_CSA_H_
-#define SRI_BENCHMARK_SR_CSA_CSA_H_
+#ifndef SRI_CSA_H_
+#define SRI_CSA_H_
 
 #include <map>
 #include <string>
@@ -13,12 +13,11 @@
 
 #include <sdsl/csa_alphabet_strategy.hpp>
 
-#include "sr-index/r_index.h"
-#include "sr-index/psi.h"
-#include "sr-index/lf.h"
-#include "sr-index/construct.h"
-#include "sr-index/sequence_ops.h"
-
+#include "r_index.h"
+#include "psi.h"
+#include "lf.h"
+#include "construct.h"
+#include "sequence_ops.h"
 #include "index_base.h"
 
 namespace sri {
@@ -26,7 +25,7 @@ namespace sri {
 template<uint8_t t_width = 8,
     typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
-    typename TPsiRLE = sri::PsiCoreRLE<>,
+    typename TPsiRLE = PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>>
@@ -75,17 +74,17 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
     if (!this->keys_.empty()) return;
 
     this->keys_.resize(5);
-    key(SrIndexKey::ALPHABET) = sri::key_trait<t_width>::KEY_ALPHABET;
+    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
     key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-    key(SrIndexKey::MARKS) = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(SrIndexKey::SAMPLES) = sri::key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
-    key(SrIndexKey::MARK_TO_SAMPLE) = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+    key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(SrIndexKey::SAMPLES) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(SrIndexKey::MARK_TO_SAMPLE) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   }
 
   using typename Base::TSource;
 
   virtual void loadAllItems(TSource &t_source) {
-    this->index_.reset(new sri::RIndex(
+    this->index_.reset(new RIndex(
         constructLF(t_source),
         constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -145,7 +144,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
 
   auto constructLF(TSource &t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
-    auto cumulative = sri::RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
+    auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     this->n_ = cumulative[cref_alphabet.get().sigma];
 
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
@@ -167,7 +166,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
 
     RangeLF empty_range;
 
-    return sri::LF(psi_rank, cumulative, create_range, empty_range);
+    return LF(psi_rank, cumulative, create_range, empty_range);
   }
 
   struct RunData {
@@ -182,23 +181,23 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
 
   template<typename TCreateData>
   auto constructComputeDataBackwardSearchStep(const TCreateData &t_create_data) {
-    return sri::buildComputeDataBackwardSearchStepForPhiForward(t_create_data);
+    return buildComputeDataBackwardSearchStepForPhiForward(t_create_data);
   }
 
   using Value = std::size_t;
   auto constructPhiForRange(TSource &t_source) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    auto successor = sri::CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
+    auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
 
     auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
-    auto get_mark_to_sample_idx = sri::RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, true);
+    auto get_mark_to_sample_idx = RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, true);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sample = sri::RandomAccessForCRefContainer(cref_samples);
-    sri::SampleValidatorDefault sample_validator_default;
+    auto get_sample = RandomAccessForCRefContainer(cref_samples);
+    SampleValidatorDefault sample_validator_default;
 
-    auto phi = sri::buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
     auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
       const auto &[start, end] = t_range;
@@ -220,7 +219,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
       return cref_samples.get()[run] + 1;
     };
 
-    return sri::buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
+    return buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
   }
 
   template<typename TPhiRange, typename TComputeToehold>
@@ -231,7 +230,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
       return tt_range;
     };
 
-    return sri::ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
+    return ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
   }
 
   auto constructGetSymbol(TSource &t_source) {
@@ -246,7 +245,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
 template<uint8_t t_width = 8,
     typename TStorage = GenericStorage,
     typename TAlphabet = sdsl::byte_alphabet,
-    typename TPsiRLE = sri::PsiCoreRLE<>,
+    typename TPsiRLE = PsiCoreRLE<>,
     typename TSA = sdsl::int_vector<>>
 class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
  public:
@@ -263,7 +262,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
 
     size_type written_bytes = 0;
     written_bytes += this->template serializeItem<TAlphabet>(
-        sri::key_trait<t_width>::KEY_ALPHABET, out, child, "alphabet");
+        key_trait<t_width>::KEY_ALPHABET, out, child, "alphabet");
 
     written_bytes += this->template serializeItem<TPsiRLE>(sdsl::conf::KEY_PSI, out, child, "psi");
 
@@ -281,7 +280,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
   using typename Base::DataBackwardSearchStep;
   using typename Base::RunData;
   virtual void loadAllItems(TSource &t_source) {
-    this->index_.reset(new sri::RIndex(
+    this->index_.reset(new RIndex(
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -325,9 +324,9 @@ void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampl
   {
     // Construct Successor on the text positions of BWT run last letter
     auto event = sdsl::memory_monitor::event("Successor");
-    const auto KEY_BWT_RUN_LAST_TEXT_POS = sri::key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
+    const auto KEY_BWT_RUN_LAST_TEXT_POS = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
     if (!sdsl::cache_file_exists<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
-      sri::constructBitVectorFromIntVector<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
+      constructBitVectorFromIntVector<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
     }
   }
 
@@ -336,4 +335,4 @@ void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampl
 
 }
 
-#endif //SRI_BENCHMARK_SR_CSA_CSA_H_
+#endif //SRI_CSA_H_

@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/30/21.
 //
 
-#ifndef SRI_BENCHMARK_SR_CSA_INDEX_BASE_H_
-#define SRI_BENCHMARK_SR_CSA_INDEX_BASE_H_
+#ifndef SRI_INDEX_BASE_H_
+#define SRI_INDEX_BASE_H_
 
 #include <map>
 #include <string>
@@ -13,7 +13,7 @@
 
 #include <sdsl/io.hpp>
 
-#include "sr-index/r_index.h"
+#include "r_index.h"
 
 namespace sri {
 using GenericStorage = std::map<std::string, std::any>;
@@ -47,7 +47,7 @@ auto toInt(SrIndexKey t_k) {
 }
 
 template<typename TStorage = GenericStorage>
-class IndexBaseWithExternalStorage : public sri::LocateIndex {
+class IndexBaseWithExternalStorage : public LocateIndex {
  public:
   explicit IndexBaseWithExternalStorage(const TStorage &t_storage) : storage_{t_storage} {}
 
@@ -188,9 +188,9 @@ class IndexBaseWithExternalStorage : public sri::LocateIndex {
   TStorage storage_;
   std::vector<std::string> keys_;
 
-  std::shared_ptr<sri::LocateIndex> index_ = nullptr;
+  std::shared_ptr<LocateIndex> index_ = nullptr;
 };
 
 }
 
-#endif //SRI_BENCHMARK_SR_CSA_INDEX_BASE_H_
+#endif //SRI_INDEX_BASE_H_
