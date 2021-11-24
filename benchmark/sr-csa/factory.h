@@ -14,6 +14,20 @@
 #include "sr_csa.h"
 #include "csa_raw.h"
 
+using ExternalGenericStorage = std::reference_wrapper<GenericStorage>;
+
+template<typename TItem>
+const TItem *get(const std::reference_wrapper<GenericStorage> &t_storage, const std::string &t_key) {
+  auto it = t_storage.get().find(t_key);
+  return (it != t_storage.get().end()) ? std::any_cast<TItem>(&it->second) : nullptr;
+}
+
+template<typename TItem>
+const TItem *set(std::reference_wrapper<GenericStorage> t_storage, const std::string &t_key, TItem &&t_item) {
+  auto[it, inserted] = t_storage.get().emplace(t_key, t_item);
+  return std::any_cast<TItem>(&it->second);
+}
+
 template<uint8_t t_width = 8>
 class Factory {
  public:
@@ -43,49 +57,54 @@ class Factory {
   std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) {
     switch (t_config.index_type) {
       case IndexEnum::R_CSA: {
-        auto idx = std::make_shared<CSA<t_width>>(std::ref(storage_));
+        auto idx = std::make_shared<CSA<t_width, ExternalGenericStorage>>(std::ref(storage_));
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::CSA_RAW: {
-        auto idx = std::make_shared<CSARaw<t_width>>(std::ref(storage_));
+        auto idx = std::make_shared<CSARaw<t_width, ExternalGenericStorage>>(std::ref(storage_));
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_CSA: {
-        auto idx = std::make_shared<SrCSA<t_width>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<SrCSA<t_width, ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_CSA_VM: {
-        auto idx = std::make_shared<SrCSAValidMark<SrCSA<t_width>>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<SrCSAValidMark<SrCSA<t_width, ExternalGenericStorage>>>(
+            std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_CSA_VA: {
-        auto idx = std::make_shared<SrCSAValidArea<SrCSA<t_width>>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<SrCSAValidArea<SrCSA<t_width, ExternalGenericStorage>>>(
+            std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_CSA_SLIM: {
-        auto idx = std::make_shared<SrCSASlim<t_width>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<SrCSASlim<t_width, ExternalGenericStorage>>(
+            std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_CSA_SLIM_VM: {
-        auto idx = std::make_shared<SrCSAValidMark<SrCSASlim<t_width>>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<SrCSAValidMark<SrCSASlim<t_width, ExternalGenericStorage>>>(
+            std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_CSA_SLIM_VA: {
-        auto idx = std::make_shared<SrCSAValidArea<SrCSASlim<t_width>>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<SrCSAValidArea<SrCSASlim<t_width, ExternalGenericStorage>>>(
+            std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
@@ -99,7 +118,7 @@ class Factory {
 
   std::size_t n_ = 0;
 
-  ExternalStorage storage_;
+  GenericStorage storage_;
 };
 
 #endif //SRI_BENCHMARK_SR_CSA_FACTORY_H_
