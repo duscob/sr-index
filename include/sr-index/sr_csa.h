@@ -18,8 +18,7 @@ template<uint8_t t_width = 8,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>,
-    typename TBvSampleIdx = sdsl::sd_vector<>>
+    typename TSample = sdsl::int_vector<>>
 class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
   using Base = CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
@@ -34,29 +33,7 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
   std::size_t SubsampleRate() const { return subsample_rate_; }
 
   using typename Base::size_type;
-
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
-    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
-
-    size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
-
-    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
-
-    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
-
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
-
-    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
-
-    written_bytes +=
-        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
-
-    return written_bytes;
-  }
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override = 0;
 
  protected:
 
@@ -174,10 +151,9 @@ template<uint8_t t_width = 8,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>,
     typename TRunCumulativeCount = sdsl::int_vector<>>
-class SrCSASlim
-    : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
+class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
+  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSASlim(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
@@ -193,20 +169,22 @@ class SrCSASlim
 
     written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
 
+    written_bytes += this->template serializeItem<TRunCumulativeCount>(
+        key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
+
+    written_bytes +=
+        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
+    written_bytes +=
+        this->template serializeRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+
+    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
+
     written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
     written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
     written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
 
     written_bytes +=
         this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
-
-    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
-
-    written_bytes +=
-        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
-
-    written_bytes += this->template serializeItem<TRunCumulativeCount>(
-        key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
 
     return written_bytes;
   }
@@ -397,14 +375,42 @@ template<uint8_t t_width = 8,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSamplePos = sdsl::sd_vector<>>
-class SrCSA
-    : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> {
+class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>;
+  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSA(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
   explicit SrCSA(std::size_t t_sr) : Base(t_sr) {}
+
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = 0;
+    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
+
+    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
+
+    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
+
+    written_bytes +=
+        this->template serializeItem<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
+    written_bytes +=
+        this->template serializeRank<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+    written_bytes +=
+        this->template serializeSelect<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_select");
+
+    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
+
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+
+    return written_bytes;
+  }
 
  protected:
 
@@ -572,6 +578,7 @@ class SrCSAValidMark : public TSrCSA {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = Base::serialize(out, v, name);
+
     written_bytes +=
         this->template serializeItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
 
@@ -608,7 +615,7 @@ class SrCSAValidMark : public TSrCSA {
                                                      Base::constructSplitRunInBWTRuns(t_source),
                                                      Base::constructUpdateRun(),
                                                      Base::constructIsRunEmpty(),
-                                                     SampleValidatorDefault());
+                                                     []() { return SampleValidatorDefault(); });
                        });
   }
 
@@ -617,14 +624,14 @@ class SrCSAValidMark : public TSrCSA {
   using typename Base::BvMark;
   using typename Base::MarkToSampleIdx;
   using typename Base::Sample;
-  template<typename TGetSampleRun, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TUpdateRun, typename TIsRunEmpty, typename TValidateSample>
+  template<typename TGetSampleRun, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TUpdateRun, typename TIsRunEmpty, typename TConstructValidateSample>
   auto constructPhiForRange(TSource &t_source,
                             const TGetSampleRun &t_get_sample,
                             const TSplitRangeInBWTRuns &t_split_range,
                             const TSplitRunInBWTRuns &t_split_run,
                             const TUpdateRun &t_update_run,
                             const TIsRunEmpty &t_is_run_empty,
-                            const TValidateSample &t_validate_sample) {
+                            const TConstructValidateSample &t_construct_validate_sample) {
     auto bv_mark_rank = this->template loadBVRank<BvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<BvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
@@ -636,7 +643,7 @@ class SrCSAValidMark : public TSrCSA {
     auto cref_samples = this->template loadItem<Sample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
 
-    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_validate_sample, this->n_);
+    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_construct_validate_sample(), this->n_);
 
     return PhiForwardForRangeWithValidity(phi,
                                           t_get_sample,
@@ -665,6 +672,7 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = Base::serialize(out, v, name);
+
     written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
         key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
     written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
@@ -708,12 +716,14 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
   }
 
   auto constructValidateSample(TSource &t_source) {
-    auto bv_valid_mark_rank = this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
-        key(SrIndexKey::VALID_MARKS), t_source, true);
-    auto cref_valid_area = this->template loadItem<TValidArea>(key(SrIndexKey::VALID_AREAS), t_source);
-    auto get_valid_area = RandomAccessForCRefContainer(cref_valid_area);
+    return [&t_source, this]() {
+      auto bv_valid_mark_rank = this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
+          key(SrIndexKey::VALID_MARKS), t_source, true);
+      auto cref_valid_area = this->template loadItem<TValidArea>(key(SrIndexKey::VALID_AREAS), t_source);
+      auto get_valid_area = RandomAccessForCRefContainer(cref_valid_area);
 
-    return SampleValidator(bv_valid_mark_rank, get_valid_area);
+      return SampleValidator(bv_valid_mark_rank, get_valid_area);
+    };
   }
 };
 

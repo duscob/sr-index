@@ -62,7 +62,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   virtual void load(sdsl::cache_config t_config) = 0;
 
   typedef std::size_t size_type;
-//  virtual void load(std::istream &in) = 0;
+  virtual void load(std::istream &in) = 0;
 
   virtual size_type serialize(std::ostream &out) const {
     return serialize(out, nullptr, "");

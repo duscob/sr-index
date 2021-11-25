@@ -46,6 +46,11 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   using typename Base::size_type;
+  void load(std::istream &in) override {
+    setupKeyNames();
+    TSource source(std::ref(in));
+    loadAllItems(source);
+  }
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -55,14 +60,14 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
 
     written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
 
+    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
+
     written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
     written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
     written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
 
     written_bytes +=
         this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
-
-    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
 
     return written_bytes;
   }
