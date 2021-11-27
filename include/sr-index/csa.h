@@ -89,7 +89,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
   using typename Base::TSource;
 
   virtual void loadAllItems(TSource &t_source) {
-    this->index_.reset(new RIndex(
+    this->index_.reset(new RIndex{
         constructLF(t_source),
         constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -102,7 +102,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
         constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         constructIsRangeEmpty()
-    ));
+    });
   }
 
   struct DataLF {
@@ -285,7 +285,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
   using typename Base::DataBackwardSearchStep;
   using typename Base::RunData;
   virtual void loadAllItems(TSource &t_source) {
-    this->index_.reset(new RIndex(
+    this->index_.reset(new RIndex{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -298,7 +298,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
-    ));
+    });
   }
 
   auto constructComputeSAValues(TSource &t_source) {
