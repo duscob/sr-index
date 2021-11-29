@@ -226,7 +226,7 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
   using typename Base::DataBackwardSearchStep;
   template<typename TPhiRange>
   void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
-    this->index_.reset(new RIndex(
+    this->index_.reset(new RIndex{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, Char tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -244,7 +244,7 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
-    ));
+    });
   }
 
   using typename Base::RunData;
@@ -449,7 +449,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
   using typename Base::RunData;
   template<typename TPhiRange>
   void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
-    this->index_.reset(new RIndex(
+    this->index_.reset(new RIndex{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const auto &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -466,7 +466,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
-    ));
+    });
   }
 
   auto constructGetSample(TSource &t_source) {
