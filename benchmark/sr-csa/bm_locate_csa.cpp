@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
       {"SR-CSA-VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 16}},
       {"SR-CSA-VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 32}},
       {"SR-CSA-VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 64}},
-      {"SR-CSA_VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 128}},
-      {"SR-CSA_VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 256}},
+//      {"SR-CSA-VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 128}},
+//      {"SR-CSA-VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 256}},
 
       {"SR-CSA-SLIM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 4}},
       {"SR-CSA-SLIM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 8}},
@@ -159,19 +159,19 @@ int main(int argc, char *argv[]) {
       {"SR-CSA-SLIM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 32}},
       {"SR-CSA-SLIM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 64}},
 
-      {"SR-CSA_SLIM_VM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 4}},
-      {"SR-CSA_SLIM_VM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 8}},
-      {"SR-CSA_SLIM_VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 16}},
-      {"SR-CSA_SLIM_VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 32}},
-      {"SR-CSA_SLIM_VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 64}},
+      {"SR-CSA-SLIM-VM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 4}},
+      {"SR-CSA-SLIM-VM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 8}},
+      {"SR-CSA-SLIM-VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 16}},
+      {"SR-CSA-SLIM-VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 32}},
+      {"SR-CSA-SLIM-VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 64}},
 
-      {"SR-CSA_SLIM_VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 4}},
-      {"SR-CSA_SLIM_VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 8}},
-      {"SR-CSA_SLIM_VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 16}},
-      {"SR-CSA_SLIM_VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 32}},
-      {"SR-CSA_SLIM_VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 64}},
-      {"SR-CSA_SLIM_VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 128}},
-      {"SR-CSA_SLIM_VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 256}},
+      {"SR-CSA-SLIM-VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 4}},
+      {"SR-CSA-SLIM-VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 8}},
+      {"SR-CSA-SLIM-VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 16}},
+      {"SR-CSA-SLIM-VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 32}},
+      {"SR-CSA-SLIM-VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 64}},
+//      {"SR-CSA-SLIM-VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 128}},
+//      {"SR-CSA-SLIM-VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 256}},
   };
 
   std::string print_bm_prefix = "Print-";
