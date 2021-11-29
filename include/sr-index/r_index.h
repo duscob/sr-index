@@ -14,6 +14,8 @@ namespace sri {
 class LocateIndex {
  public:
   virtual std::vector<std::size_t> Locate(const std::string &_pattern) const = 0;
+
+  virtual std::pair<std::size_t, std::size_t> Count(const std::string &_pattern) const = 0;
 };
 
 template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol, typename TCreateFullRange, typename TIsRangeEmpty>
@@ -66,6 +68,30 @@ class RIndex : public LocateIndex {
     if (!is_range_empty_(range)) {
       compute_all_values_(range, last_value, t_report);
     }
+  }
+
+  std::pair<std::size_t, std::size_t> Count(const std::string &t_pattern) const override {
+    std::pair<std::size_t, std::size_t> range;
+    auto report = [&range](const auto &tt_range) {
+      const auto &[start, end] = tt_range;
+      range = {start, end};
+    };
+
+    Count(t_pattern, report);
+
+    return range;
+  }
+
+  template<typename TPattern, typename TReport>
+  void Count(const TPattern &t_pattern, TReport &t_report) const {
+    auto range = create_full_range_(bwt_size_);
+
+    for (auto it = rbegin(t_pattern); it != rend(t_pattern) && !is_range_empty_(range); ++it) {
+      auto c = get_symbol_(*it);
+      range = lf_(range, c);
+    }
+
+    t_report(range);
   }
 
  private:

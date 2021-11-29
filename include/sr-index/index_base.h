@@ -57,6 +57,10 @@ class IndexBaseWithExternalStorage : public LocateIndex {
     return index_->Locate(t_pattern);
   }
 
+  std::pair<std::size_t, std::size_t> Count(const std::string &t_pattern) const override {
+    return index_->Count(t_pattern);
+  }
+
   auto sizeSequence() const { return n_; }
 
   virtual void load(sdsl::cache_config t_config) = 0;
