@@ -19,16 +19,16 @@ class LocateIndex {
 };
 
 template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol, typename TCreateFullRange, typename TIsRangeEmpty>
-class RIndex : public LocateIndex {
+class RIndexBase : public LocateIndex {
  public:
-  RIndex(const TBackwardNav &t_lf,
-         const TGetLastValue &t_get_last_value,
-         const TComputeAllValues &t_compute_all_values,
-         std::size_t t_bwt_size,
-         const TGetFinalValue &t_get_final_sa_value,
-         const TGetSymbol &t_get_symbol,
-         const TCreateFullRange &t_create_full_range,
-         const TIsRangeEmpty &t_is_range_empty)
+  RIndexBase(const TBackwardNav &t_lf,
+             const TGetLastValue &t_get_last_value,
+             const TComputeAllValues &t_compute_all_values,
+             std::size_t t_bwt_size,
+             const TGetFinalValue &t_get_final_sa_value,
+             const TGetSymbol &t_get_symbol,
+             const TCreateFullRange &t_create_full_range,
+             const TIsRangeEmpty &t_is_range_empty)
       : lf_{t_lf},
         get_last_value_{t_get_last_value},
         compute_all_values_{t_compute_all_values},
@@ -124,7 +124,7 @@ auto buildSharedPtrRIndex(const TBackwardNav &t_lf,
   using TFnIsRangeEmpty = std::function<bool(const Range&)>;
   auto is_range_empty = [](const auto &tt_range) { return  tt_range.second < tt_range.first; };
 
-  return std::make_shared<RIndex<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol, TFnCreateFullRange, TFnIsRangeEmpty>>(
+  return std::make_shared<RIndexBase<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol, TFnCreateFullRange, TFnIsRangeEmpty>>(
       t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol, create_full_range, is_range_empty);
 }
 
