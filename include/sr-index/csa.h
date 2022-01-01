@@ -13,7 +13,6 @@
 
 #include <sdsl/csa_alphabet_strategy.hpp>
 
-#include "r_index.h"
 #include "psi.h"
 #include "lf.h"
 #include "construct.h"
