@@ -61,6 +61,51 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+using Char = unsigned char;
+
+class RLEStringSelect_Tests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
+
+TEST_P(RLEStringSelect_Tests, select_original) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::rle_string<> bwt_rle(bwt);
+
+  const auto &rnk = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto pos = bwt_rle.select(rnk - 1, c);
+
+  const auto &e_pos = std::get<3>(GetParam());
+  EXPECT_EQ(pos, e_pos);
+}
+
+TEST_P(RLEStringSelect_Tests, select_new) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
+
+  const auto &rnk = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto pos = bwt_rle.select(rnk, c);
+
+  const auto &e_pos = std::get<3>(GetParam());
+  EXPECT_EQ(pos, e_pos);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RLEString,
+    RLEStringSelect_Tests,
+    testing::Values(
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 1, 4),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 2, 5),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 2, 6),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 2, 8),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 3, 2),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 3, 9),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 3, 11),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 4, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 4, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 4, 3)
+    )
+);
+
 class RLEStringRuns_Tests : public testing::TestWithParam<std::tuple<BWT, sri::range_t, Runs>> {};
 
 TEST_P(RLEStringRuns_Tests, break_in_runs) {

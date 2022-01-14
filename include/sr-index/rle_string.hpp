@@ -719,6 +719,38 @@ class StringRLE {
     return run_heads_[rankRun(i).first];
   }
 
+  //! Select operation over sequence for symbol c
+  //! \param t_rnk Rank (or number of symbols c) query. It must be less or equal than the number of symbol c (and start from 1!)
+  //! \param t_c Symbol c
+  //! \return Position for t_rnk-th symbol c
+  auto select(std::size_t t_rnk, const typename TString::value_type &t_c) const {
+    const auto &runs_per_symbol = runs_per_symbol_[t_c];
+    assert(1 <= t_rnk && t_rnk <= runs_per_symbol.data.size());
+
+    --t_rnk;
+
+    //t_rnk-th t_c is inside symbol_run-th t_c-run (symbol_run starts from 0)
+    auto symbol_run = runs_per_symbol.rank(t_rnk);
+
+    //starting position of t_rnk-th t_c inside its run
+    auto run_offset = (symbol_run == 0) ? t_rnk : t_rnk - (runs_per_symbol.select(symbol_run) + 1);
+
+    //position in run_heads
+    auto global_run = run_heads_.select(symbol_run + 1, t_c);
+
+    //run_start = number of symbols before position of interest in the main string
+    //here, run_start is initialized looking at the sampled runs
+    const auto block = global_run / b_;
+    auto run_start = (block == 0) ? 0 : runs_.select(block) + 1;
+
+    //now add remaining run lengths to run_start
+    for (auto i = block * b_; i < global_run; ++i) {
+      run_start += computeRunLength(i);
+    }
+
+    return run_start + run_offset;
+  }
+
   typedef std::size_t size_type;
 
  private:
