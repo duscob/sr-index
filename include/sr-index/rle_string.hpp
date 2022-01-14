@@ -648,6 +648,215 @@ class rle_string {
 typedef rle_string<sparse_sd_vector> rle_string_sd;
 typedef rle_string<sparse_hyb_vector> rle_string_hyb;
 
+template<typename TString = sdsl::wt_huff<>,
+    typename TBitVector = sdsl::sd_vector<>,
+    typename TBitVectorRank = typename TBitVector::rank_1_type,
+    typename TBitVectorSelect = typename TBitVector::select_1_type>
+class StringRLE {
+ public:
+
+  StringRLE() = default;
+
+  //! Constructor
+  //! \tparam TIter Forward iterator
+  //! \param t_first First sequence iterator
+  //! \param t_last Last sequence iterator
+  //! \param t_b Block size, i.e., number of runs in a block (runs_ has r_/@p t_b, r_ being number of runs)
+  template<typename TIter>
+  StringRLE(TIter t_first, TIter t_last, std::size_t t_b = 2): b_{t_b} {
+    assert(t_first != t_last);
+
+    auto symbol = *t_first;
+
+    std::vector<decltype(symbol)> run_heads_vec;
+    std::map<decltype(symbol), std::vector<bool>> runs_per_symbol_map; // Runs per symbol marking the run end
+    std::vector<bool> runs_vec; // Runs in sequence marking the block ends
+
+    for (auto it = t_first + 1; it != t_last; ++it) {
+      auto next_symbol = *it;
+      if (symbol != next_symbol) {
+        // Mark the end of the current run
+        runs_vec.push_back(r_ % b_ == b_ - 1); // push back a bit set only at the end of a block
+        runs_per_symbol_map[symbol].push_back(true);
+        run_heads_vec.push_back(symbol);
+
+        symbol = next_symbol;
+        ++r_;
+      } else {
+        runs_vec.push_back(false);
+        runs_per_symbol_map[symbol].push_back(false);
+      }
+    }
+
+    runs_vec.push_back(false);
+    runs_per_symbol_map[symbol].push_back(true);
+    run_heads_vec.push_back(symbol);
+    ++r_;
+    n_ = runs_vec.size();
+
+    assert(run_heads_vec.size() == r_);
+
+    // Compact data structures
+
+    runs_ = BitVector(runs_vec);
+
+    //a fast direct array: char -> bitvector.
+    runs_per_symbol_.resize(runs_per_symbol_map.rbegin()->first + 1);
+    for (const auto &item: runs_per_symbol_map) {
+      runs_per_symbol_[item.first] = BitVector(item.second);
+    }
+
+    constructRunHeads(run_heads_vec);
+
+    assert(run_heads_.size() == r_);
+  }
+
+  //! Random access
+  //! \param i Position/index query
+  //! \return Symbol at position @p i
+  auto operator[](std::size_t i) const {
+    assert(i < n_);
+    return run_heads_[rankRun(i).first];
+  }
+
+  typedef std::size_t size_type;
+
+ private:
+
+  //! Construct the run heads internal data structures
+  //! \tparam TContainer Vector
+  //! \param t_run_heads Run heads in input sequence
+  template<typename TContainer>
+  void constructRunHeads(const TContainer &t_run_heads) {
+    constructRunHeads(t_run_heads, typename TString::tree_strat_type::alphabet_category());
+  }
+
+  template<typename TContainer>
+  void constructRunHeads(const TContainer &t_run_heads, sdsl::int_alphabet_tag) {
+    constructRunHeads<sdsl::int_vector<>>(t_run_heads, 0);
+  }
+
+  template<typename TContainer>
+  void constructRunHeads(const TContainer &t_run_heads, sdsl::byte_alphabet_tag) {
+    constructRunHeads<std::string>(t_run_heads, 1);
+  }
+
+  template<typename TRunHeadsIM, typename TRunHeads>
+  void constructRunHeads(const TRunHeads &t_run_heads, uint8_t t_num_bytes) {
+    TRunHeadsIM run_heads_im;
+    run_heads_im.resize(t_run_heads.size());
+    std::size_t idx = 0;
+    for (auto x: t_run_heads) {
+      run_heads_im[idx++] = x;
+    }
+
+    sdsl::construct_im(run_heads_, run_heads_im, t_num_bytes);
+  }
+
+  //! Rank operation over runs (run length encoded) on sequence
+  //! Compute the number of runs up to the value and the end position of the run containing the given value
+  //! \param t_i Position/index query
+  //! \return {Run containing the queried position @p t_i; end position of the run}
+  auto rankRun(std::size_t t_i) const {
+    auto block = runs_.rank(t_i);
+    auto run = block * b_;
+
+    //current position in the string: the first of a block
+    auto pos = (block > 0) ? runs_.select(block) + 1 : 0ul;
+    assert(pos <= t_i);
+
+    while (pos < t_i) {
+      pos += computeRunLength(run);
+      ++run;
+    }
+    assert(pos >= t_i);
+
+    if (pos > t_i) {
+      --run;
+    } else { // pos==t_i
+      pos += computeRunLength(run);
+    }
+    assert(pos > 0);
+    assert(run < r_);
+
+    return std::make_pair(run, pos - 1);
+  }
+
+  //! Compute length of queried run
+  //! \param t_run Run query
+  //! \return @p t_run-th run length
+  auto computeRunLength(std::size_t t_run) const {
+    assert(t_run < r_);
+
+    auto[run, c] = run_heads_.inverse_select(t_run);
+    const auto &select = runs_per_symbol_[c].select;
+
+    return select(run + 1) - (run > 0 ? select(run) : -1);
+  }
+
+  struct BitVector {
+    TBitVector data;
+    TBitVectorRank rank;
+    TBitVectorSelect select;
+
+    BitVector() = default;
+
+    BitVector(const std::vector<bool> &t_bv) {
+      sdsl::bit_vector bv(0, 0);
+      bv.resize(t_bv.size());
+      std::size_t idx = 0;
+      for (auto x: t_bv) {
+        bv[idx++] = x;
+      }
+
+      data = TBitVector{std::move(bv)};
+      rank = TBitVectorRank{&data};
+      select = TBitVectorSelect{&data};
+    }
+
+    BitVector(const BitVector &t_bv) : data{t_bv.data}, rank{&data}, select{&data} {
+    }
+
+    auto operator=(const BitVector &t_bv) {
+      data = t_bv.data;
+      rank = TBitVectorRank{&data};
+      select = TBitVectorSelect{&data};
+
+      return *this;
+    }
+
+    //! Serialize method
+    size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
+      auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+      size_type written_bytes = 0;
+      written_bytes += sdsl::serialize(data, out, child, "data");
+      written_bytes += sdsl::serialize(rank, out, child, "rank");
+      written_bytes += sdsl::serialize(select, out, child, "select");
+
+      sdsl::structure_tree::add_size(child, written_bytes);
+
+      return written_bytes;
+    }
+
+    //! Load method
+    void load(std::istream &in) {
+      sdsl::load(data, in);
+      sdsl::load(rank, in);
+      sdsl::load(select, in);
+    }
+  };
+
+  std::size_t n_ = 0; // Sequence size
+  std::size_t r_ = 0; // Number of runs
+  std::size_t b_ = 1; // Block size: bitvector 'runs' has R/B bits set (R being number of runs)
+
+  TString run_heads_; // Store run heads in a compressed string supporting access/rank
+
+  BitVector runs_; // Blocks of runs stored contiguously
+  std::vector<BitVector> runs_per_symbol_; // For each letter, its runs stored contiguously
+};
+
 }
 
 #endif /* RLE_STRING_HPP_ */
