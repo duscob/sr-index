@@ -10,7 +10,7 @@
 #include <sdsl/config.hpp>
 
 #include "sr-index/rle_string.hpp"
-#include "sr-index/r_index.h"
+#include "sr-index/index_base.h"
 #include "sr-index/tools.h"
 #include "sr-index/bwt.h"
 #include "sr-index/sequence_ops.h"

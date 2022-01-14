@@ -13,7 +13,6 @@
 
 #include <sdsl/csa_alphabet_strategy.hpp>
 
-#include "r_index.h"
 #include "psi.h"
 #include "lf.h"
 #include "construct.h"
@@ -89,7 +88,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
   using typename Base::TSource;
 
   virtual void loadAllItems(TSource &t_source) {
-    this->index_.reset(new RIndex{
+    this->index_.reset(new RIndexBase{
         constructLF(t_source),
         constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -285,7 +284,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
   using typename Base::DataBackwardSearchStep;
   using typename Base::RunData;
   virtual void loadAllItems(TSource &t_source) {
-    this->index_.reset(new RIndex{
+    this->index_.reset(new RIndexBase{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
