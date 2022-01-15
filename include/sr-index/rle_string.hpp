@@ -774,6 +774,45 @@ class StringRLE {
     return symbol_run_start + run_offset;
   }
 
+  //! Split in runs on the given range [t_first..t_last)
+  //! \param t_first First position in queried range
+  //! \param t_last Last position in queried range (not included)
+  //! \return Runs in the queried range
+  std::vector<StringRun> splitInRuns(std::size_t t_first, std::size_t t_last) const {
+    std::vector<StringRun> runs;
+    auto report = [&runs](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
+      runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+    };
+
+    splitInRuns(t_first, t_last, report);
+
+    return runs;
+  }
+
+  //! Split in runs on the given range [t_first..t_last)
+  //! \tparam TReportRun
+  //! \param t_first First position in queried range
+  //! \param t_last Last position in queried range (not included)
+  //! \param t_report_run Report runs in the queried range
+  template<typename TReportRun>
+  void splitInRuns(std::size_t t_first, std::size_t t_last, TReportRun t_report_run) const {
+    assert(t_first <= t_last && t_last <= size());
+
+    auto run = rankSoftRun(t_first);
+
+    // Report all the runs in the interval
+    run.start = t_first;
+    while (run.end < t_last) {
+      t_report_run(run.idx, run.c, run.start, run.end);
+
+      ++run.idx;
+      run.start = run.end;
+      updateRunData(run);
+    }
+
+    t_report_run(run.idx, run.c, run.start, t_last);
+  }
+
   typedef std::size_t size_type;
 
  private:
@@ -821,28 +860,28 @@ class StringRLE {
   //! \param t_i Position/index query
   //! \return {Run containing the queried position @p t_i; end position of the run}
   auto rankSoftRun(std::size_t t_i) const {
-    auto update_run = [this](auto &tt_run) {
-      auto symbol_run = computeSymbolRunData(tt_run.idx);
-      tt_run.end = tt_run.start + (symbol_run.end - symbol_run.start);
-      tt_run.c = symbol_run.c;
-    };
-
     auto block = runs_.rank(t_i);
     RunData run;
     run.idx = block * b_;
     run.start = (block > 0) ? runs_.select(block) + 1 : 0ul; //current position in the string: the first of a block
     assert(run.start <= t_i);
-    update_run(run);
+    updateRunData(run);
 
     while (run.end <= t_i) {
       ++run.idx;
       run.start = run.end;
-      update_run(run);
+      updateRunData(run);
     }
     assert(run.start <= t_i && t_i < run.end);
     assert(run.idx < r_);
 
     return run;
+  }
+
+  void updateRunData(RunData &tt_run) const {
+    auto symbol_run = computeSymbolRunData(tt_run.idx);
+    tt_run.end = tt_run.start + (symbol_run.end - symbol_run.start);
+    tt_run.c = symbol_run.c;
   }
 
   //! Compute length of queried run

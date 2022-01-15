@@ -22,9 +22,9 @@ void PrintTo(const StringRun &run, std::ostream *os) {
 }
 }
 
-class RLEString_Tests : public testing::TestWithParam<std::tuple<BWT>> {};
+class AccessTests : public testing::TestWithParam<std::tuple<BWT>> {};
 
-TEST_P(RLEString_Tests, access_original) {
+TEST_P(AccessTests, rle_string) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
 
@@ -34,7 +34,7 @@ TEST_P(RLEString_Tests, access_original) {
   }
 }
 
-TEST_P(RLEString_Tests, access_byte_new) {
+TEST_P(AccessTests, RLEString_byte) {
   const auto &bwt = std::get<0>(GetParam());
   sri::StringRLE<sdsl::wt_huff<>> bwt_rle(bwt.begin(), bwt.end());
 
@@ -44,7 +44,7 @@ TEST_P(RLEString_Tests, access_byte_new) {
   }
 }
 
-TEST_P(RLEString_Tests, access_int_new) {
+TEST_P(AccessTests, RLEString_int) {
   const auto &bwt = std::get<0>(GetParam());
   sri::StringRLE<sdsl::wt_huff_int<>> bwt_rle(bwt.begin(), bwt.end());
 
@@ -56,7 +56,7 @@ TEST_P(RLEString_Tests, access_int_new) {
 
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
-    RLEString_Tests,
+    AccessTests,
     testing::Values(
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}),
         std::make_tuple(BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'}),
@@ -66,9 +66,9 @@ INSTANTIATE_TEST_SUITE_P(
 
 using Char = unsigned char;
 
-class RLEStringSelect_Tests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
+class SelectTests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
 
-TEST_P(RLEStringSelect_Tests, select_original) {
+TEST_P(SelectTests, rle_string) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
 
@@ -80,7 +80,7 @@ TEST_P(RLEStringSelect_Tests, select_original) {
   EXPECT_EQ(pos, e_pos);
 }
 
-TEST_P(RLEStringSelect_Tests, select_new) {
+TEST_P(SelectTests, StringRLE) {
   const auto &bwt = std::get<0>(GetParam());
   sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
 
@@ -94,7 +94,7 @@ TEST_P(RLEStringSelect_Tests, select_new) {
 
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
-    RLEStringSelect_Tests,
+    SelectTests,
     testing::Values(
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 1, 4),
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 2, 5),
@@ -109,9 +109,9 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-class RLEStringRank_Tests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
+class RankTests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
 
-TEST_P(RLEStringRank_Tests, rank_original) {
+TEST_P(RankTests, rle_string) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
 
@@ -123,7 +123,7 @@ TEST_P(RLEStringRank_Tests, rank_original) {
   EXPECT_EQ(rnk, e_rnk);
 }
 
-TEST_P(RLEStringRank_Tests, select_new) {
+TEST_P(RankTests, StringRLE) {
   const auto &bwt = std::get<0>(GetParam());
   sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
 
@@ -137,7 +137,7 @@ TEST_P(RLEStringRank_Tests, select_new) {
 
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
-    RLEStringRank_Tests,
+    RankTests,
     testing::Values(
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 1, 0),
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 1, 0),
@@ -162,9 +162,9 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-class RLEStringRuns_Tests : public testing::TestWithParam<std::tuple<BWT, sri::range_t, Runs>> {};
+class SplitInRunsTests : public testing::TestWithParam<std::tuple<BWT, sri::range_t, Runs>> {};
 
-TEST_P(RLEStringRuns_Tests, break_in_runs) {
+TEST_P(SplitInRunsTests, rle_string) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
 
@@ -175,9 +175,24 @@ TEST_P(RLEStringRuns_Tests, break_in_runs) {
   EXPECT_THAT(runs_in_range, testing::ElementsAreArray(e_runs_in_range));
 }
 
+TEST_P(SplitInRunsTests, RLEString) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
+
+  const auto &range = std::get<1>(GetParam());
+  std::vector<sri::StringRun> runs_in_range;
+  auto report = [&runs_in_range](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
+    runs_in_range.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+  };
+  bwt_rle.splitInRuns(range.first, range.second + 1, report);
+
+  const auto &e_runs_in_range = std::get<2>(GetParam());
+  EXPECT_THAT(runs_in_range, testing::ElementsAreArray(e_runs_in_range));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
-    RLEStringRuns_Tests,
+    SplitInRunsTests,
     testing::Values(
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
                         sri::range_t{0, 11},
