@@ -109,7 +109,7 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-class RankTests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
+class RankTests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t, std::size_t, bool>> {};
 
 TEST_P(RankTests, rle_string) {
   const auto &bwt = std::get<0>(GetParam());
@@ -135,30 +135,57 @@ TEST_P(RankTests, StringRLE) {
   EXPECT_EQ(rnk, e_rnk);
 }
 
+TEST_P(RankTests, StringRLE_report) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
+
+  const auto &pos = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  std::size_t rnk;
+  std::size_t run_rnk;
+  bool contained;
+  auto report = [&rnk, &run_rnk, &contained](auto tt_rnk, auto tt_run_rnk, auto tt_contained) {
+    rnk = tt_rnk;
+    run_rnk = tt_run_rnk;
+    contained = tt_contained;
+  };
+  bwt_rle.rank(pos, c, report);
+
+  const auto &e_rnk = std::get<3>(GetParam());
+  EXPECT_EQ(rnk, e_rnk);
+  const auto &e_run_rnk = std::get<4>(GetParam());
+  EXPECT_EQ(run_rnk, e_run_rnk);
+  const auto &e_contained = std::get<5>(GetParam());
+  EXPECT_EQ(contained, e_contained);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
     RankTests,
     testing::Values(
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 1, 0),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 1, 0),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 1, 1),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 1, 1),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 2, 0),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 2, 0),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 6, 2, 1),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 8, 2, 3),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 2, 4),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 2, 4),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 3, 0),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 3, 1),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 3, 1),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 3, 4),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 0, 4, 0),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 4, 1),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 4, 2),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 4, 2),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 4, 3),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 4, 3)
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 1, 0, 0, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 1, 0, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 1, 1, 1, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 1, 1, 1, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 2, 0, 0, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 2, 0, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 6, 2, 1, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 8, 2, 3, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 2, 4, 1, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 2, 4, 1, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 3, 0, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 3, 1, 1, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 3, 1, 2, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 3, 4, 2, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 0, 4, 0, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 4, 1, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 4, 2, 1, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 4, 2, 2, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 4, 3, 2, false),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 4, 3, 2, false),
+
+        std::make_tuple(BWT{4, 4, 3, 4, 5, 2, 2, 2, 2, 3, 3, 3}, 4, 5, 0, 1, true),
+        std::make_tuple(BWT{4, 4, 3, 4, 5, 2, 2, 2, 2, 3, 3, 3}, 4, 1, 0, 0, false)
     )
 );
 

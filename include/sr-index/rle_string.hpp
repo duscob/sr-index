@@ -774,6 +774,38 @@ class StringRLE {
     return symbol_run_start + run_offset;
   }
 
+  //! Rank operation over sequence for symbol c
+  //! \tparam TReport
+  //! \param t_i Position query
+  //! \param t_c Symbol c
+  //! \param t_report Report rank for symbol c before the position given, i.e., number of symbols c with position less than @p t_i
+  //! and data of run containing the position
+  template<typename TReport>
+  void rank(std::size_t t_i, const typename TString::value_type &t_c, TReport t_report) const {
+    assert(t_i <= n_);
+
+    const auto &runs_per_symbol = runs_per_symbol_[t_c];
+
+    if (runs_per_symbol.data.size() == 0) { // letter does not exist in the text
+      t_report(0, 0, false);
+      return;
+    }
+    if (t_i == n_) {
+      t_report(runs_per_symbol.data.size(), runs_per_symbol.rank(runs_per_symbol.data.size()), false);
+      return;
+    }
+
+    auto run = rankSoftRun(t_i);
+
+    auto symbol_run_rnk = run_heads_.rank(run.idx, t_c); // number of t_c runs before the current run
+    auto symbol_run_start = (symbol_run_rnk == 0) ? 0 : runs_per_symbol.select(symbol_run_rnk) + 1;
+    bool symbol_run_is_cover = run.c == t_c; // run covers the original position?
+    auto run_offset = symbol_run_is_cover ? t_i - run.start : 0; // number of t_c before t_i in the current run
+
+    auto rnk = symbol_run_start + run_offset;
+    t_report(rnk, symbol_run_rnk + symbol_run_is_cover, symbol_run_is_cover);
+  }
+
   //! Split in runs on the given range [t_first..t_last)
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)
