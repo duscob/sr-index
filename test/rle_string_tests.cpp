@@ -28,6 +28,7 @@ TEST_P(RLEString_Tests, access_original) {
   const auto &bwt = std::get<0>(GetParam());
   sri::rle_string<> bwt_rle(bwt);
 
+  EXPECT_EQ(bwt_rle.size(), bwt.size());
   for (int i = 0; i < bwt.size(); ++i) {
     EXPECT_EQ(bwt_rle[i], bwt[i]) << "Failed at " << i;
   }
@@ -37,6 +38,7 @@ TEST_P(RLEString_Tests, access_byte_new) {
   const auto &bwt = std::get<0>(GetParam());
   sri::StringRLE<sdsl::wt_huff<>> bwt_rle(bwt.begin(), bwt.end());
 
+  EXPECT_EQ(bwt_rle.size(), bwt.size());
   for (int i = 0; i < bwt.size(); ++i) {
     EXPECT_EQ(bwt_rle[i], bwt[i]) << "Failed at " << i;
   }
@@ -46,6 +48,7 @@ TEST_P(RLEString_Tests, access_int_new) {
   const auto &bwt = std::get<0>(GetParam());
   sri::StringRLE<sdsl::wt_huff_int<>> bwt_rle(bwt.begin(), bwt.end());
 
+  EXPECT_EQ(bwt_rle.size(), bwt.size());
   for (int i = 0; i < bwt.size(); ++i) {
     EXPECT_EQ(bwt_rle[i], bwt[i]) << "Failed at " << i;
   }

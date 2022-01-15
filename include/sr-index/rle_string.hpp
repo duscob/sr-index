@@ -711,6 +711,8 @@ class StringRLE {
     assert(run_heads_.size() == r_);
   }
 
+  [[nodiscard]] inline std::size_t size() const { return n_; }
+
   //! Random access
   //! \param i Position/index query
   //! \return Symbol at position @p i
