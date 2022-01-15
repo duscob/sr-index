@@ -716,7 +716,7 @@ class StringRLE {
   //! \return Symbol at position @p i
   auto operator[](std::size_t i) const {
     assert(i < n_);
-    return run_heads_[rankRun(i).first];
+    return run_heads_[rankSoftRun(i).idx];
   }
 
   //! Select operation over sequence for symbol c
@@ -749,6 +749,27 @@ class StringRLE {
     }
 
     return run_start + run_offset;
+  }
+
+  //! Rank operation over sequence for symbol c
+  //! \param t_i Position query
+  //! \param t_c Symbol c
+  //! \return Rank for symbol c before the position given, i.e., number of symbols c with position less than @p t_i
+  auto rank(std::size_t t_i, const typename TString::value_type &t_c) const {
+    assert(t_i <= n_);
+
+    const auto &runs_per_symbol = runs_per_symbol_[t_c];
+
+    if (runs_per_symbol.data.size() == 0) return 0ul; // letter does not exist in the text
+    if (t_i == n_) return runs_per_symbol.data.size();
+
+    auto run = rankSoftRun(t_i);
+
+    auto symbol_run_rank = run_heads_.rank(run.idx, t_c); // number of t_c runs before the current run
+    auto symbol_run_start = (symbol_run_rank == 0) ? 0 : runs_per_symbol.select(symbol_run_rank) + 1;
+    auto run_offset = (run.c == t_c) ? t_i - run.start : 0; // number of t_c before t_i in the current run
+
+    return symbol_run_start + run_offset;
   }
 
   typedef std::size_t size_type;
@@ -785,45 +806,60 @@ class StringRLE {
     sdsl::construct_im(run_heads_, run_heads_im, t_num_bytes);
   }
 
+  struct RunData {
+    std::size_t idx = 0;
+    typename TString::value_type c = 0;
+
+    std::size_t start = 0;
+    std::size_t end = 0;
+  };
+
   //! Rank operation over runs (run length encoded) on sequence
   //! Compute the number of runs up to the value and the end position of the run containing the given value
   //! \param t_i Position/index query
   //! \return {Run containing the queried position @p t_i; end position of the run}
-  auto rankRun(std::size_t t_i) const {
+  auto rankSoftRun(std::size_t t_i) const {
+    auto update_run = [this](auto &tt_run) {
+      auto symbol_run = computeSymbolRunData(tt_run.idx);
+      tt_run.end = tt_run.start + (symbol_run.end - symbol_run.start);
+      tt_run.c = symbol_run.c;
+    };
+
     auto block = runs_.rank(t_i);
-    auto run = block * b_;
+    RunData run;
+    run.idx = block * b_;
+    run.start = (block > 0) ? runs_.select(block) + 1 : 0ul; //current position in the string: the first of a block
+    assert(run.start <= t_i);
+    update_run(run);
 
-    //current position in the string: the first of a block
-    auto pos = (block > 0) ? runs_.select(block) + 1 : 0ul;
-    assert(pos <= t_i);
-
-    while (pos < t_i) {
-      pos += computeRunLength(run);
-      ++run;
+    while (run.end <= t_i) {
+      ++run.idx;
+      run.start = run.end;
+      update_run(run);
     }
-    assert(pos >= t_i);
+    assert(run.start <= t_i && t_i < run.end);
+    assert(run.idx < r_);
 
-    if (pos > t_i) {
-      --run;
-    } else { // pos==t_i
-      pos += computeRunLength(run);
-    }
-    assert(pos > 0);
-    assert(run < r_);
-
-    return std::make_pair(run, pos - 1);
+    return run;
   }
 
   //! Compute length of queried run
-  //! \param t_run Run query
+  //! \param t_run Run query (global)
   //! \return @p t_run-th run length
   auto computeRunLength(std::size_t t_run) const {
+    auto symbol_run = computeSymbolRunData(t_run);
+    return symbol_run.end - symbol_run.start;
+  }
+
+  //! Compute data for the symbol run corresponding to the queried global run run
+  //! \param t_run Run query (global)
+  //! \return Symbol run data
+  auto computeSymbolRunData(std::size_t t_run) const {
     assert(t_run < r_);
 
     auto[run, c] = run_heads_.inverse_select(t_run);
-    const auto &select = runs_per_symbol_[c].select;
-
-    return select(run + 1) - (run > 0 ? select(run) : -1);
+    const auto &symbol_select = runs_per_symbol_[c].select;
+    return RunData{run, c, (run == 0) ? 0 : symbol_select(run) + 1, symbol_select(run + 1) + 1};
   }
 
   struct BitVector {

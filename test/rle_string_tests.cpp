@@ -106,6 +106,59 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+class RLEStringRank_Tests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
+
+TEST_P(RLEStringRank_Tests, rank_original) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::rle_string<> bwt_rle(bwt);
+
+  const auto &pos = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto rnk = bwt_rle.rank(pos, c);
+
+  const auto &e_rnk = std::get<3>(GetParam());
+  EXPECT_EQ(rnk, e_rnk);
+}
+
+TEST_P(RLEStringRank_Tests, select_new) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
+
+  const auto &pos = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto rnk = bwt_rle.rank(pos, c);
+
+  const auto &e_rnk = std::get<3>(GetParam());
+  EXPECT_EQ(rnk, e_rnk);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RLEString,
+    RLEStringRank_Tests,
+    testing::Values(
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 1, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 1, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 1, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 1, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 2, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 2, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 6, 2, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 8, 2, 3),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 2, 4),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 2, 4),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 3, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 3, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 3, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 3, 4),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 0, 4, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 4, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 4, 2),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 4, 2),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 4, 3),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 12, 4, 3)
+    )
+);
+
 class RLEStringRuns_Tests : public testing::TestWithParam<std::tuple<BWT, sri::range_t, Runs>> {};
 
 TEST_P(RLEStringRuns_Tests, break_in_runs) {
