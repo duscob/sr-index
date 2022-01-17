@@ -46,6 +46,7 @@ template<
 class rle_string {
 
  public:
+  typedef uchar value_type;
 
   rle_string() {}
 
@@ -365,7 +366,7 @@ class rle_string {
     return runs_in_range;
   }
 
-  auto get_run_of(std::size_t i) const{
+  auto get_run_of(std::size_t i) const {
     return run_of(i);
   }
 
@@ -490,7 +491,7 @@ class rle_string {
 
       ulint bytesize = 0;
 
-      for (auto r:runs_per_letter) bytesize += r.serialize(out);
+      for (auto r: runs_per_letter) bytesize += r.serialize(out);
 
       tot_bytes += bytesize;
 
@@ -621,7 +622,7 @@ class rle_string {
 
   bool contains0(const std::string &s) const {
 
-    for (auto c : s)
+    for (auto c: s)
       if (c == 0) return true;
 
     return false;
