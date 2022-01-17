@@ -807,6 +807,16 @@ class StringRLE {
     t_report(rnk, symbol_run_rnk + symbol_run_is_cover, symbol_run_is_cover);
   }
 
+  //! Select operation over runs (run length encoded) on sequence
+  //! \param t_run_rnk Run rank (or number of run with symbols @p c) query. It must be less or equal than the number of runs with symbol @p c (and start from 1!)
+  //! \param t_c Symbol c
+  //! \return Position of @p t_run_rnk-th runs with symbol @p c
+  auto selectRun(std::size_t t_run_rnk, const typename TString::value_type &t_c) const {
+    assert(1 <= t_run_rnk && t_run_rnk <= runs_per_symbol_[t_c].rank(runs_per_symbol_[t_c].data.size()));
+
+    return run_heads_.select(t_run_rnk, t_c);
+  }
+
   //! Split in runs on the given range [t_first..t_last)
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)

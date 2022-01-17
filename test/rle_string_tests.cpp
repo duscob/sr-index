@@ -189,6 +189,33 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+class SelectRunTests : public testing::TestWithParam<std::tuple<BWT, std::size_t, Char, std::size_t>> {};
+
+TEST_P(SelectRunTests, StringRLE) {
+  const auto &bwt = std::get<0>(GetParam());
+  sri::StringRLE<> bwt_rle(bwt.begin(), bwt.end());
+
+  const auto &rnk = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto pos = bwt_rle.selectRun(rnk, c);
+
+  const auto &e_pos = std::get<3>(GetParam());
+  EXPECT_EQ(pos, e_pos);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RLEString,
+    SelectRunTests,
+    testing::Values(
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 1, 3),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 2, 4),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 3, 1),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 3, 5),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 4, 0),
+        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 4, 2)
+    )
+);
+
 class SplitInRunsTests : public testing::TestWithParam<std::tuple<BWT, sri::range_t, Runs>> {};
 
 TEST_P(SplitInRunsTests, rle_string) {
