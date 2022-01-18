@@ -468,6 +468,28 @@ void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config 
   }
 }
 
+template<uint8_t t_width>
+void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
+  static_assert(t_width == 0 or t_width == 8,
+                "constructMarkToSampleLinksForPhiBackward: width must be `0` for integer alphabet and `8` for byte alphabet");
+
+  // Marks
+  sdsl::int_vector<> marks; // Text position of the first symbol in BWT runs
+  sdsl::load_from_cache(marks, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
+
+  auto get_link = [r = marks.size()](const auto &tt_mark_idx) {
+    return (tt_mark_idx + r - 1) % r;
+  };
+
+  // Compute links
+  auto[sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
+
+  sdsl::store_to_cache(sorted_marks_idx, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX, t_config);
+  sdsl::store_to_cache(mark_to_sample_links,
+                       key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX,
+                       t_config);
+}
+
 template<typename TValues>
 auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size, bool t_init_value) {
   sdsl::bit_vector bv_tmp(t_bv_size, t_init_value);
