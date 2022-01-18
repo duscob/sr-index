@@ -857,6 +857,35 @@ class RLEString {
 
   typedef std::size_t size_type;
 
+  //! Serialize operation
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = 0;
+    written_bytes += sdsl::write_member(r_, out, child, "m_r");
+    written_bytes += sdsl::write_member(b_, out, child, "m_b");
+
+    written_bytes += sdsl::serialize(run_heads_, out, child, "m_run_heads");
+
+    written_bytes += sdsl::serialize(runs_, out, child, "m_runs");
+    written_bytes += sdsl::serialize(runs_per_symbol_, out, child, "m_runs_per_symbol");
+
+    sdsl::structure_tree::add_size(child, written_bytes);
+
+    return written_bytes;
+  }
+
+  //! Load operation
+  void load(std::istream &in) {
+    sdsl::read_member(r_, in);
+    sdsl::read_member(b_, in);
+
+    sdsl::load(run_heads_, in);
+
+    sdsl::load(runs_, in);
+    sdsl::load(runs_per_symbol_, in);
+  }
+
  private:
 
   //! Construct the run heads internal data structures
@@ -976,6 +1005,8 @@ class RLEString {
       return *this;
     }
 
+    typedef std::size_t size_type;
+
     //! Serialize method
     size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
       auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -994,7 +1025,9 @@ class RLEString {
     void load(std::istream &in) {
       sdsl::load(data, in);
       sdsl::load(rank, in);
+      rank.set_vector(&data);
       sdsl::load(select, in);
+      select.set_vector(&data);
     }
   };
 

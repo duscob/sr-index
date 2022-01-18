@@ -54,6 +54,27 @@ TEST_P(AccessTests, RLEString_int) {
   }
 }
 
+TEST_P(AccessTests, RLEString_io) {
+  const auto &str = std::get<0>(GetParam());
+  sdsl::cache_config config;
+  auto key = "rle_bwt";
+
+  {
+    sri::RLEString<> tmp_rle_str(str.begin(), str.end());
+    sdsl::store_to_cache(tmp_rle_str, key, config);
+  }
+
+  sri::RLEString<> rle_str;
+  sdsl::load_from_cache(rle_str, key, config);
+
+  EXPECT_EQ(rle_str.size(), str.size());
+  for (int i = 0; i < str.size(); ++i) {
+    EXPECT_EQ(rle_str[i], str[i]) << "Failed at " << i;
+  }
+
+  sdsl::util::delete_all_files(config.file_map);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
     AccessTests,
