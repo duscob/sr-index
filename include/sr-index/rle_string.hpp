@@ -46,6 +46,7 @@ template<
 class rle_string {
 
  public:
+  typedef uchar value_type;
 
   rle_string() {}
 
@@ -365,7 +366,7 @@ class rle_string {
     return runs_in_range;
   }
 
-  auto get_run_of(std::size_t i) const{
+  auto get_run_of(std::size_t i) const {
     return run_of(i);
   }
 
@@ -490,7 +491,7 @@ class rle_string {
 
       ulint bytesize = 0;
 
-      for (auto r:runs_per_letter) bytesize += r.serialize(out);
+      for (auto r: runs_per_letter) bytesize += r.serialize(out);
 
       tot_bytes += bytesize;
 
@@ -621,7 +622,7 @@ class rle_string {
 
   bool contains0(const std::string &s) const {
 
-    for (auto c : s)
+    for (auto c: s)
       if (c == 0) return true;
 
     return false;
@@ -647,6 +648,397 @@ class rle_string {
 
 typedef rle_string<sparse_sd_vector> rle_string_sd;
 typedef rle_string<sparse_hyb_vector> rle_string_hyb;
+
+template<typename TString = sdsl::wt_huff<>,
+    typename TBitVector = sdsl::sd_vector<>,
+    typename TBitVectorRank = typename TBitVector::rank_1_type,
+    typename TBitVectorSelect = typename TBitVector::select_1_type>
+class RLEString {
+ public:
+
+  RLEString() = default;
+
+  //! Constructor
+  //! \tparam TIter Forward iterator
+  //! \param t_first First sequence iterator
+  //! \param t_last Last sequence iterator
+  //! \param t_b Block size, i.e., number of runs in a block (runs_ has r_/@p t_b, r_ being number of runs)
+  template<typename TIter>
+  RLEString(TIter t_first, TIter t_last, std::size_t t_b = 2): b_{t_b} {
+    assert(t_first != t_last);
+
+    auto symbol = *t_first;
+
+    std::vector<decltype(symbol)> run_heads_vec;
+    std::map<decltype(symbol), std::vector<bool>> runs_per_symbol_map; // Runs per symbol marking the run end
+    std::vector<bool> runs_vec; // Runs in sequence marking the block ends
+
+    for (auto it = t_first + 1; it != t_last; ++it) {
+      auto next_symbol = *it;
+      if (symbol != next_symbol) {
+        // Mark the end of the current run
+        runs_vec.push_back(r_ % b_ == b_ - 1); // push back a bit set only at the end of a block
+        runs_per_symbol_map[symbol].push_back(true);
+        run_heads_vec.push_back(symbol);
+
+        symbol = next_symbol;
+        ++r_;
+      } else {
+        runs_vec.push_back(false);
+        runs_per_symbol_map[symbol].push_back(false);
+      }
+    }
+
+    runs_vec.push_back(false);
+    runs_per_symbol_map[symbol].push_back(true);
+    run_heads_vec.push_back(symbol);
+    ++r_;
+
+    assert(run_heads_vec.size() == r_);
+
+    // Compact data structures
+
+    runs_ = BitVector(runs_vec);
+
+    //a fast direct array: char -> bitvector.
+    runs_per_symbol_.resize(runs_per_symbol_map.rbegin()->first + 1);
+    for (const auto &item: runs_per_symbol_map) {
+      runs_per_symbol_[item.first] = BitVector(item.second);
+    }
+
+    constructRunHeads(run_heads_vec);
+
+    assert(run_heads_.size() == r_);
+  }
+
+  [[nodiscard]] inline std::size_t size() const { return runs_.data.size(); }
+
+  //! Random access
+  //! \param i Position/index query
+  //! \return Symbol at position @p i
+  auto operator[](std::size_t i) const {
+    assert(i < size());
+    return run_heads_[rankSoftRun(i).idx];
+  }
+
+  //! Select operation over sequence for symbol c
+  //! \param t_rnk Rank (or number of symbols c) query. It must be less or equal than the number of symbol c (and start from 1!)
+  //! \param t_c Symbol c
+  //! \return Position for t_rnk-th symbol c
+  auto select(std::size_t t_rnk, const typename TString::value_type &t_c) const {
+    const auto &runs_per_symbol = runs_per_symbol_[t_c];
+    assert(1 <= t_rnk && t_rnk <= runs_per_symbol.data.size());
+
+    --t_rnk;
+
+    //t_rnk-th t_c is inside symbol_run-th t_c-run (symbol_run starts from 0)
+    auto symbol_run = runs_per_symbol.rank(t_rnk);
+
+    //starting position of t_rnk-th t_c inside its run
+    auto run_offset = (symbol_run == 0) ? t_rnk : t_rnk - (runs_per_symbol.select(symbol_run) + 1);
+
+    //position in run_heads
+    auto global_run = run_heads_.select(symbol_run + 1, t_c);
+
+    //run_start = number of symbols before position of interest in the main string
+    //here, run_start is initialized looking at the sampled runs
+    const auto block = global_run / b_;
+    auto run_start = (block == 0) ? 0 : runs_.select(block) + 1;
+
+    //now add remaining run lengths to run_start
+    for (auto i = block * b_; i < global_run; ++i) {
+      run_start += computeRunLength(i);
+    }
+
+    return run_start + run_offset;
+  }
+
+  //! Rank operation over sequence for symbol c
+  //! \param t_i Position query
+  //! \param t_c Symbol c
+  //! \return Rank for symbol c before the position given, i.e., number of symbols c with position less than @p t_i
+  auto rank(std::size_t t_i, const typename TString::value_type &t_c) const {
+    assert(t_i <= size());
+
+    const auto &runs_per_symbol = runs_per_symbol_[t_c];
+
+    if (runs_per_symbol.data.size() == 0) return 0ul; // letter does not exist in the text
+    if (t_i == size()) return runs_per_symbol.data.size();
+
+    auto run = rankSoftRun(t_i);
+
+    auto symbol_run_rank = run_heads_.rank(run.idx, t_c); // number of t_c runs before the current run
+    auto symbol_run_start = (symbol_run_rank == 0) ? 0 : runs_per_symbol.select(symbol_run_rank) + 1;
+    auto run_offset = (run.c == t_c) ? t_i - run.start : 0; // number of t_c before t_i in the current run
+
+    return symbol_run_start + run_offset;
+  }
+
+  //! Rank operation over sequence for symbol c
+  //! \tparam TReport
+  //! \param t_i Position query
+  //! \param t_c Symbol c
+  //! \param t_report Report rank for symbol c before the position given, i.e., number of symbols c with position less than @p t_i
+  //! and data of run containing the position
+  template<typename TReport>
+  void rank(std::size_t t_i, const typename TString::value_type &t_c, TReport t_report) const {
+    assert(t_i <= size());
+
+    const auto &runs_per_symbol = runs_per_symbol_[t_c];
+
+    if (runs_per_symbol.data.size() == 0) { // letter does not exist in the text
+      t_report(0u, 0u, false);
+      return;
+    }
+    if (t_i == size()) {
+      t_report(runs_per_symbol.data.size(), runs_per_symbol.rank(runs_per_symbol.data.size()), false);
+      return;
+    }
+
+    auto run = rankSoftRun(t_i);
+
+    auto symbol_run_rnk = run_heads_.rank(run.idx, t_c); // number of t_c runs before the current run
+    auto symbol_run_start = (symbol_run_rnk == 0) ? 0 : runs_per_symbol.select(symbol_run_rnk) + 1;
+    bool symbol_run_is_cover = run.c == t_c; // run covers the original position?
+    auto run_offset = symbol_run_is_cover ? t_i - run.start : 0; // number of t_c before t_i in the current run
+
+    auto rnk = symbol_run_start + run_offset;
+    t_report(rnk, symbol_run_rnk + symbol_run_is_cover, symbol_run_is_cover);
+  }
+
+  //! Select operation over runs (run length encoded) on sequence
+  //! \param t_run_rnk Run rank (or number of run with symbols @p c) query. It must be less or equal than the number of runs with symbol @p c (and start from 1!)
+  //! \param t_c Symbol c
+  //! \return Position of @p t_run_rnk-th runs with symbol @p c
+  auto selectRun(std::size_t t_run_rnk, const typename TString::value_type &t_c) const {
+    assert(1 <= t_run_rnk && t_run_rnk <= runs_per_symbol_[t_c].rank(runs_per_symbol_[t_c].data.size()));
+
+    return run_heads_.select(t_run_rnk, t_c);
+  }
+
+  //! Split in runs on the given range [t_first..t_last)
+  //! \param t_first First position in queried range
+  //! \param t_last Last position in queried range (not included)
+  //! \return Runs in the queried range
+  std::vector<StringRun> splitInRuns(std::size_t t_first, std::size_t t_last) const {
+    std::vector<StringRun> runs;
+    auto report = [&runs](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
+      runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+    };
+
+    splitInRuns(t_first, t_last, report);
+
+    return runs;
+  }
+
+  //! Split in runs on the given range [t_first..t_last)
+  //! \tparam TReportRun
+  //! \param t_first First position in queried range
+  //! \param t_last Last position in queried range (not included)
+  //! \param t_report_run Report runs in the queried range
+  template<typename TReportRun>
+  void splitInRuns(std::size_t t_first, std::size_t t_last, TReportRun t_report_run) const {
+    assert(t_first <= t_last && t_last <= size());
+
+    auto run = rankSoftRun(t_first);
+
+    // Report all the runs in the interval
+    run.start = t_first;
+    while (run.end < t_last) {
+      t_report_run(run.idx, run.c, run.start, run.end);
+
+      ++run.idx;
+      run.start = run.end;
+      updateRunData(run);
+    }
+
+    t_report_run(run.idx, run.c, run.start, t_last);
+  }
+
+  typedef std::size_t size_type;
+
+  //! Serialize operation
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = 0;
+    written_bytes += sdsl::write_member(r_, out, child, "m_r");
+    written_bytes += sdsl::write_member(b_, out, child, "m_b");
+
+    written_bytes += sdsl::serialize(run_heads_, out, child, "m_run_heads");
+
+    written_bytes += sdsl::serialize(runs_, out, child, "m_runs");
+    written_bytes += sdsl::serialize(runs_per_symbol_, out, child, "m_runs_per_symbol");
+
+    sdsl::structure_tree::add_size(child, written_bytes);
+
+    return written_bytes;
+  }
+
+  //! Load operation
+  void load(std::istream &in) {
+    sdsl::read_member(r_, in);
+    sdsl::read_member(b_, in);
+
+    sdsl::load(run_heads_, in);
+
+    sdsl::load(runs_, in);
+    sdsl::load(runs_per_symbol_, in);
+  }
+
+ private:
+
+  //! Construct the run heads internal data structures
+  //! \tparam TContainer Vector
+  //! \param t_run_heads Run heads in input sequence
+  template<typename TContainer>
+  void constructRunHeads(const TContainer &t_run_heads) {
+    constructRunHeads(t_run_heads, typename TString::tree_strat_type::alphabet_category());
+  }
+
+  template<typename TContainer>
+  void constructRunHeads(const TContainer &t_run_heads, sdsl::int_alphabet_tag) {
+    constructRunHeads<sdsl::int_vector<>>(t_run_heads, 0);
+  }
+
+  template<typename TContainer>
+  void constructRunHeads(const TContainer &t_run_heads, sdsl::byte_alphabet_tag) {
+    constructRunHeads<std::string>(t_run_heads, 1);
+  }
+
+  template<typename TRunHeadsIM, typename TRunHeads>
+  void constructRunHeads(const TRunHeads &t_run_heads, uint8_t t_num_bytes) {
+    TRunHeadsIM run_heads_im;
+    run_heads_im.resize(t_run_heads.size());
+    std::size_t idx = 0;
+    for (auto x: t_run_heads) {
+      run_heads_im[idx++] = x;
+    }
+
+    sdsl::construct_im(run_heads_, run_heads_im, t_num_bytes);
+  }
+
+  struct RunData {
+    std::size_t idx = 0;
+    typename TString::value_type c = 0;
+
+    std::size_t start = 0;
+    std::size_t end = 0;
+  };
+
+  //! Rank operation over runs (run length encoded) on sequence
+  //! Compute the number of runs up to the value and the end position of the run containing the given value
+  //! \param t_i Position/index query
+  //! \return {Run containing the queried position @p t_i; end position of the run}
+  auto rankSoftRun(std::size_t t_i) const {
+    auto block = runs_.rank(t_i);
+    RunData run;
+    run.idx = block * b_;
+    run.start = (block > 0) ? runs_.select(block) + 1 : 0ul; //current position in the string: the first of a block
+    assert(run.start <= t_i);
+    updateRunData(run);
+
+    while (run.end <= t_i) {
+      ++run.idx;
+      run.start = run.end;
+      updateRunData(run);
+    }
+    assert(run.start <= t_i && t_i < run.end);
+    assert(run.idx < r_);
+
+    return run;
+  }
+
+  void updateRunData(RunData &tt_run) const {
+    auto symbol_run = computeSymbolRunData(tt_run.idx);
+    tt_run.end = tt_run.start + (symbol_run.end - symbol_run.start);
+    tt_run.c = symbol_run.c;
+  }
+
+  //! Compute length of queried run
+  //! \param t_run Run query (global)
+  //! \return @p t_run-th run length
+  auto computeRunLength(std::size_t t_run) const {
+    auto symbol_run = computeSymbolRunData(t_run);
+    return symbol_run.end - symbol_run.start;
+  }
+
+  //! Compute data for the symbol run corresponding to the queried global run run
+  //! \param t_run Run query (global)
+  //! \return Symbol run data
+  auto computeSymbolRunData(std::size_t t_run) const {
+    assert(t_run < r_);
+
+    auto[run, c] = run_heads_.inverse_select(t_run);
+    const auto &symbol_select = runs_per_symbol_[c].select;
+    return RunData{run, c, (run == 0) ? 0 : symbol_select(run) + 1, symbol_select(run + 1) + 1};
+  }
+
+  struct BitVector {
+    TBitVector data;
+    TBitVectorRank rank;
+    TBitVectorSelect select;
+
+    BitVector() = default;
+
+    BitVector(const std::vector<bool> &t_bv) {
+      sdsl::bit_vector bv(0, 0);
+      bv.resize(t_bv.size());
+      std::size_t idx = 0;
+      for (auto x: t_bv) {
+        bv[idx++] = x;
+      }
+
+      data = TBitVector{std::move(bv)};
+      rank = TBitVectorRank{&data};
+      select = TBitVectorSelect{&data};
+    }
+
+    BitVector(const BitVector &t_bv) : data{t_bv.data}, rank{&data}, select{&data} {
+    }
+
+    auto operator=(const BitVector &t_bv) {
+      data = t_bv.data;
+      rank = TBitVectorRank{&data};
+      select = TBitVectorSelect{&data};
+
+      return *this;
+    }
+
+    typedef std::size_t size_type;
+
+    //! Serialize method
+    size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
+      auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+      size_type written_bytes = 0;
+      written_bytes += sdsl::serialize(data, out, child, "data");
+      written_bytes += sdsl::serialize(rank, out, child, "rank");
+      written_bytes += sdsl::serialize(select, out, child, "select");
+
+      sdsl::structure_tree::add_size(child, written_bytes);
+
+      return written_bytes;
+    }
+
+    //! Load method
+    void load(std::istream &in) {
+      sdsl::load(data, in);
+      sdsl::load(rank, in);
+      rank.set_vector(&data);
+      sdsl::load(select, in);
+      select.set_vector(&data);
+    }
+  };
+
+  std::size_t r_ = 0; // Number of runs
+  std::size_t b_ = 1; // Block size: bitvector 'runs' has R/B bits set (R being number of runs)
+
+  TString run_heads_; // Store run heads in a compressed string supporting access/rank
+
+  BitVector runs_; // Blocks of runs stored contiguously
+  std::vector<BitVector> runs_per_symbol_; // For each letter, its runs stored contiguously
+};
 
 }
 
