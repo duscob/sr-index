@@ -131,12 +131,28 @@ void constructBWTRLE(sdsl::cache_config &t_config) {
 
   sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
 
-  std::string bwt_s;
-  replace_copy(bwt_buf.begin(), bwt_buf.end(), back_inserter(bwt_s), 0, 1);
+  {
+    // TODO Remove this rle string once the other representation is tested.
+    std::string bwt_s;
+    replace_copy(bwt_buf.begin(), bwt_buf.end(), back_inserter(bwt_s), 0, 1);
 
-  sri::rle_string<> bwt_rle(bwt_s);
+    sri::rle_string<> bwt_rle(bwt_s);
 
-  sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
+    sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config, true);
+  }
+
+  {
+    typename alphabet_trait<t_width>::type alphabet;
+    sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
+
+    auto get_symbol = [&bwt_buf, &alphabet](auto tt_i) { return alphabet.char2comp[bwt_buf[tt_i]]; };
+
+    auto bwt_s = sdsl::random_access_container(get_symbol, bwt_buf.size());
+
+    sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
+
+    sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
+  }
 }
 
 template<uint8_t t_width>
@@ -241,25 +257,6 @@ void constructAlphabet(sdsl::cache_config &t_config) {
 }
 
 template<uint8_t t_width>
-void constructBWTRLEWithCompactAlphabet(sdsl::cache_config &t_config) {
-  static_assert(t_width == 0 or t_width == 8,
-                "constructBWTRLE: width must be `0` for integer alphabet and `8` for byte alphabet");
-
-  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-
-  typename alphabet_trait<t_width>::type alphabet;
-  sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
-
-  auto get_symbol = [&bwt_buf, &alphabet](auto tt_i) { return alphabet.char2comp[bwt_buf[tt_i]]; };
-
-  auto bwt_s = sdsl::random_access_container(get_symbol, bwt_buf.size());
-
-  sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
-
-  sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config, true);
-}
-
-template<uint8_t t_width>
 void constructPsi(sdsl::cache_config &t_config) {
   static_assert(t_width == 0 or t_width == 8,
                 "constructPsi: width must be `0` for integer alphabet and `8` for byte alphabet");
@@ -344,7 +341,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   sdsl::load_from_cache(bwt_run_last, key_trait<t_width>::KEY_BWT_RUN_LAST, t_config);
 
   // LF
-  sri::rle_string<> bwt_rle;
+  RLEString<> bwt_rle;
   sdsl::load_from_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
   auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle));
   auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle));
@@ -353,7 +350,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
   auto n = alphabet.C[alphabet.sigma];
 
-  auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[alphabet.char2comp[tt_symbol]]; };
+  auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[tt_symbol]; };
   auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
   // Psi
@@ -460,18 +457,9 @@ void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config 
 
   {
     // Construct BWT RLE
-    // TODO Remove this rle string once the other representation is tested.
     auto event = sdsl::memory_monitor::event("BWT RLE");
     if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
       constructBWTRLE<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct BWT RLE
-    auto event = sdsl::memory_monitor::event("BWT RLE");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
-      constructBWTRLEWithCompactAlphabet<t_width>(t_config);
     }
   }
 }
