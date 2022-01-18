@@ -693,7 +693,6 @@ class RLEString {
     runs_per_symbol_map[symbol].push_back(true);
     run_heads_vec.push_back(symbol);
     ++r_;
-    n_ = runs_vec.size();
 
     assert(run_heads_vec.size() == r_);
 
@@ -712,13 +711,13 @@ class RLEString {
     assert(run_heads_.size() == r_);
   }
 
-  [[nodiscard]] inline std::size_t size() const { return n_; }
+  [[nodiscard]] inline std::size_t size() const { return runs_.data.size(); }
 
   //! Random access
   //! \param i Position/index query
   //! \return Symbol at position @p i
   auto operator[](std::size_t i) const {
-    assert(i < n_);
+    assert(i < size());
     return run_heads_[rankSoftRun(i).idx];
   }
 
@@ -759,12 +758,12 @@ class RLEString {
   //! \param t_c Symbol c
   //! \return Rank for symbol c before the position given, i.e., number of symbols c with position less than @p t_i
   auto rank(std::size_t t_i, const typename TString::value_type &t_c) const {
-    assert(t_i <= n_);
+    assert(t_i <= size());
 
     const auto &runs_per_symbol = runs_per_symbol_[t_c];
 
     if (runs_per_symbol.data.size() == 0) return 0ul; // letter does not exist in the text
-    if (t_i == n_) return runs_per_symbol.data.size();
+    if (t_i == size()) return runs_per_symbol.data.size();
 
     auto run = rankSoftRun(t_i);
 
@@ -783,7 +782,7 @@ class RLEString {
   //! and data of run containing the position
   template<typename TReport>
   void rank(std::size_t t_i, const typename TString::value_type &t_c, TReport t_report) const {
-    assert(t_i <= n_);
+    assert(t_i <= size());
 
     const auto &runs_per_symbol = runs_per_symbol_[t_c];
 
@@ -791,7 +790,7 @@ class RLEString {
       t_report(0, 0, false);
       return;
     }
-    if (t_i == n_) {
+    if (t_i == size()) {
       t_report(runs_per_symbol.data.size(), runs_per_symbol.rank(runs_per_symbol.data.size()), false);
       return;
     }
@@ -999,7 +998,6 @@ class RLEString {
     }
   };
 
-  std::size_t n_ = 0; // Sequence size
   std::size_t r_ = 0; // Number of runs
   std::size_t b_ = 1; // Block size: bitvector 'runs' has R/B bits set (R being number of runs)
 
