@@ -241,6 +241,25 @@ void constructAlphabet(sdsl::cache_config &t_config) {
 }
 
 template<uint8_t t_width>
+void constructBWTRLEWithCompactAlphabet(sdsl::cache_config &t_config) {
+  static_assert(t_width == 0 or t_width == 8,
+                "constructBWTRLE: width must be `0` for integer alphabet and `8` for byte alphabet");
+
+  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+
+  typename alphabet_trait<t_width>::type alphabet;
+  sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
+
+  auto get_symbol = [&bwt_buf, &alphabet](auto tt_i) { return alphabet.char2comp[bwt_buf[tt_i]]; };
+
+  auto bwt_s = sdsl::random_access_container(get_symbol, bwt_buf.size());
+
+  sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
+
+  sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config, true);
+}
+
+template<uint8_t t_width>
 void constructPsi(sdsl::cache_config &t_config) {
   static_assert(t_width == 0 or t_width == 8,
                 "constructPsi: width must be `0` for integer alphabet and `8` for byte alphabet");
