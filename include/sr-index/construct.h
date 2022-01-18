@@ -387,15 +387,41 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
                        t_config);
 }
 
+template<uint8_t t_width>
+void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config);
+
 template<uint8_t t_width, typename TIndex>
 void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_config &t_config) {
 
+  constructIndexBaseItems<t_width>(t_data_path, t_config);
+
+  {
+    // Construct Psi
+    auto event = sdsl::memory_monitor::event("Psi");
+    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
+      constructPsi<t_width>(t_config);
+    }
+  }
+
+  {
+    // Construct Links from Mark to Sample
+    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
+      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
+    }
+  }
+
+  construct(t_index, t_config);
+}
+
+template<uint8_t t_width>
+void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
   {
     // Parse Text
     auto event = sdsl::memory_monitor::event("Text");
     const char *KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
     if (!cache_file_exists(KEY_TEXT, t_config)) {
-      sri::constructText<8>(t_data_path, t_config);
+      constructText<8>(t_data_path, t_config);
     }
   }
 
@@ -412,14 +438,6 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
     auto event = sdsl::memory_monitor::event("BWT");
     if (!cache_file_exists(key_trait<t_width>::KEY_BWT, t_config)) {
       sdsl::construct_bwt<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct BWT RLE
-    auto event = sdsl::memory_monitor::event("BWT RLE");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
-      constructBWTRLE<t_width>(t_config);
     }
   }
 
@@ -441,22 +459,21 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   }
 
   {
-    // Construct Psi
-    auto event = sdsl::memory_monitor::event("Psi");
-    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
-      constructPsi<t_width>(t_config);
+    // Construct BWT RLE
+    // TODO Remove this rle string once the other representation is tested.
+    auto event = sdsl::memory_monitor::event("BWT RLE");
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
+      constructBWTRLE<t_width>(t_config);
     }
   }
 
   {
-    // Construct Links from Mark to Sample
-    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
-      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
+    // Construct BWT RLE
+    auto event = sdsl::memory_monitor::event("BWT RLE");
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
+      constructBWTRLEWithCompactAlphabet<t_width>(t_config);
     }
   }
-
-  construct(t_index, t_config);
 }
 
 template<typename TValues>
