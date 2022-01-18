@@ -28,6 +28,7 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_FIRST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
@@ -55,6 +56,9 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS = key_trait<t_w
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_to_last_idx";
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_idx";
 
@@ -131,12 +135,28 @@ void constructBWTRLE(sdsl::cache_config &t_config) {
 
   sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
 
-  std::string bwt_s;
-  replace_copy(bwt_buf.begin(), bwt_buf.end(), back_inserter(bwt_s), 0, 1);
+  {
+    // TODO Remove this rle string once the other representation is tested.
+    std::string bwt_s;
+    replace_copy(bwt_buf.begin(), bwt_buf.end(), back_inserter(bwt_s), 0, 1);
 
-  sri::rle_string<> bwt_rle(bwt_s);
+    sri::rle_string<> bwt_rle(bwt_s);
 
-  sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
+    sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config, true);
+  }
+
+  {
+    typename alphabet_trait<t_width>::type alphabet;
+    sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
+
+    auto get_symbol = [&bwt_buf, &alphabet](auto tt_i) { return alphabet.char2comp[bwt_buf[tt_i]]; };
+
+    auto bwt_s = sdsl::random_access_container(get_symbol, bwt_buf.size());
+
+    sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
+
+    sdsl::store_to_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
+  }
 }
 
 template<uint8_t t_width>
@@ -325,7 +345,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   sdsl::load_from_cache(bwt_run_last, key_trait<t_width>::KEY_BWT_RUN_LAST, t_config);
 
   // LF
-  sri::rle_string<> bwt_rle;
+  RLEString<> bwt_rle;
   sdsl::load_from_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
   auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle));
   auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle));
@@ -334,7 +354,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
   auto n = alphabet.C[alphabet.sigma];
 
-  auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[alphabet.char2comp[tt_symbol]]; };
+  auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[tt_symbol]; };
   auto lf = sri::buildBasicLF(get_char, get_rank_of_char, get_f);
 
   // Psi
@@ -368,15 +388,41 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
                        t_config);
 }
 
+template<uint8_t t_width>
+void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config);
+
 template<uint8_t t_width, typename TIndex>
 void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_config &t_config) {
 
+  constructIndexBaseItems<t_width>(t_data_path, t_config);
+
+  {
+    // Construct Psi
+    auto event = sdsl::memory_monitor::event("Psi");
+    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
+      constructPsi<t_width>(t_config);
+    }
+  }
+
+  {
+    // Construct Links from Mark to Sample
+    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
+      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
+    }
+  }
+
+  construct(t_index, t_config);
+}
+
+template<uint8_t t_width>
+void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
   {
     // Parse Text
     auto event = sdsl::memory_monitor::event("Text");
     const char *KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
     if (!cache_file_exists(KEY_TEXT, t_config)) {
-      sri::constructText<8>(t_data_path, t_config);
+      constructText<8>(t_data_path, t_config);
     }
   }
 
@@ -393,14 +439,6 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
     auto event = sdsl::memory_monitor::event("BWT");
     if (!cache_file_exists(key_trait<t_width>::KEY_BWT, t_config)) {
       sdsl::construct_bwt<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct BWT RLE
-    auto event = sdsl::memory_monitor::event("BWT RLE");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
-      constructBWTRLE<t_width>(t_config);
     }
   }
 
@@ -422,22 +460,34 @@ void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_c
   }
 
   {
-    // Construct Psi
-    auto event = sdsl::memory_monitor::event("Psi");
-    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
-      constructPsi<t_width>(t_config);
+    // Construct BWT RLE
+    auto event = sdsl::memory_monitor::event("BWT RLE");
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RLE, t_config)) {
+      constructBWTRLE<t_width>(t_config);
     }
   }
+}
 
-  {
-    // Construct Links from Mark to Sample
-    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
-      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
-    }
-  }
+template<uint8_t t_width>
+void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
+  static_assert(t_width == 0 or t_width == 8,
+                "constructMarkToSampleLinksForPhiBackward: width must be `0` for integer alphabet and `8` for byte alphabet");
 
-  construct(t_index, t_config);
+  // Marks
+  sdsl::int_vector<> marks; // Text position of the first symbol in BWT runs
+  sdsl::load_from_cache(marks, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
+
+  auto get_link = [r = marks.size()](const auto &tt_mark_idx) {
+    return (tt_mark_idx + r - 1) % r;
+  };
+
+  // Compute links
+  auto[sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
+
+  sdsl::store_to_cache(sorted_marks_idx, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX, t_config);
+  sdsl::store_to_cache(mark_to_sample_links,
+                       key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX,
+                       t_config);
 }
 
 template<typename TValues>

@@ -277,7 +277,7 @@ class PsiCoreRLE {
 
   //! Split in runs (BWT runs) on the given range [t_first..t_last)
   //! \param t_first First position in queried range
-  //! \param t_last Las position in queried range (not included)
+  //! \param t_last Last position in queried range (not included)
   //! \return Runs (BWT) in the queried range
   auto splitInRuns(std::size_t t_first, std::size_t t_last) const {
     using Run = std::pair<std::size_t, std::size_t>;
@@ -292,7 +292,7 @@ class PsiCoreRLE {
   //! Split in runs (BWT runs) on the given range [t_first..t_last)
   //! \tparam TCreateRun
   //! \param t_first First position in queried range
-  //! \param t_last Las position in queried range (not included)
+  //! \param t_last Last position in queried range (not included)
   //! \param t_create_run Create a run from <first, last, symbol, number of run, if first is the real first of run>
   //! \return Runs (BWT) in the queried range
   template<typename TCreateRun>
