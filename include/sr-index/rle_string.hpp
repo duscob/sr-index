@@ -653,10 +653,10 @@ template<typename TString = sdsl::wt_huff<>,
     typename TBitVector = sdsl::sd_vector<>,
     typename TBitVectorRank = typename TBitVector::rank_1_type,
     typename TBitVectorSelect = typename TBitVector::select_1_type>
-class StringRLE {
+class RLEString {
  public:
 
-  StringRLE() = default;
+  RLEString() = default;
 
   //! Constructor
   //! \tparam TIter Forward iterator
@@ -664,7 +664,7 @@ class StringRLE {
   //! \param t_last Last sequence iterator
   //! \param t_b Block size, i.e., number of runs in a block (runs_ has r_/@p t_b, r_ being number of runs)
   template<typename TIter>
-  StringRLE(TIter t_first, TIter t_last, std::size_t t_b = 2): b_{t_b} {
+  RLEString(TIter t_first, TIter t_last, std::size_t t_b = 2): b_{t_b} {
     assert(t_first != t_last);
 
     auto symbol = *t_first;
