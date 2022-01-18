@@ -787,7 +787,7 @@ class RLEString {
     const auto &runs_per_symbol = runs_per_symbol_[t_c];
 
     if (runs_per_symbol.data.size() == 0) { // letter does not exist in the text
-      t_report(0, 0, false);
+      t_report(0u, 0u, false);
       return;
     }
     if (t_i == size()) {
