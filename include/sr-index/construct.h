@@ -28,6 +28,7 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_FIRST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
@@ -55,6 +56,9 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS = key_trait<t_w
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_to_last_idx";
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_idx";
 
