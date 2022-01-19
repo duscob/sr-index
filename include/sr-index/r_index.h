@@ -56,7 +56,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     size_type written_bytes = 0;
     written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
 
-    written_bytes += this->template serializeItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
+    written_bytes += this->template serializeItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), out, child, "bwt");
 
     written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
 
@@ -179,7 +179,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
 
   auto constructComputeDataBackwardSearchStep(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
 
     auto is_lf_trivial = [cref_bwt_rle](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
       const auto &[next_start, next_end] = tt_next_range;
@@ -221,7 +221,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   auto constructComputeToehold(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sa_value_for_bwt_run_start = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
