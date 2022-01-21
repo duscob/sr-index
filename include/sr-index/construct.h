@@ -236,16 +236,16 @@ void constructBWTRuns(sdsl::cache_config &t_config) {
   bwt_run_last_text_pos.push_back(text_pos);
 
   bwt_run_first_pos.close();
-  register_cache_file(file_bwt_run_first, t_config);
+  register_cache_file(key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config);
 
   bwt_run_first_text_pos.close();
-  register_cache_file(file_bwt_run_first_text_pos, t_config);
+  register_cache_file(key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
 
   bwt_run_last_pos.close();
-  register_cache_file(file_bwt_run_last, t_config);
+  register_cache_file(key_trait<t_width>::KEY_BWT_RUN_LAST, t_config);
 
   bwt_run_last_text_pos.close();
-  register_cache_file(file_bwt_run_last_text_pos, t_config);
+  register_cache_file(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
 }
 
 template<uint8_t t_width>
