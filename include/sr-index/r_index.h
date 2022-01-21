@@ -197,7 +197,18 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     return ComputeDataBackwardSearchStep(is_lf_trivial, tt_create_data);
   }
 
-  using Value = std::size_t;
+  auto constructComputeToehold(TSource &t_source) {
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto get_sa_value_for_run_data = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
+      auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data->last_run_rnk, tt_run_data->c);
+      return cref_samples.get()[run] + 1;
+    };
+
+    return ComputeToehold(get_sa_value_for_run_data, cref_bwt_rle.get().size());
+  }
+
   auto constructPhiForRange(TSource &t_source) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
@@ -221,18 +232,6 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     };
 
     return phi_for_range;
-  }
-
-  auto constructComputeToehold(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
-
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_last = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
-      auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data->last_run_rnk, tt_run_data->c);
-      return cref_samples.get()[run] + 1;
-    };
-
-    return ComputeToehold(get_sa_value_for_bwt_run_last, cref_bwt_rle.get().size());
   }
 
   template<typename TPhiRange, typename TComputeToehold>
