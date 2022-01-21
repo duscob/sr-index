@@ -27,14 +27,15 @@ struct key_trait {
 
   static const std::string KEY_BWT_RUN_FIRST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
-  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+  static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA;
