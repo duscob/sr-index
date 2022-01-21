@@ -89,7 +89,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   virtual void loadAllItems(TSource &t_source) {
     this->index_.reset(new RIndexBase{
         constructLF(t_source),
-        constructComputeDataBackwardSearchStep(t_source),
+        constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
         this->n_,
         [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0, 0)}; },
@@ -169,16 +169,24 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
   struct RunData {
     Char c; // Character for LF step in the range
-    std::size_t end_run_rnk; // End of range before LF step
+    std::size_t last_run_rnk; // Rank of the last run
 
-    RunData(Char t_c, std::size_t t_end_run_rnk) : c{t_c}, end_run_rnk{t_end_run_rnk} {}
+    RunData(Char t_c, std::size_t t_end_run_rnk) : c{t_c}, last_run_rnk{t_end_run_rnk} {}
     virtual ~RunData() = default;
   };
 
   // TODO Use unique_ptr instead shared_ptr
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
 
-  auto constructComputeDataBackwardSearchStep(TSource &t_source) {
+  auto constructCreateDataBackwardSearchStep() {
+    return [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
+      const auto &[next_start, next_end] = tt_next_range;
+      return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(tt_c, next_end.run.rank)};
+    };
+  }
+
+  template<typename TCreateDataBackwardSearchStep>
+  auto constructComputeDataBackwardSearchStep(TSource &t_source, const TCreateDataBackwardSearchStep &tt_create_data) {
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
 
     auto is_lf_trivial = [cref_bwt_rle](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
@@ -186,12 +194,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
       return !(next_start < next_end) || next_end.run.is_cover;
     };
 
-    auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
-      const auto &[next_start, next_end] = tt_next_range;
-      return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(tt_c, next_end.run.rank)};
-    };
-
-    return ComputeDataBackwardSearchStep(is_lf_trivial, create_data);
+    return ComputeDataBackwardSearchStep(is_lf_trivial, tt_create_data);
   }
 
   using Value = std::size_t;
@@ -224,12 +227,12 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_start = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
-      auto run = cref_bwt_rle.get().selectRun(tt_run_data->end_run_rnk, tt_run_data->c);
+    auto get_sa_value_for_bwt_run_last = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
+      auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data->last_run_rnk, tt_run_data->c);
       return cref_samples.get()[run] + 1;
     };
 
-    return ComputeToehold(get_sa_value_for_bwt_run_start, cref_bwt_rle.get().size());
+    return ComputeToehold(get_sa_value_for_bwt_run_last, cref_bwt_rle.get().size());
   }
 
   template<typename TPhiRange, typename TComputeToehold>
