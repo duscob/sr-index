@@ -839,7 +839,7 @@ class RLEString {
   std::vector<StringRun> splitInRuns(std::size_t t_first, std::size_t t_last) const {
     std::vector<StringRun> runs;
     auto report = [&runs](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
-      runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+      runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end}});
     };
 
     splitInRuns(t_first, t_last, report);
