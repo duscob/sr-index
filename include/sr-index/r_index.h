@@ -209,19 +209,26 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     return ComputeToehold(get_sa_value_for_run_data, cref_bwt_rle.get().size());
   }
 
-  auto constructPhiForRange(TSource &t_source) {
+  auto constructGetMarkToSampleIdx(TSource &t_source, bool t_default_validity) {
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    return RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, t_default_validity);
+  }
+
+  template<typename TGetMarkToSampleIdx>
+  auto constructPhi(TSource &t_source, const TGetMarkToSampleIdx &t_get_mark_to_sample_idx) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto predecessor = CircularPredecessor(bv_mark_rank, bv_mark_select, this->n_);
-
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
-    auto get_mark_to_sample_idx = RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, true);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
     SampleValidatorDefault sample_validator_default;
 
-    auto phi = buildPhiForward(predecessor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    return buildPhiForward(predecessor, t_get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+  }
+
+  auto constructPhiForRange(TSource &t_source) {
+    auto phi = constructPhi(t_source, constructGetMarkToSampleIdx(t_source, true));
     auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
       const auto &[start, end] = t_range;
