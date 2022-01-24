@@ -847,7 +847,7 @@ class RLEString {
     return runs;
   }
 
-  //! Split in runs on the given range [t_first..t_last)
+  //! Split in runs on the given range [t_first..t_last). Minimal runs covering the range (first/last run could expand beyond the range).
   //! \tparam TReportRun
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)
@@ -857,7 +857,6 @@ class RLEString {
     assert(t_first <= t_last && t_last <= size());
 
     auto run = rankSoftRun(t_first);
-    run.start = t_first;
 
     // Report all the runs in the interval
     while (run.end < t_last) {
@@ -866,7 +865,7 @@ class RLEString {
       run = computeRunData(run.rnk + 1, run.end);
     }
 
-    t_report_run(run.rnk, run.c, run.start, t_last);
+    t_report_run(run.rnk, run.c, run.start, run.end);
   }
 
   typedef std::size_t size_type;

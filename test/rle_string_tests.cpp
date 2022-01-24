@@ -295,10 +295,10 @@ TEST_P(SplitInRunsTests, rle_string) {
   sri::rle_string<> rle_str(str);
 
   const auto &range = std::get<1>(GetParam());
-  auto runs_in_range = rle_str.break_in_runs(range);
+  auto runs = rle_str.break_in_runs(range);
 
-  const auto &e_runs_in_range = std::get<2>(GetParam());
-  EXPECT_THAT(runs_in_range, testing::ElementsAreArray(e_runs_in_range));
+  const auto &e_runs = std::get<2>(GetParam());
+  EXPECT_THAT(runs, testing::ElementsAreArray(e_runs));
 }
 
 TEST_P(SplitInRunsTests, RLEString) {
@@ -306,14 +306,15 @@ TEST_P(SplitInRunsTests, RLEString) {
   sri::RLEString<> rle_str(str.begin(), str.end());
 
   const auto &range = std::get<1>(GetParam());
-  std::vector<sri::StringRun> runs_in_range;
-  auto report = [&runs_in_range](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
-    runs_in_range.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+  std::vector<sri::StringRun> runs;
+  auto report = [&runs, &range](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
+    runs.emplace_back(sri::StringRun{
+        tt_idx, tt_c, sri::range_t{std::max(tt_start, range.first), std::min(range.second, tt_end - 1)}});
   };
   rle_str.splitInRuns(range.first, range.second + 1, report);
 
-  const auto &e_runs_in_range = std::get<2>(GetParam());
-  EXPECT_THAT(runs_in_range, testing::ElementsAreArray(e_runs_in_range));
+  const auto &e_runs = std::get<2>(GetParam());
+  EXPECT_THAT(runs, testing::ElementsAreArray(e_runs));
 }
 
 INSTANTIATE_TEST_SUITE_P(
