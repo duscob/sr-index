@@ -487,14 +487,14 @@ auto buildPhiForwardForRange(const TPhi &t_phi,
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
-class PhiForRange {
+class PhiBackwardForRangeWithValidity {
  public:
-  PhiForRange(const TPhi &t_phi,
-              const TSplitInBWTRun &t_split,
-              const TBackwardNav &t_lf,
-              const TSampleAt &t_sample_at,
-              std::size_t t_sampling_size,
-              std::size_t t_bwt_size)
+  PhiBackwardForRangeWithValidity(const TPhi &t_phi,
+                                  const TSplitInBWTRun &t_split,
+                                  const TBackwardNav &t_lf,
+                                  const TSampleAt &t_sample_at,
+                                  std::size_t t_sampling_size,
+                                  std::size_t t_bwt_size)
       : phi_{t_phi},
         split_{t_split},
         lf_{t_lf},
@@ -584,7 +584,7 @@ auto buildPhiForRange(const TPhi &t_phi,
                       const TSampleAt &t_sample_at,
                       std::size_t t_sampling_size,
                       std::size_t t_bwt_size) {
-  return PhiForRange<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
+  return PhiBackwardForRangeWithValidity<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
 
