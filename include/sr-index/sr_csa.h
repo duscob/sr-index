@@ -969,7 +969,7 @@ auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::ca
   sdsl::int_vector<> subsample_to_mark_links(subsamples_idx.size(), 0, subsamples_idx.width());
 
   // LF
-  rle_string<> bwt_rle;
+  RLEString<> bwt_rle;
   sdsl::load_from_cache(bwt_rle, key_trait<t_width>::KEY_BWT_RLE, t_config);
   auto get_char = buildRandomAccessForContainer(std::cref(bwt_rle));
   auto get_rank_of_char = buildRankOfChar(std::cref(bwt_rle));
@@ -978,7 +978,7 @@ auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::ca
   sdsl::load_from_cache(alphabet, key_trait<t_width>::KEY_ALPHABET, t_config);
   auto n = alphabet.C[alphabet.sigma];
 
-  auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[alphabet.char2comp[tt_symbol]]; };
+  auto get_f = [&alphabet](auto tt_symbol) { return alphabet.C[tt_symbol]; };
   auto lf = buildBasicLF(get_char, get_rank_of_char, get_f);
 
   // Psi
