@@ -33,6 +33,7 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
+  static const std::string KEY_BWT_RUN_LAST_IDX;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
   static const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
@@ -55,6 +56,9 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST = key_trait<t_width>::KE
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_text_pos";
 template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_by_last";
+template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
     key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
 template<uint8_t t_width>
@@ -66,13 +70,15 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX = key_trait<t_width>
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST = key_trait<t_width>::KEY_BWT + "_run_last";
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS = key_trait<t_width>::KEY_BWT_RUN_LAST + "_text_pos";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_IDX = key_trait<t_width>::KEY_BWT_RUN_LAST + "_idx";
 template<uint8_t t_width>
-const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
-    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_idx";
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS = key_trait<t_width>::KEY_BWT_RUN_LAST + "_text_pos";
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX =
+    key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_idx";
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
