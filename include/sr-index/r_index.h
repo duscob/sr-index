@@ -145,7 +145,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     this->n_ = cumulative[cref_alphabet.get().sigma];
 
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
-    auto psi_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
+    auto bwt_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
       DataLF data;
       auto report = [&data](const auto &tt_rank, const auto &tt_run_rank, const auto &tt_is_cover) {
         data = DataLF{tt_rank, {tt_run_rank, tt_is_cover}};
@@ -162,7 +162,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
     RangeLF empty_range;
 
-    return LF(psi_rank, cumulative, create_range, empty_range);
+    return LF(bwt_rank, cumulative, create_range, empty_range);
   }
 
   using Char = typename TAlphabet::comp_char_type;
@@ -261,11 +261,21 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
 };
 
+template<uint8_t t_width, typename TBvMark>
+void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config);
+
 template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
 
+  constructRIndex<t_width, TBvMark>(t_data_path, t_config);
+
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width, typename TBvMark>
+void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   {
@@ -290,8 +300,6 @@ void construct(RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSam
       constructBitVectorFromIntVector<TBvMark>(key_marks, t_config, n, false);
     }
   }
-
-  t_index.load(t_config);
 }
 
 }
