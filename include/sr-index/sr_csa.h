@@ -861,7 +861,7 @@ void construct(SrCSAValidArea<TSrCSA, TBvValidMark, TValidArea> &t_index, sdsl::
 }
 
 template<uint8_t t_width>
-void constructSubsamplingBackwardSamples(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSubsamplingBackwardSamplesForPhiForward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Samples
@@ -911,10 +911,10 @@ void constructSubsamplingBackwardSamples(std::size_t t_subsample_rate, sdsl::cac
 }
 
 template<uint8_t t_width>
-auto computeSampleToMarkLinks(const std::string &t_prefix, sdsl::cache_config &t_config);
+auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::cache_config &t_config);
 
 template<uint8_t t_width>
-void constructSubsamplingBackwardMarks(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSubsamplingBackwardMarksForPhiForward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks
@@ -925,7 +925,7 @@ void constructSubsamplingBackwardMarks(std::size_t t_subsample_rate, sdsl::cache
     // Compute sub-sample to mark links
 
     // Links from sub-samples to their corresponding mark (actually, to rank of mark in BWT)
-    auto subsample_to_mark_links = computeSampleToMarkLinks<t_width>(prefix, t_config);
+    auto subsample_to_mark_links = computeSampleToMarkLinksForPhiForward<t_width>(prefix, t_config);
     r_prime = subsample_to_mark_links.size();
 
     sdsl::int_vector<> bwt_run_ends_text_pos;
@@ -961,7 +961,7 @@ void constructSubsamplingBackwardMarks(std::size_t t_subsample_rate, sdsl::cache
 }
 
 template<uint8_t t_width>
-auto computeSampleToMarkLinks(const std::string &t_prefix, sdsl::cache_config &t_config) {
+auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::cache_config &t_config) {
   // Sub-sampled indices of samples
   sdsl::int_vector<> subsamples_idx;
   sdsl::load_from_cache(subsamples_idx, t_prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX, t_config);
@@ -1032,20 +1032,20 @@ void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_c
   }
 
   {
-    // Construct subsampling backward of samples (text positions of BWT-run last letter)
+    // Construct subsampling backward of samples (text positions of BWT-run first letter)
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
     if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSubsamplingBackwardSamples<t_width>(t_subsample_rate, t_config);
+      constructSubsamplingBackwardSamplesForPhiForward<t_width>(t_subsample_rate, t_config);
     }
   }
 
   {
-    // Construct subsampling backward of marks (text positions of BWT-run first letter)
+    // Construct subsampling backward of marks (text positions of BWT-run last letter)
     auto event = sdsl::memory_monitor::event("Subsampling");
     if (!sdsl::cache_file_exists(
         prefix + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
-      constructSubsamplingBackwardMarks<t_width>(t_subsample_rate, t_config);
+      constructSubsamplingBackwardMarksForPhiForward<t_width>(t_subsample_rate, t_config);
     }
   }
 
