@@ -7,6 +7,7 @@
 #include <sdsl/io.hpp>
 
 #include "sr-index/csa.h"
+#include "sr-index/sr_csa.h"
 #include "sr-index/r_index.h"
 
 using String = std::string;
@@ -43,6 +44,32 @@ TEST_P(LocateTests, CSA) {
   EXPECT_EQ(results, e_results);
 }
 
+TEST_P(LocateTests, SRCSA) {
+  sri::SrCSA<> index(6);
+  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+
+  const auto &pattern = std::get<1>(GetParam());
+  auto results = index.Locate(pattern);
+  std::sort(results.begin(), results.end());
+
+  auto e_results = std::get<2>(GetParam());
+  std::sort(e_results.begin(), e_results.end());
+  EXPECT_EQ(results, e_results);
+}
+
+TEST_P(LocateTests, SRCSASlim) {
+  sri::SrCSASlim<> index(6);
+  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+
+  const auto &pattern = std::get<1>(GetParam());
+  auto results = index.Locate(pattern);
+  std::sort(results.begin(), results.end());
+
+  auto e_results = std::get<2>(GetParam());
+  std::sort(e_results.begin(), e_results.end());
+  EXPECT_EQ(results, e_results);
+}
+
 TEST_P(LocateTests, RIndex) {
   sri::RIndex<> index;
   sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
@@ -61,8 +88,8 @@ INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
     LocateTests,
     testing::Values(
-        std::make_tuple(String{"abcabcababc$"}, String{"ab"}, Values{6, 8, 3, 0}),
-        std::make_tuple(String{"abcabcababc$"}, String{"aba"}, Values{6}),
-        std::make_tuple(String{"abcabcababc$"}, String{"bc"}, Values{9, 4, 1})
+        std::make_tuple(String{"abcabcababc\0"}, String{"ab"}, Values{6, 8, 3, 0}),
+        std::make_tuple(String{"abcabcababc\0"}, String{"aba"}, Values{6}),
+        std::make_tuple(String{"abcabcababc\0"}, String{"bc"}, Values{9, 4, 1})
     )
 );
