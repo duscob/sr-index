@@ -795,15 +795,18 @@ class RLEString {
       return;
     }
 
-    auto run = rankSoftRun(t_i);
+    auto[run, symbol_run] = rankSoftBothRun(t_i);
 
-    auto symbol_run_rnk = run_heads_.rank(run.rnk, t_c); // number of t_c runs before the current run
-    auto symbol_run_start = (symbol_run_rnk == 0) ? 0 : runs_per_symbol.select(symbol_run_rnk) + 1;
     bool symbol_run_is_cover = run.c == t_c; // run covers the original position?
+    if (!symbol_run_is_cover) {
+      symbol_run.rnk = run_heads_.rank(run.rnk, t_c); // number of t_c runs before the current run
+      symbol_run.start = (symbol_run.rnk == 0) ? 0 : runs_per_symbol.select(symbol_run.rnk) + 1;
+    } else {
+      ++symbol_run.rnk;
+    }
     auto run_offset = symbol_run_is_cover ? t_i - run.start : 0; // number of t_c before t_i in the current run
-
-    auto rnk = symbol_run_start + run_offset;
-    t_report(rnk, symbol_run_rnk + symbol_run_is_cover, symbol_run_is_cover);
+    auto rnk = symbol_run.start + run_offset;
+    t_report(rnk, symbol_run.rnk, symbol_run_is_cover);
   }
 
   //! Rank operation over sequence for symbol s[t_i]
@@ -819,7 +822,7 @@ class RLEString {
     auto run_offset = t_i - run.start; // number of c before t_i in the current run
     auto rnk = symbol_run.start + run_offset;
 
-    t_report(rnk, run.c, run.rnk, symbol_run.rnk);
+    t_report(rnk, run.c, run.rnk, run.start, run.end, symbol_run.rnk);
   }
 
   //! Select operation over runs (run length encoded) on sequence

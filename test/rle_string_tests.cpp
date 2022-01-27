@@ -212,7 +212,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 class RankRawTests : public testing::TestWithParam<
-    std::tuple<String, std::size_t, std::size_t, Char, std::size_t, std::size_t>> {
+    std::tuple<String, std::size_t, std::size_t, Char, std::size_t, std::size_t, std::size_t, std::size_t>> {
 };
 
 TEST_P(RankRawTests, RLEString_report) {
@@ -223,11 +223,16 @@ TEST_P(RankRawTests, RLEString_report) {
   std::size_t rnk;
   uint8_t c;
   std::size_t run_rnk;
+  std::size_t run_start;
+  std::size_t run_end;
   std::size_t symbol_run_rnk;
-  auto report = [&rnk, &c, &run_rnk, &symbol_run_rnk](auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_symbol_run_rnk) {
+  auto report = [&rnk, &c, &run_rnk, &run_start, &run_end, &symbol_run_rnk](
+      auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_run_start, auto tt_run_end, auto tt_symbol_run_rnk) {
     rnk = tt_rnk;
     c = tt_c;
     run_rnk = tt_run_rnk;
+    run_start = tt_run_start;
+    run_end = tt_run_end;
     symbol_run_rnk = tt_symbol_run_rnk;
   };
   rle_str.rank(pos, report);
@@ -238,7 +243,11 @@ TEST_P(RankRawTests, RLEString_report) {
   EXPECT_EQ(c, e_c);
   const auto &e_run_rnk = std::get<4>(GetParam());
   EXPECT_EQ(run_rnk, e_run_rnk);
-  const auto &e_symbol_run_rnk = std::get<5>(GetParam());
+  const auto &e_run_start = std::get<5>(GetParam());
+  EXPECT_EQ(run_start, e_run_start);
+  const auto &e_run_end = std::get<6>(GetParam());
+  EXPECT_EQ(run_end, e_run_end);
+  const auto &e_symbol_run_rnk = std::get<7>(GetParam());
   EXPECT_EQ(symbol_run_rnk, e_symbol_run_rnk);
 }
 
@@ -246,18 +255,18 @@ INSTANTIATE_TEST_SUITE_P(
     RLEString,
     RankRawTests,
     testing::Values(
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 0, 0, 4, 0, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 1, 4, 0, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 0, 3, 1, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 2, 4, 2, 1),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 0, 1, 3, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 0, 2, 4, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 6, 1, 2, 4, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 7, 2, 2, 4, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 8, 3, 2, 4, 0),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 1, 3, 5, 1),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 10, 2, 3, 5, 1),
-        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 11, 3, 3, 5, 1)
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 0, 0, 4, 0, 0, 2, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 1, 4, 0, 0, 2, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 0, 3, 1, 2, 3, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 2, 4, 2, 3, 4, 1),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 0, 1, 3, 4, 5, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 0, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 6, 1, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 7, 2, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 8, 3, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 1, 3, 5, 9, 12, 1),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 10, 2, 3, 5, 9, 12, 1),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 11, 3, 3, 5, 9, 12, 1)
     )
 );
 
