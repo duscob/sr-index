@@ -85,7 +85,7 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
         this->constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         this->constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunDataExt>()}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, nullptr}; },
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()

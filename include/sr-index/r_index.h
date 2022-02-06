@@ -92,7 +92,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
         constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0, 0)}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, nullptr}; },
         constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         constructIsRangeEmpty()
