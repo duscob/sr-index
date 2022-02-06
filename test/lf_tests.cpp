@@ -8,13 +8,13 @@
 #include "sr-index/lf.h"
 #include "sr-index/tools.h"
 
-#include "psi_base_tests.h"
+#include "base_tests.h"
 
-class LFOnPsiTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Char, Range>> {
+class LFOnPsiTests : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Char, Range>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
-    BasePsiTests::SetUp(bwt);
+    BaseAlphabetTests::SetUp(bwt);
   }
 };
 

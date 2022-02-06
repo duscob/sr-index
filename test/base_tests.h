@@ -17,7 +17,7 @@
 
 using BWT = sdsl::int_vector<8>;
 
-class BasePsiTests : public testing::Test {
+class BaseAlphabetTests : public testing::Test {
  protected:
   void SetUp(const BWT &bwt) {
     n_ = bwt.size();
