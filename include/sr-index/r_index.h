@@ -156,13 +156,14 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
     auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto &tt_smaller_c) -> RangeLF {
       tt_c_before_sp.value += tt_smaller_c;
-      tt_c_until_ep.value += tt_smaller_c;
+      tt_c_until_ep.value += tt_smaller_c - !tt_c_until_ep.run.is_cover + 1;
       return {tt_c_before_sp, tt_c_until_ep};
     };
 
     RangeLF empty_range;
 
-    return LF(bwt_rank, cumulative, create_range, empty_range);
+    auto lf = LF(bwt_rank, cumulative, create_range, empty_range);
+    return [lf](const Range &tt_range, const Char &tt_c) { return lf(tt_range.start, tt_range.end - 1, tt_c); };
   }
 
   using Char = typename TAlphabet::comp_char_type;
@@ -187,9 +188,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
   template<typename TCreateDataBackwardSearchStep>
   auto constructComputeDataBackwardSearchStep(TSource &t_source, const TCreateDataBackwardSearchStep &tt_create_data) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
-
-    auto is_lf_trivial = [cref_bwt_rle](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
+    auto is_lf_trivial = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
       const auto &[next_start, next_end] = tt_next_range;
       return !(next_start < next_end) || next_end.run.is_cover;
     };
