@@ -4,13 +4,14 @@
 
 #include <gtest/gtest.h>
 
+#include "sr-index/rle_string.hpp"
 #include "sr-index/psi.h"
 #include "sr-index/lf.h"
 #include "sr-index/tools.h"
 
 #include "base_tests.h"
 
-class LFOnPsiTests : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Char, Range>> {
+class LFTests : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Char, Range>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
@@ -18,7 +19,28 @@ class LFOnPsiTests : public BaseAlphabetTests, public testing::WithParamInterfac
   }
 };
 
-TEST_P(LFOnPsiTests, psi_core_bv) {
+TEST_P(LFTests, rle_string) {
+  const auto &e_psi = std::get<1>(GetParam());
+
+  auto get_symbol = [this](auto tt_i) { return this->alphabet_.char2comp[this->bwt_buf_[tt_i]]; };
+  auto bwt_s = sdsl::random_access_container(get_symbol, this->bwt_buf_.size());
+  sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
+
+  auto bwt_rank = [&bwt_rle](auto tt_c, auto tt_rnk) { return bwt_rle.rank(tt_rnk, tt_c); };
+  auto cumulative = sri::RandomAccessForCRefContainer(std::cref(alphabet_.C));
+
+  auto lf = sri::LFOnPsi(bwt_rank, cumulative);
+
+  const auto &range = std::get<2>(GetParam());
+  Char c = std::get<3>(GetParam());
+
+  auto new_range = lf(range, alphabet_.char2comp[c]);
+
+  auto e_range = std::get<4>(GetParam());
+  EXPECT_EQ(new_range, e_range);
+}
+
+TEST_P(LFTests, psi_core_bv) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
@@ -37,7 +59,7 @@ TEST_P(LFOnPsiTests, psi_core_bv) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_core_bv_serialized) {
+TEST_P(LFTests, psi_core_bv_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
   auto key = "psi_core_bv";
 
@@ -63,7 +85,7 @@ TEST_P(LFOnPsiTests, psi_core_bv_serialized) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_core_rle) {
+TEST_P(LFTests, psi_core_rle) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
@@ -82,7 +104,7 @@ TEST_P(LFOnPsiTests, psi_core_rle) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_core_rle_serialized) {
+TEST_P(LFTests, psi_core_rle_serialized) {
   const auto &e_psi = std::get<1>(GetParam());
   auto key = "psi_core_rle";
 
@@ -108,7 +130,7 @@ TEST_P(LFOnPsiTests, psi_core_rle_serialized) {
   EXPECT_EQ(new_range, e_range);
 }
 
-TEST_P(LFOnPsiTests, psi_core_bv_is_trivial) {
+TEST_P(LFTests, psi_core_bv_is_trivial) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
@@ -121,7 +143,7 @@ TEST_P(LFOnPsiTests, psi_core_bv_is_trivial) {
   EXPECT_EQ(is_trivial, bwt_buf_[range.first] == c);
 }
 
-TEST_P(LFOnPsiTests, psi_core_rle_is_trivial) {
+TEST_P(LFTests, psi_core_rle_is_trivial) {
   const auto &e_psi = std::get<1>(GetParam());
 
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
@@ -136,7 +158,7 @@ TEST_P(LFOnPsiTests, psi_core_rle_is_trivial) {
 
 INSTANTIATE_TEST_SUITE_P(
     Psi,
-    LFOnPsiTests,
+    LFTests,
     testing::Values(
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
