@@ -95,10 +95,11 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
   using typename Base::RunData;
   using typename Base::Char;
   struct RunDataExt : public RunData {
+    bool is_run_end; // If current position is the end of a run
     std::size_t next_pos; // Position for next LF step
 
-    explicit RunDataExt(Char t_c = 0, std::size_t t_end_run_rnk = 0, std::size_t tt_next_pos = 0)
-        : RunData{t_c, t_end_run_rnk}, next_pos{tt_next_pos} {}
+    explicit RunDataExt(Char t_c, std::size_t t_end_run_rnk, bool t_is_run_end, std::size_t tt_next_pos)
+        : RunData{t_c, t_end_run_rnk}, is_run_end{t_is_run_end}, next_pos{tt_next_pos} {}
     virtual ~RunDataExt() = default;
   };
 
@@ -108,7 +109,8 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
   auto constructCreateDataBackwardSearchStep() {
     return [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
       const auto &[next_start, next_end] = tt_next_range;
-      return DataBackwardSearchStep{tt_step, std::make_shared<RunDataExt>(tt_c, next_end.run.rank, next_end.value)};
+      return DataBackwardSearchStep{tt_step,
+                                    std::make_shared<RunDataExt>(tt_c, next_end.run.rank, true, next_end.value - 1)};
     };
   }
 
@@ -128,15 +130,17 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
 
     auto get_sample = constructGetSample(t_source);
-    auto get_sample_run_data = [get_sample](const RunData *tt_run_data) {
-      return get_sample(tt_run_data->last_run_rnk);
+    auto get_sample_run_data = [get_sample](const RunDataExt *tt_run_data) {
+      return tt_run_data->is_run_end ? get_sample(tt_run_data->last_run_rnk) : std::nullopt;
     };
 
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
     auto lf_run_data = [cref_bwt_rle, cref_alphabet](RunDataExt *tt_run_data) {
-      auto report = [&tt_run_data, cref_alphabet](auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_symbol_run_rnk) {
+      auto report = [&tt_run_data, cref_alphabet](
+          auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_run_start, auto tt_run_end, auto tt_symbol_run_rnk) {
         tt_run_data->c = tt_c;
         tt_run_data->last_run_rnk = tt_run_rnk;
+        tt_run_data->is_run_end = tt_run_data->next_pos == tt_run_end - 1;
         tt_run_data->next_pos = cref_alphabet.get().C[tt_c] + tt_rnk;
       };
 
@@ -148,7 +152,6 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
     auto compute_sa_value = buildComputeSAValueBackward(get_sample_run_data, lf_run_data, this->n_);
     auto compute_sa_value_for_run_data = [cref_bwt_rle, compute_sa_value](std::shared_ptr<RunDataExt> tt_run_data) {
       tt_run_data->last_run_rnk = cref_bwt_rle.get().selectOnRuns(tt_run_data->last_run_rnk, tt_run_data->c);
-      --tt_run_data->next_pos;
       return compute_sa_value(tt_run_data.get());
     };
 
