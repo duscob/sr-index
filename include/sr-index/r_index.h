@@ -92,7 +92,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
         constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, nullptr}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData{0, 0}}; },
         constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         constructIsRangeEmpty()
@@ -176,13 +176,12 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     virtual ~RunData() = default;
   };
 
-  // TODO Use unique_ptr instead shared_ptr
-  using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
+  using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
 
   auto constructCreateDataBackwardSearchStep() {
     return [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
       const auto &[next_start, next_end] = tt_next_range;
-      return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(tt_c, next_end.run.rank)};
+      return DataBackwardSearchStep{tt_step, RunData{tt_c, next_end.run.rank}};
     };
   }
 
@@ -200,8 +199,8 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sa_value_for_run_data = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
-      auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data->last_run_rnk, tt_run_data->c);
+    auto get_sa_value_for_run_data = [cref_bwt_rle, cref_samples](const RunData &tt_run_data) {
+      auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data.last_run_rnk, tt_run_data.c);
       return cref_samples.get()[run] + 1;
     };
 
