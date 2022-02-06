@@ -168,7 +168,7 @@ INSTANTIATE_TEST_SUITE_P(
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{1, 5},
                         2,
-                        Range{1, 0}), // 2 before 2
+                        Range{1, 1}), // 2 before 2
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{1, 5},
@@ -184,7 +184,7 @@ INSTANTIATE_TEST_SUITE_P(
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{10, 12},
                         2,
-                        Range{1, 0}), // 2 before 4
+                        Range{5, 5}), // 2 before 4
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{10, 12},
@@ -225,7 +225,7 @@ INSTANTIATE_TEST_SUITE_P(
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{3, 5},
                         3,
-                        Range{1, 0}),
+                        Range{6, 6}),
         std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
                         Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
                         Range{3, 10},

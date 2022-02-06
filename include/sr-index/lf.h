@@ -36,10 +36,6 @@ auto lf(const TRankC &t_rank_c,
   // Number of c before the interval + number of c inside the interval range
   auto c_until_ep = t_rank_c(t_c, t_last);
 
-  // If there are no c in the interval, return empty range
-  if (c_before_sp == c_until_ep)
-    return t_empty_range;
-
   // Number of characters smaller than c
   auto smaller_c = t_cumulative_c(t_c);
 
