@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
   Factory<> factory(config);
 
   std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
-      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
+      {"R-Index", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}},
   };
 
   std::string print_bm_prefix = "Print-";

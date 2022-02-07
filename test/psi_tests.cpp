@@ -12,15 +12,15 @@
 #include "sr-index/psi.h"
 #include "sr-index/tools.h"
 
-#include "psi_base_tests.h"
+#include "base_tests.h"
 
 using Cumulative = sdsl::int_vector<64>;
 
-class AlphabetTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Cumulative>> {
+class AlphabetTests : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Cumulative>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
-    BasePsiTests::SetUp(bwt);
+    BaseAlphabetTests::SetUp(bwt);
   }
 };
 
@@ -47,11 +47,11 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-class PsiTests : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi>> {
+class PsiTests : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
-    BasePsiTests::SetUp(bwt);
+    BaseAlphabetTests::SetUp(bwt);
   }
 };
 
@@ -245,12 +245,12 @@ void PrintTo(const DataRank &t_item, std::ostream *t_os) {
   *t_os << "{" << t_item.rank << "; {" << t_item.run.start << "; " << t_item.run.end << "; " << t_item.run.rank << "}}";
 }
 
-class RankPsiTests : public BasePsiTests,
+class RankPsiTests : public BaseAlphabetTests,
                      public testing::WithParamInterface<std::tuple<BWT, Psi, std::tuple<Char, Value, DataRank>>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
-    BasePsiTests::SetUp(bwt);
+    BaseAlphabetTests::SetUp(bwt);
   }
 };
 
@@ -388,11 +388,11 @@ INSTANTIATE_TEST_SUITE_P(
 using Ranges = std::vector<Range>;
 
 class SplitInRunsWithPsiTests
-    : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Ranges>> {
+    : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Ranges>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
-    BasePsiTests::SetUp(bwt);
+    BaseAlphabetTests::SetUp(bwt);
   }
 };
 
@@ -465,11 +465,11 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 class ComputeForwardRunsWithPsiTests
-    : public BasePsiTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Char, Range, Ranges>> {
+    : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Char, Range, Ranges>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
-    BasePsiTests::SetUp(bwt);
+    BaseAlphabetTests::SetUp(bwt);
   }
 };
 

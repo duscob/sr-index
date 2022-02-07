@@ -718,7 +718,7 @@ class RLEString {
   //! \return Symbol at position @p i
   auto operator[](std::size_t i) const {
     assert(i < size());
-    return run_heads_[rankSoftRun(i).idx];
+    return run_heads_[rankSoftRun(i).rnk];
   }
 
   //! Select operation over sequence for symbol c
@@ -767,7 +767,7 @@ class RLEString {
 
     auto run = rankSoftRun(t_i);
 
-    auto symbol_run_rank = run_heads_.rank(run.idx, t_c); // number of t_c runs before the current run
+    auto symbol_run_rank = run_heads_.rank(run.rnk, t_c); // number of t_c runs before the current run
     auto symbol_run_start = (symbol_run_rank == 0) ? 0 : runs_per_symbol.select(symbol_run_rank) + 1;
     auto run_offset = (run.c == t_c) ? t_i - run.start : 0; // number of t_c before t_i in the current run
 
@@ -795,22 +795,41 @@ class RLEString {
       return;
     }
 
-    auto run = rankSoftRun(t_i);
+    auto[run, symbol_run] = rankSoftBothRun(t_i);
 
-    auto symbol_run_rnk = run_heads_.rank(run.idx, t_c); // number of t_c runs before the current run
-    auto symbol_run_start = (symbol_run_rnk == 0) ? 0 : runs_per_symbol.select(symbol_run_rnk) + 1;
     bool symbol_run_is_cover = run.c == t_c; // run covers the original position?
+    if (!symbol_run_is_cover) {
+      symbol_run.rnk = run_heads_.rank(run.rnk, t_c); // number of t_c runs before the current run
+      symbol_run.start = (symbol_run.rnk == 0) ? 0 : runs_per_symbol.select(symbol_run.rnk) + 1;
+    } else {
+      ++symbol_run.rnk;
+    }
     auto run_offset = symbol_run_is_cover ? t_i - run.start : 0; // number of t_c before t_i in the current run
+    auto rnk = symbol_run.start + run_offset;
+    t_report(rnk, symbol_run.rnk, symbol_run_is_cover);
+  }
 
-    auto rnk = symbol_run_start + run_offset;
-    t_report(rnk, symbol_run_rnk + symbol_run_is_cover, symbol_run_is_cover);
+  //! Rank operation over sequence for symbol s[t_i]
+  //! \tparam TReport
+  //! \param t_i Position query
+  //! \param t_report Report rank for symbol s[t_i] before the position given, i.e., number of symbols s[t_i] with position less than @p t_i
+  //! and data of run containing the position
+  template<typename TReport>
+  void rank(std::size_t t_i, TReport t_report) const {
+    assert(t_i < size());
+
+    auto[run, symbol_run] = rankSoftBothRun(t_i);
+    auto run_offset = t_i - run.start; // number of c before t_i in the current run
+    auto rnk = symbol_run.start + run_offset;
+
+    t_report(rnk, run.c, run.rnk, run.start, run.end, symbol_run.rnk);
   }
 
   //! Select operation over runs (run length encoded) on sequence
   //! \param t_run_rnk Run rank (or number of run with symbols @p c) query. It must be less or equal than the number of runs with symbol @p c (and start from 1!)
   //! \param t_c Symbol c
   //! \return Position of @p t_run_rnk-th runs with symbol @p c
-  auto selectRun(std::size_t t_run_rnk, const typename TString::value_type &t_c) const {
+  auto selectOnRuns(std::size_t t_run_rnk, const typename TString::value_type &t_c) const {
     assert(1 <= t_run_rnk && t_run_rnk <= runs_per_symbol_[t_c].rank(runs_per_symbol_[t_c].data.size()));
 
     return run_heads_.select(t_run_rnk, t_c);
@@ -823,7 +842,7 @@ class RLEString {
   std::vector<StringRun> splitInRuns(std::size_t t_first, std::size_t t_last) const {
     std::vector<StringRun> runs;
     auto report = [&runs](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
-      runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+      runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end}});
     };
 
     splitInRuns(t_first, t_last, report);
@@ -831,7 +850,7 @@ class RLEString {
     return runs;
   }
 
-  //! Split in runs on the given range [t_first..t_last)
+  //! Split in runs on the given range [t_first..t_last). Minimal runs covering the range (first/last run could expand beyond the range).
   //! \tparam TReportRun
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)
@@ -843,16 +862,13 @@ class RLEString {
     auto run = rankSoftRun(t_first);
 
     // Report all the runs in the interval
-    run.start = t_first;
     while (run.end < t_last) {
-      t_report_run(run.idx, run.c, run.start, run.end);
+      t_report_run(run.rnk, run.c, run.start, run.end);
 
-      ++run.idx;
-      run.start = run.end;
-      updateRunData(run);
+      run = computeRunData(run.rnk + 1, run.end);
     }
 
-    t_report_run(run.idx, run.c, run.start, t_last);
+    t_report_run(run.rnk, run.c, run.start, run.end);
   }
 
   typedef std::size_t size_type;
@@ -919,40 +935,54 @@ class RLEString {
   }
 
   struct RunData {
-    std::size_t idx = 0;
-    typename TString::value_type c = 0;
+    std::size_t rnk = 0; // Run rank
+    typename TString::value_type c = 0; // Run symbol
 
-    std::size_t start = 0;
-    std::size_t end = 0;
+    std::size_t start = 0; // First position of run
+    std::size_t end = 0; // Last position of run
   };
 
   //! Rank operation over runs (run length encoded) on sequence
   //! Compute the number of runs up to the value and the end position of the run containing the given value
   //! \param t_i Position/index query
-  //! \return {Run containing the queried position @p t_i; end position of the run}
+  //! \return Run data for the queried position @p t_i
   auto rankSoftRun(std::size_t t_i) const {
-    auto block = runs_.rank(t_i);
-    RunData run;
-    run.idx = block * b_;
-    run.start = (block > 0) ? runs_.select(block) + 1 : 0ul; //current position in the string: the first of a block
-    assert(run.start <= t_i);
-    updateRunData(run);
-
-    while (run.end <= t_i) {
-      ++run.idx;
-      run.start = run.end;
-      updateRunData(run);
-    }
-    assert(run.start <= t_i && t_i < run.end);
-    assert(run.idx < r_);
-
+    auto[run, _] = rankSoftBothRun(t_i);
     return run;
   }
 
-  void updateRunData(RunData &tt_run) const {
-    auto symbol_run = computeSymbolRunData(tt_run.idx);
-    tt_run.end = tt_run.start + (symbol_run.end - symbol_run.start);
-    tt_run.c = symbol_run.c;
+  //! Rank operation over runs (run length encoded) on sequence
+  //! Compute the number of runs up to the value and the end position of the run containing the given value
+  //! \param t_i Position/index query
+  //! \return { Global run data for the queried position @p t_i; Symbol run data for the queried position @p t_i }
+  auto rankSoftBothRun(std::size_t t_i) const {
+    auto block = runs_.rank(t_i);
+    auto[run, symbol_run] = computeBothRunData(block * b_, (block > 0) ? runs_.select(block) + 1 : 0ul);
+
+    while (run.end <= t_i) {
+      std::tie(run, symbol_run) = computeBothRunData(run.rnk + 1, run.end);
+    }
+    assert(run.start <= t_i && t_i < run.end);
+    assert(run.rnk < r_);
+
+    return std::make_pair(run, symbol_run);
+  }
+
+  //! Compute data for the given global run and corresponding symbol run
+  //! \param t_run Run query (global)
+  //! \return { Global run data: {run rank, symbol, start, end}; Symbol run data: {run rank, symbol, start, end} }
+  auto computeBothRunData(std::size_t t_run, std::size_t t_run_start) const {
+    auto symbol_run = computeSymbolRunData(t_run);
+    return std::make_pair(RunData{t_run, symbol_run.c, t_run_start, t_run_start + (symbol_run.end - symbol_run.start)},
+                          symbol_run);
+  }
+
+  //! Compute data for the given global run
+  //! \param t_run Run query (global)
+  //! \return Global run data: {run rank, symbol, start, end}
+  auto computeRunData(std::size_t t_run, std::size_t t_run_start) const {
+    auto symbol_run = computeSymbolRunData(t_run);
+    return RunData{t_run, symbol_run.c, t_run_start, t_run_start + (symbol_run.end - symbol_run.start)};
   }
 
   //! Compute length of queried run
@@ -963,9 +993,9 @@ class RLEString {
     return symbol_run.end - symbol_run.start;
   }
 
-  //! Compute data for the symbol run corresponding to the queried global run run
+  //! Compute data for the symbol run corresponding to the queried global run
   //! \param t_run Run query (global)
-  //! \return Symbol run data
+  //! \return Symbol run data: {run rank, symbol, start, end}
   auto computeSymbolRunData(std::size_t t_run) const {
     assert(t_run < r_);
 

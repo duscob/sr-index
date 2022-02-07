@@ -56,7 +56,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     size_type written_bytes = 0;
     written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
 
-    written_bytes += this->template serializeItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
+    written_bytes += this->template serializeItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), out, child, "bwt");
 
     written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
 
@@ -89,10 +89,10 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   virtual void loadAllItems(TSource &t_source) {
     this->index_.reset(new RIndexBase{
         constructLF(t_source),
-        constructComputeDataBackwardSearchStep(t_source),
+        constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0, 0)}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData{0, 0}}; },
         constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         constructIsRangeEmpty()
@@ -145,7 +145,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     this->n_ = cumulative[cref_alphabet.get().sigma];
 
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
-    auto psi_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
+    auto bwt_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
       DataLF data;
       auto report = [&data](const auto &tt_rank, const auto &tt_run_rank, const auto &tt_is_cover) {
         data = DataLF{tt_rank, {tt_run_rank, tt_is_cover}};
@@ -156,58 +156,77 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
     auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto &tt_smaller_c) -> RangeLF {
       tt_c_before_sp.value += tt_smaller_c;
-      tt_c_until_ep.value += tt_smaller_c;
+      tt_c_until_ep.value += tt_smaller_c - !tt_c_until_ep.run.is_cover + 1;
       return {tt_c_before_sp, tt_c_until_ep};
     };
 
     RangeLF empty_range;
 
-    return LF(psi_rank, cumulative, create_range, empty_range);
+    auto lf = LF(bwt_rank, cumulative, create_range, empty_range);
+    return [lf](const Range &tt_range, const Char &tt_c) { return lf(tt_range.start, tt_range.end - 1, tt_c); };
   }
 
   using Char = typename TAlphabet::comp_char_type;
 
   struct RunData {
     Char c; // Character for LF step in the range
-    std::size_t end_run_rnk; // End of range before LF step
+    std::size_t last_run_rnk; // Rank of the last run
 
-    RunData(Char t_c, std::size_t t_end_run_rnk) : c{t_c}, end_run_rnk{t_end_run_rnk} {}
+    RunData(Char t_c, std::size_t t_end_run_rnk) : c{t_c}, last_run_rnk{t_end_run_rnk} {}
     virtual ~RunData() = default;
   };
 
-  // TODO Use unique_ptr instead shared_ptr
-  using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
+  using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
 
-  auto constructComputeDataBackwardSearchStep(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+  auto constructCreateDataBackwardSearchStep() {
+    return [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
+      const auto &[next_start, next_end] = tt_next_range;
+      return DataBackwardSearchStep{tt_step, RunData{tt_c, next_end.run.rank}};
+    };
+  }
 
-    auto is_lf_trivial = [cref_bwt_rle](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
+  template<typename TCreateDataBackwardSearchStep>
+  auto constructComputeDataBackwardSearchStep(TSource &t_source, const TCreateDataBackwardSearchStep &tt_create_data) {
+    auto is_lf_trivial = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
       const auto &[next_start, next_end] = tt_next_range;
       return !(next_start < next_end) || next_end.run.is_cover;
     };
 
-    auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
-      const auto &[next_start, next_end] = tt_next_range;
-      return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(tt_c, next_end.run.rank)};
-    };
-
-    return ComputeDataBackwardSearchStep(is_lf_trivial, create_data);
+    return ComputeDataBackwardSearchStep(is_lf_trivial, tt_create_data);
   }
 
-  using Value = std::size_t;
-  auto constructPhiForRange(TSource &t_source) {
+  auto constructComputeToehold(TSource &t_source) {
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+
+    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto get_sa_value_for_run_data = [cref_bwt_rle, cref_samples](const RunData &tt_run_data) {
+      auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data.last_run_rnk, tt_run_data.c);
+      return cref_samples.get()[run] + 1;
+    };
+
+    return ComputeToehold(get_sa_value_for_run_data, cref_bwt_rle.get().size());
+  }
+
+  auto constructGetMarkToSampleIdx(TSource &t_source, bool t_default_validity) {
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    return RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, t_default_validity);
+  }
+
+  template<typename TGetMarkToSampleIdx>
+  auto constructPhi(TSource &t_source, const TGetMarkToSampleIdx &t_get_mark_to_sample_idx) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto predecessor = CircularPredecessor(bv_mark_rank, bv_mark_select, this->n_);
-
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
-    auto get_mark_to_sample_idx = RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, true);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
     SampleValidatorDefault sample_validator_default;
 
-    auto phi = buildPhiForward(predecessor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    return buildPhiForward(predecessor, t_get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+  }
+
+  auto constructPhiForRange(TSource &t_source) {
+    auto phi = constructPhi(t_source, constructGetMarkToSampleIdx(t_source, true));
     auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
       const auto &[start, end] = t_range;
@@ -218,18 +237,6 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     };
 
     return phi_for_range;
-  }
-
-  auto constructComputeToehold(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
-
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_start = [cref_bwt_rle, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
-      auto run = cref_bwt_rle.get().selectRun(tt_run_data->end_run_rnk, tt_run_data->c);
-      return cref_samples.get()[run] + 1;
-    };
-
-    return ComputeToehold(get_sa_value_for_bwt_run_start, cref_bwt_rle.get().size());
   }
 
   template<typename TPhiRange, typename TComputeToehold>
@@ -252,11 +259,21 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
 };
 
+template<uint8_t t_width, typename TBvMark>
+void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config);
+
 template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
 
+  constructRIndex<t_width, TBvMark>(t_data_path, t_config);
+
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width, typename TBvMark>
+void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   {
@@ -281,8 +298,6 @@ void construct(RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSam
       constructBitVectorFromIntVector<TBvMark>(key_marks, t_config, n, false);
     }
   }
-
-  t_index.load(t_config);
 }
 
 }

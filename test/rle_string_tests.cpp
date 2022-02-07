@@ -211,6 +211,65 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
+class RankRawTests : public testing::TestWithParam<
+    std::tuple<String, std::size_t, std::size_t, Char, std::size_t, std::size_t, std::size_t, std::size_t>> {
+};
+
+TEST_P(RankRawTests, RLEString_report) {
+  const auto &str = std::get<0>(GetParam());
+  sri::RLEString<> rle_str(str.begin(), str.end());
+
+  const auto &pos = std::get<1>(GetParam());
+  std::size_t rnk;
+  uint8_t c;
+  std::size_t run_rnk;
+  std::size_t run_start;
+  std::size_t run_end;
+  std::size_t symbol_run_rnk;
+  auto report = [&rnk, &c, &run_rnk, &run_start, &run_end, &symbol_run_rnk](
+      auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_run_start, auto tt_run_end, auto tt_symbol_run_rnk) {
+    rnk = tt_rnk;
+    c = tt_c;
+    run_rnk = tt_run_rnk;
+    run_start = tt_run_start;
+    run_end = tt_run_end;
+    symbol_run_rnk = tt_symbol_run_rnk;
+  };
+  rle_str.rank(pos, report);
+
+  const auto &e_rnk = std::get<2>(GetParam());
+  EXPECT_EQ(rnk, e_rnk);
+  const auto &e_c = std::get<3>(GetParam());
+  EXPECT_EQ(c, e_c);
+  const auto &e_run_rnk = std::get<4>(GetParam());
+  EXPECT_EQ(run_rnk, e_run_rnk);
+  const auto &e_run_start = std::get<5>(GetParam());
+  EXPECT_EQ(run_start, e_run_start);
+  const auto &e_run_end = std::get<6>(GetParam());
+  EXPECT_EQ(run_end, e_run_end);
+  const auto &e_symbol_run_rnk = std::get<7>(GetParam());
+  EXPECT_EQ(symbol_run_rnk, e_symbol_run_rnk);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RLEString,
+    RankRawTests,
+    testing::Values(
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 0, 0, 4, 0, 0, 2, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 1, 1, 4, 0, 0, 2, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 2, 0, 3, 1, 2, 3, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 3, 2, 4, 2, 3, 4, 1),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 4, 0, 1, 3, 4, 5, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 5, 0, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 6, 1, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 7, 2, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 8, 3, 2, 4, 5, 9, 0),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 9, 1, 3, 5, 9, 12, 1),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 10, 2, 3, 5, 9, 12, 1),
+        std::make_tuple(String{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3}, 11, 3, 3, 5, 9, 12, 1)
+    )
+);
+
 class SelectRunTests : public testing::TestWithParam<std::tuple<String, std::size_t, Char, std::size_t>> {};
 
 TEST_P(SelectRunTests, RLEString) {
@@ -219,7 +278,7 @@ TEST_P(SelectRunTests, RLEString) {
 
   const auto &rnk = std::get<1>(GetParam());
   const auto &c = std::get<2>(GetParam());
-  auto pos = rle_str.selectRun(rnk, c);
+  auto pos = rle_str.selectOnRuns(rnk, c);
 
   const auto &e_pos = std::get<3>(GetParam());
   EXPECT_EQ(pos, e_pos);
@@ -245,10 +304,10 @@ TEST_P(SplitInRunsTests, rle_string) {
   sri::rle_string<> rle_str(str);
 
   const auto &range = std::get<1>(GetParam());
-  auto runs_in_range = rle_str.break_in_runs(range);
+  auto runs = rle_str.break_in_runs(range);
 
-  const auto &e_runs_in_range = std::get<2>(GetParam());
-  EXPECT_THAT(runs_in_range, testing::ElementsAreArray(e_runs_in_range));
+  const auto &e_runs = std::get<2>(GetParam());
+  EXPECT_THAT(runs, testing::ElementsAreArray(e_runs));
 }
 
 TEST_P(SplitInRunsTests, RLEString) {
@@ -256,14 +315,15 @@ TEST_P(SplitInRunsTests, RLEString) {
   sri::RLEString<> rle_str(str.begin(), str.end());
 
   const auto &range = std::get<1>(GetParam());
-  std::vector<sri::StringRun> runs_in_range;
-  auto report = [&runs_in_range](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
-    runs_in_range.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end - 1}});
+  std::vector<sri::StringRun> runs;
+  auto report = [&runs, &range](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
+    runs.emplace_back(sri::StringRun{
+        tt_idx, tt_c, sri::range_t{std::max(tt_start, range.first), std::min(range.second, tt_end - 1)}});
   };
   rle_str.splitInRuns(range.first, range.second + 1, report);
 
-  const auto &e_runs_in_range = std::get<2>(GetParam());
-  EXPECT_THAT(runs_in_range, testing::ElementsAreArray(e_runs_in_range));
+  const auto &e_runs = std::get<2>(GetParam());
+  EXPECT_THAT(runs, testing::ElementsAreArray(e_runs));
 }
 
 INSTANTIATE_TEST_SUITE_P(

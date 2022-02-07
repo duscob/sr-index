@@ -12,3 +12,4 @@ cxx_executable_with_flags(bm_build_ri_items "" "${GFLAGS_LIB};benchmark;sr-index
 cxx_executable_with_flags(bm_locate "" "${GFLAGS_LIB};benchmark;sr-index;${LIBS};${CMAKE_THREAD_LIBS_INIT}" bm_locate.cpp)
 
 add_subdirectory(sr-csa)
+add_subdirectory(sr-index)

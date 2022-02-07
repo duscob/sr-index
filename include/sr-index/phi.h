@@ -252,99 +252,128 @@ auto computeSampleToMarkLinkForPhiForward(std::size_t t_sample_pos,
   return t_rank_sample(k);
 }
 
-template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
-class PhiForRangeSimple {
+template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TNavigate, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
+class PhiBackwardForRange {
  public:
-  PhiForRangeSimple(const TPhi &t_phi,
-                    const TSplitInBWTRun &t_split,
-                    const TBackwardNav &t_lf,
-                    const TSampleAt &t_sample_at,
-                    std::size_t t_sampling_size,
-                    std::size_t t_bwt_size)
+  PhiBackwardForRange(const TPhi &t_phi,
+                      const TGetSample &t_get_sample,
+                      const TSplitRangeInBWTRuns &t_split_range,
+                      const TSplitRunInBWTRuns &t_split_run,
+                      const TNavigate &t_lf,
+                      std::size_t t_sampling_size,
+                      std::size_t t_seq_size,
+                      const TIsRangeEmpty &t_is_range_empty,
+                      const TUpdateRun &t_update_run,
+                      const TIsRunEmpty &t_is_run_empty)
       : phi_{t_phi},
-        split_{t_split},
-        lf_{t_lf},
-        sample_at_{t_sample_at},
+        get_sample_{t_get_sample},
+        split_range_{t_split_range},
+        split_run_{t_split_run},
+        navigate_{t_lf},
         sampling_size_{t_sampling_size},
-        bwt_size_{t_bwt_size} {
+        seq_size_{t_seq_size},
+        is_range_empty_{t_is_range_empty},
+        update_run_{t_update_run},
+        is_run_empty_{t_is_run_empty} {
   }
 
-  template<typename TReport, typename TRange>
+  template<typename TRange, typename TReport>
   void operator()(const TRange &t_range, std::size_t t_prev_value, TReport &t_report) const {
-//    auto last_value = phi_(t_prev_value);
-    auto last_value = std::make_pair(t_prev_value, false);
-    compute(t_range, last_value, 0, t_report);
-  }
+    if (is_range_empty_(t_range)) return;
 
-  template<typename TReporter, typename Range>
-  std::pair<std::size_t, bool> compute(const Range &t_range,
-                                       std::pair<std::size_t, bool> t_last_value,
-                                       std::size_t t_n_jumps,
-                                       TReporter &t_reporter) const {
-
-    auto first = t_range.first;
-    auto last = t_range.second;
-
-    if (last < first) { return {-1, false}; }
-
-    auto last_value = t_last_value;
-    if (sampling_size_ <= t_n_jumps) {
-      // Reach the limits of backward jumps, so phi for the previous value is valid
-      last_value = phi_(last_value.first);
-
-      do {
-        t_reporter(last_value.first);
-
-        last_value = phi_(last_value.first);
-        --last;
-      } while (first <= last);
-
-      return last_value;
-    }
-
-    auto sample = sample_at_(last);
-    if (sample) {
-      // Position last is sampled, so we can use the sampled value
-
-      // NOTE we sampled the position of the i-th BWT char, but here we want the position of SA[i], so we need + 1
-      last_value = {(sample.value() + 1 + t_n_jumps) % bwt_size_, false};
-      t_reporter(last_value.first);
-      --last;
-    }
-
-    if (last < first) { return last_value; }
-
-    // TODO Don't split it in all sub-runs. We can go in depth recursively with only the last remaining sub-run, and continue with the other at the same level.
-    auto runs_in_range = split_(first, last);
-
-    auto it = rbegin(runs_in_range);
-    last_value = compute(lf_(it->range, it->c), last_value, t_n_jumps + 1, t_reporter);
-    while (++it != rend(runs_in_range)) {
-      last_value = compute(it->range, last_value, t_n_jumps, t_reporter);
-    }
-
-    return last_value;
+    auto runs = split_range_(t_range);
+    computeForRuns(runs, t_prev_value, 0, t_report);
   }
 
  private:
+
+  template<typename TRuns, typename TReport>
+  std::size_t computeForRuns(TRuns &&t_runs, std::size_t t_prev_value, std::size_t t_level, TReport &t_report) const {
+    for (auto it = rbegin(t_runs); it != rend(t_runs); ++it) {
+      auto &run = *it;
+      auto sample = get_sample_(run);
+      if (sample) {
+        // Extreme position in range is sampled, so we can use the sampled value
+        // NOTE we sampled the position of the i-th BWT char, but here we want the position of SA[i], so we need + 1
+        t_prev_value = (*sample + 1 + t_level) % seq_size_;
+        t_report(t_prev_value);
+        update_run_(run);
+      }
+
+      if (is_run_empty_(run)) { continue; }
+
+      t_prev_value = compute(navigate_(run), t_prev_value, t_level + 1, t_report);
+    }
+
+    return t_prev_value;
+  }
+
+  template<typename TRun, typename TReport>
+  auto compute(TRun &&t_run, std::size_t t_prev_value, std::size_t t_level, TReport &t_report) const {
+    if (sampling_size_ <= t_level) {
+      // Reach the limits of backward jumps, so phi for the previous value is valid
+      do {
+        t_prev_value = phi_(t_prev_value);
+        t_report(t_prev_value);
+        update_run_(t_run);
+      } while (!is_run_empty_(t_run));
+
+      return t_prev_value;
+    }
+
+    // TODO Don't split it in all sub-runs. We can go in depth recursively with only the last remaining sub-run, and continue with the other at the same level.
+    auto runs = split_run_(t_run);
+    return computeForRuns(runs, t_prev_value, t_level, t_report);
+  }
+
   TPhi phi_;
-  TSplitInBWTRun split_; // Split an interval in its internal BWT runs
-  TBackwardNav lf_; // LF
-  TSampleAt sample_at_; // Access to last value of a BWT run. Note that some tails are not sampled.
+  TGetSample get_sample_; // Access to last value of a BWT run. Note that some tails are not sampled.
+  TSplitRangeInBWTRuns split_range_; // Split the first interval (range) in its internal BWT runs
+  TSplitRunInBWTRuns split_run_; // Split an interval (run) in its internal BWT runs
+  TNavigate navigate_; // LFOnBWT in backward navigate or Psi in forward navigate
 
   std::size_t sampling_size_;
-  std::size_t bwt_size_;
+  std::size_t seq_size_;
+
+  TIsRangeEmpty is_range_empty_;
+  TUpdateRun update_run_;
+  TIsRunEmpty is_run_empty_;
 };
 
-template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
+template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TGetSample>
 auto buildPhiForRangeSimple(const TPhi &t_phi,
                             const TSplitInBWTRun &t_split,
                             const TBackwardNav &t_lf,
-                            const TSampleAt &t_sample_at,
+                            const TGetSample &t_get_sample,
                             std::size_t t_sampling_size,
                             std::size_t t_bwt_size) {
-  return PhiForRangeSimple<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
-      t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
+
+  auto phi = [t_phi](const auto tt_prev_value) { return t_phi(tt_prev_value).first; };
+  auto get_sample = [t_get_sample](const auto &tt_run) { return t_get_sample(tt_run.range.second); };
+  auto split_run = [t_split](auto tt_run) { return t_split(tt_run.range); };
+  auto lf = [t_lf](auto &tt_run) {
+    tt_run.range = t_lf(tt_run.range, tt_run.c);
+    return tt_run;
+  };
+  auto is_range_empty = [](const auto &tt_range) { return tt_range.second < tt_range.first; };
+  auto update_run = [](auto &tt_run) {
+    auto &range = tt_run.range;
+    auto &[first, last] = range;
+    --last;
+    return tt_run;
+  };
+  auto is_run_empty = [](const auto &tt_run) { return tt_run.range.second < tt_run.range.first; };
+
+  return PhiBackwardForRange(phi,
+                             get_sample,
+                             t_split,
+                             split_run,
+                             lf,
+                             t_sampling_size,
+                             t_bwt_size,
+                             is_range_empty,
+                             update_run,
+                             is_run_empty);
 }
 
 template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
@@ -458,14 +487,14 @@ auto buildPhiForwardForRange(const TPhi &t_phi,
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
-class PhiForRange {
+class PhiBackwardForRangeWithValidity {
  public:
-  PhiForRange(const TPhi &t_phi,
-              const TSplitInBWTRun &t_split,
-              const TBackwardNav &t_lf,
-              const TSampleAt &t_sample_at,
-              std::size_t t_sampling_size,
-              std::size_t t_bwt_size)
+  PhiBackwardForRangeWithValidity(const TPhi &t_phi,
+                                  const TSplitInBWTRun &t_split,
+                                  const TBackwardNav &t_lf,
+                                  const TSampleAt &t_sample_at,
+                                  std::size_t t_sampling_size,
+                                  std::size_t t_bwt_size)
       : phi_{t_phi},
         split_{t_split},
         lf_{t_lf},
@@ -555,7 +584,7 @@ auto buildPhiForRange(const TPhi &t_phi,
                       const TSampleAt &t_sample_at,
                       std::size_t t_sampling_size,
                       std::size_t t_bwt_size) {
-  return PhiForRange<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
+  return PhiBackwardForRangeWithValidity<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
 

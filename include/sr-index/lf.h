@@ -7,39 +7,34 @@
 
 namespace sri {
 
-
 //! LF function
 //! \tparam TRankC Rank function for character @p c
 //! \tparam TCumulativeC Function to cumulative count for alphabet
-//! \tparam TRange Range type
+//! \tparam TValue Range position type
 //! \tparam TChar Char type
 //! \tparam TCreateNewRange Function to create new range
 //! \tparam TNewRange New range type
 //! \param t_rank_c Rank function for character @p c
 //! \param t_cumulative_c Cumulative count for alphabet [0..sigma]
-//! \param t_range Queried range [sp; ep)
+//! \param t_first Start position of queried range [t_first; t_last)
+//! \param t_last End position of queried range [t_first; t_last)
 //! \param t_c Queried character c
-//! \param t_create_range Function to create new range corresponding to @p c in range [sp; ep)
+//! \param t_create_range Function to create new range corresponding to @p c in range [t_first; t_last)
 //! \param t_empty_range Default empty range
-//! \return New range corresponding to character @p c in range [sp; ep) or empty range if character does not appear in range
-template<typename TRankC, typename TCumulativeC, typename TRange, typename TChar, typename TCreateNewRange, typename TNewRange>
+//! \return New range corresponding to character @p c in range [t_first; t_last) or empty range if character does not appear in range
+template<typename TRankC, typename TCumulativeC, typename TValue, typename TChar, typename TCreateNewRange, typename TNewRange>
 auto lf(const TRankC &t_rank_c,
         const TCumulativeC &t_cumulative_c,
-        const TRange &t_range,
+        const TValue &t_first,
+        const TValue &t_last,
         const TChar &t_c,
         const TCreateNewRange &t_create_range,
         const TNewRange &t_empty_range) {
-  const auto&[sp, ep] = t_range;
-
   // Number of c before the interval
-  auto c_before_sp = t_rank_c(t_c, sp);
+  auto c_before_sp = t_rank_c(t_c, t_first);
 
   // Number of c before the interval + number of c inside the interval range
-  auto c_until_ep = t_rank_c(t_c, ep);
-
-  // If there are no c in the interval, return empty range
-  if (c_before_sp == c_until_ep)
-    return t_empty_range;
+  auto c_until_ep = t_rank_c(t_c, t_last);
 
   // Number of characters smaller than c
   auto smaller_c = t_cumulative_c(t_c);
@@ -72,7 +67,20 @@ class LF {
   //! \return [new_sp; new_ep)
   template<typename TTRange, typename TChar>
   auto operator()(const TTRange &t_range, const TChar &t_c) const {
-    return lf(rank_c_, cumulative_c_, t_range, t_c, create_range_, empty_range_);
+    const auto&[first, last] = t_range;
+    return (*this)(first, last, t_c);
+  }
+
+  //! LF function
+  //! \tparam TValue Range position type {t_first; t_last}
+  //! \tparam TChar Character type for compact alphabet
+  //! \param t_first Start position of queried range [t_first; t_last)
+  //! \param t_last End position of queried range [t_first; t_last)
+  //! \param t_c Character for compact alphabet in [0..sigma]
+  //! \return [new_sp; new_ep)
+  template<typename TValue, typename TChar>
+  auto operator()(const TValue &t_first, const TValue &t_last, const TChar &t_c) const {
+    return lf(rank_c_, cumulative_c_, t_first, t_last, t_c, create_range_, empty_range_);
   }
 
  protected:
@@ -82,7 +90,6 @@ class LF {
   TCreateRange create_range_; // Function to create new range
   TRange empty_range_; // Default new empty range
 };
-
 
 //! LF functor
 //! \tparam TRankC Rank function for a given symbol
@@ -105,14 +112,14 @@ class LF<TRankC, TCumulativeC, EmptyClass, EmptyClass> {
     };
     TTRange empty_range{1, 0};
 
-    return lf(rank_c_, cumulative_c_, t_range, t_c, create_range, empty_range);
+    const auto&[first, last] = t_range;
+    return lf(rank_c_, cumulative_c_, first, last, t_c, create_range, empty_range);
   }
 
  protected:
   TRankC rank_c_; // Rank function for partial psis
   TCumulativeC cumulative_c_; // Cumulative count for alphabet [0..sigma]
 };
-
 
 //! LFOnPsi function using partial psi function
 //! \tparam TRankPartialPsi Rank function for partial psis

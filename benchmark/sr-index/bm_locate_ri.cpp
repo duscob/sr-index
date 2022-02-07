@@ -1,5 +1,5 @@
 //
-// Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/28/20.
+// Created by Dustin Cobas <dustin.cobas@gmail.com> on 1/25/20.
 //
 
 #include <iostream>
@@ -37,14 +37,14 @@ static void BM_WarmUp(benchmark::State &_state) {
 }
 BENCHMARK(BM_WarmUp);
 
-auto BM_QueryCount = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
+auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
   std::size_t total_occs = 0;
 
   for (auto _: t_state) {
     total_occs = 0;
     for (const auto &pattern: t_patterns) {
-      auto range = t_idx.first->Count(pattern);
-      total_occs += range.second - range.first;
+      auto occs = t_idx.first->Locate(pattern);
+      total_occs += occs.size();
     }
   }
 
@@ -56,25 +56,30 @@ auto BM_QueryCount = [](benchmark::State &t_state, const auto &t_idx, const auto
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
   t_state.counters["Occurrences"] = total_occs;
+  t_state.counters["Time_x_Occurrence"] = benchmark::Counter(
+      total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 };
 
-auto BM_PrintQueryCount = [](
+auto BM_PrintQueryLocate = [](
     benchmark::State &t_state, const auto &t_idx_name, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
   std::string idx_name = t_idx_name;
   replace(idx_name.begin(), idx_name.end(), '/', '_');
-  std::string output_filename = "result-count-" + idx_name + ".csv";
+  std::string output_filename = "result-locate-" + idx_name + ".txt";
 
   std::size_t total_occs = 0;
 
   for (auto _: t_state) {
     std::ofstream out(output_filename);
-    out << "pattern,count" << std::endl;
     total_occs = 0;
     for (const auto &pattern: t_patterns) {
-      auto range = t_idx.first->Count(pattern);
-      auto count = range.second - range.first;
-      total_occs += count;
-      out << "\"" << pattern << "\"," << count << "[" << range.first << ";" << range.second << "]" << std::endl;
+      out << pattern << std::endl;
+      auto occs = t_idx.first->Locate(pattern);
+      total_occs += occs.size();
+
+      sort(occs.begin(), occs.end());
+      for (const auto &item: occs) {
+        out << "  " << item << std::endl;
+      }
     }
   }
 
@@ -86,6 +91,8 @@ auto BM_PrintQueryCount = [](
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
   t_state.counters["Occurrences"] = total_occs;
+  t_state.counters["Time_x_Occurrence"] = benchmark::Counter(
+      total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 };
 
 int main(int argc, char *argv[]) {
@@ -122,19 +129,25 @@ int main(int argc, char *argv[]) {
   Factory<> factory(config);
 
   std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
-      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
+      {"R-INDEX", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}},
+
+      {"SR-INDEX/4", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 4}},
+      {"SR-INDEX/8", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 8}},
+      {"SR-INDEX/16", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 16}},
+      {"SR-INDEX/32", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 32}},
+      {"SR-INDEX/64", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 64}},
   };
 
   std::string print_bm_prefix = "Print-";
   for (const auto &idx_config: index_configs) {
     auto index = factory.make(idx_config.second);
 
-    benchmark::RegisterBenchmark(idx_config.first, BM_QueryCount, index, patterns, factory.sizeSequence());
+    benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, index, patterns, factory.sizeSequence());
 
     if (FLAGS_print_result) {
       auto print_bm_name = print_bm_prefix + idx_config.first;
       benchmark::RegisterBenchmark(
-          print_bm_name.c_str(), BM_PrintQueryCount, idx_config.first, index, patterns, factory.sizeSequence());
+          print_bm_name.c_str(), BM_PrintQueryLocate, idx_config.first, index, patterns, factory.sizeSequence());
     }
   }
 
