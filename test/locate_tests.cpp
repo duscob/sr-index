@@ -136,6 +136,18 @@ TEST_P(LocateTests, SRIndexValidMark) {
   EXPECT_EQ(results, e_results);
 }
 
+TEST_P(LocateTests, SRIndexValidArea) {
+  sri::SRIndexValidArea<> index(6);
+  sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
+
+  const auto &pattern = std::get<1>(GetParam());
+  auto results = index.Locate(pattern);
+  std::sort(results.begin(), results.end());
+
+  auto e_results = std::get<2>(GetParam());
+  std::sort(e_results.begin(), e_results.end());
+  EXPECT_EQ(results, e_results);
+}
 
 INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
