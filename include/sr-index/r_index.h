@@ -222,7 +222,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
     SampleValidatorDefault sample_validator_default;
 
-    return buildPhiForward(predecessor, t_get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    return buildPhiBackward(predecessor, t_get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
   }
 
   auto constructPhiForRange(TSource &t_source) {
