@@ -1176,30 +1176,6 @@ void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, s
   sdsl::store_to_cache(subsamples_pos, prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST, t_config);
 }
 
-template<typename TGetNextMark, typename TGetNextSubmark, typename TReport>
-void computeSubmarksValidity(std::size_t t_r_prime,
-                             TGetNextMark t_get_next_mark,
-                             TGetNextSubmark t_get_next_submark,
-                             TReport t_report) {
-  // Marks sampled BWT run heads indices in text and if they are trustworthy
-  std::size_t mark = t_get_next_mark();
-  std::size_t submark = t_get_next_submark();
-  for (std::size_t i = 0, j = 0; i < t_r_prime - 1; ++i) {
-    std::size_t next_mark = t_get_next_mark();
-    std::size_t next_submark = t_get_next_submark();
-    if (next_mark != next_submark) {
-      // Report current submark as invalid, and what is the next mark to compute valid area
-      t_report(i, submark, next_mark);
-
-      do {
-        next_mark = t_get_next_mark();
-      } while (next_mark != next_submark);
-    }
-
-    submark = next_submark;
-  }
-}
-
 template<uint8_t t_width>
 void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";

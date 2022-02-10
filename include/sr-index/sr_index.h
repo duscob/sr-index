@@ -340,18 +340,64 @@ class SRIndexValidMark
   }
 };
 
-template<uint8_t t_width>
-void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
-
-template<uint8_t t_width>
-void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
+void constructSRIndex(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
 template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx>
 void construct(SRIndex<
     t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
+  constructSRIndex<t_width, TBvMark, TBvSampleIdx>(t_data_path, t_index.SubsampleRate(), t_config);
 
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width>
+void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+
+template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx, typename TBvValidMark>
+void construct(SRIndexValidMark<
+    t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> &t_index,
+               const std::string &t_data_path,
+               sdsl::cache_config &t_config) {
+  constructSRIndex<t_width, TBvMark, TBvSampleIdx>(t_data_path, t_index.SubsampleRate(), t_config);
+
+  auto subsample_rate = t_index.SubsampleRate();
+  auto prefix_key = std::to_string(subsample_rate) + "_";
+
+  {
+    // Construct subsampling validity marks and areas
+    auto event = sdsl::memory_monitor::event("Subsampling Validity");
+    auto key = prefix_key + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
+    if (!sdsl::cache_file_exists(key, t_config)) {
+      constructSubsamplingForwardMarksValidity<t_width>(subsample_rate, t_config);
+    }
+
+    if (!sdsl::cache_file_exists<TBvValidMark>(key, t_config)) {
+      std::size_t r_prime;
+      {
+        sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(
+            prefix_key + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS, t_config));
+        r_prime = buf.size();
+      }
+      constructBitVectorFromIntVector<TBvValidMark,
+                                      typename TBvValidMark::rank_0_type,
+                                      typename TBvValidMark::select_0_type>(key, t_config, r_prime, true);
+    }
+  }
+
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width>
+void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+
+template<uint8_t t_width>
+void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+
+template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
+void constructSRIndex(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   constructRIndex<t_width, TBvMark>(t_data_path, t_config);
 
   std::size_t n;
@@ -359,8 +405,7 @@ void construct(SRIndex<
     sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
     n = bwt_buf.size();
   }
-  auto subsample_rate = t_index.SubsampleRate();
-  auto prefix = std::to_string(subsample_rate) + "_";
+  auto prefix = std::to_string(t_subsample_rate) + "_";
 
   {
     // Sort samples (BWT-run last letter) by its text positions
@@ -376,7 +421,7 @@ void construct(SRIndex<
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = prefix + key_trait<t_width>::KEY_BWT_RUN_LAST_IDX;
     if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSubsamplingForwardSamplesForPhiBackward<t_width>(subsample_rate, t_config);
+      constructSubsamplingForwardSamplesForPhiBackward<t_width>(t_subsample_rate, t_config);
     }
 
     if (!sdsl::cache_file_exists<TBvSampleIdx>(key, t_config)) {
@@ -395,7 +440,7 @@ void construct(SRIndex<
     auto event = sdsl::memory_monitor::event("Subsampling");
     if (!sdsl::cache_file_exists(
         prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config)) {
-      constructSubsamplingForwardMarksForPhiBackward<t_width>(subsample_rate, t_config);
+      constructSubsamplingForwardMarksForPhiBackward<t_width>(t_subsample_rate, t_config);
     }
   }
 
@@ -408,7 +453,6 @@ void construct(SRIndex<
     }
   }
 
-  t_index.load(t_config);
 }
 
 template<uint8_t t_width>
@@ -531,6 +575,59 @@ auto computeSampleToMarkLinksForPhiBackward(const std::string &t_prefix, sdsl::c
   }
 
   return subsample_to_mark_links;
+}
+
+template<uint8_t t_width>
+void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+  auto prefix = std::to_string(t_subsample_rate) + "_";
+
+  sdsl::int_vector<> marks;
+  sdsl::load_from_cache(marks, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
+  sdsl::int_vector<> sorted_marks_idx;
+  sdsl::load_from_cache(sorted_marks_idx, key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX, t_config);
+  auto it_marks_idx = sorted_marks_idx.begin();
+  auto get_next_mark = [&marks, &it_marks_idx]() { return marks[*(it_marks_idx++)]; };
+
+  sdsl::int_vector<> submarks;
+  sdsl::load_from_cache(submarks, prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST, t_config);
+  std::sort(submarks.begin(), submarks.end());
+  auto it_submarks = submarks.begin();
+  auto get_next_submark = [&it_submarks]() { return *(it_submarks++); };
+
+  auto r_prime = submarks.size();
+  std::vector<std::pair<std::size_t, std::size_t>> validity;
+  validity.reserve(r_prime / 4);
+  std::size_t max_valid_area = 0;
+  auto report = [r_prime, &validity, &max_valid_area](auto tt_i, auto tt_submark, auto tt_next_mark) {
+    auto valid_area = tt_next_mark - tt_submark;
+    validity.emplace_back(tt_i, valid_area);
+
+    if (max_valid_area < valid_area) max_valid_area = valid_area;
+  };
+
+  computeSubmarksValidity(r_prime, get_next_mark, get_next_submark, report);
+
+  const std::size_t buffer_size = 1 << 20;
+  sdsl::int_vector_buffer<> valid_submarks(
+      sdsl::cache_file_name(prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK, t_config),
+      std::ios::out,
+      buffer_size,
+      sdsl::bits::hi(r_prime) + 1);
+
+  sdsl::int_vector_buffer<> valid_areas(
+      sdsl::cache_file_name(prefix + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA, t_config),
+      std::ios::out,
+      buffer_size,
+      sdsl::bits::hi(max_valid_area) + 1);
+
+  for (auto it = validity.begin(); it != validity.end(); ++it) {
+    auto[idx, area] = *it;
+    valid_submarks.push_back(it->first);
+    valid_areas.push_back(it->second);
+  }
+
+  valid_submarks.close();
+  valid_areas.close();
 }
 
 }
