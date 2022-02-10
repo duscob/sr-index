@@ -284,8 +284,7 @@ class SRIndexValidMark
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
 //    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
-//    key(SrIndexKey::MARK_TO_SAMPLE) =
-//        this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+//    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
 //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
     key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
   }
@@ -293,7 +292,11 @@ class SRIndexValidMark
   using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    Base::loadAllItems(t_source, [this](auto &t_source) { return constructPhiForRange(t_source); });
+    Base::loadAllItems(t_source,
+                       [this](auto &t_source) {
+                         auto phi = this->constructPhi(t_source, constructGetMarkToSampleIdx(t_source));
+                         return constructPhiForRange(t_source, phi);
+                       });
   }
 
   using Base::loadAllItems;
@@ -302,11 +305,6 @@ class SRIndexValidMark
     auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
     auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
     return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
-  }
-
-  auto constructPhiForRange(TSource &t_source) {
-    auto phi = this->constructPhi(t_source, constructGetMarkToSampleIdx(t_source));
-    return constructPhiForRange(t_source, phi);
   }
 
   using typename Base::Range;
