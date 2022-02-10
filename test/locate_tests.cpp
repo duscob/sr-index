@@ -71,6 +71,19 @@ TEST_P(LocateTests, SRCSASlim) {
   EXPECT_EQ(results, e_results);
 }
 
+TEST_P(LocateTests, SRCSASlimValidMark) {
+  sri::SrCSAValidMark<sri::SrCSASlim<>> index(6);
+  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+
+  const auto &pattern = std::get<1>(GetParam());
+  auto results = index.Locate(pattern);
+  std::sort(results.begin(), results.end());
+
+  auto e_results = std::get<2>(GetParam());
+  std::sort(e_results.begin(), e_results.end());
+  EXPECT_EQ(results, e_results);
+}
+
 TEST_P(LocateTests, RIndex) {
   sri::RIndex<> index;
   sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
