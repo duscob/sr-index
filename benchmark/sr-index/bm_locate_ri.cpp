@@ -142,6 +142,12 @@ int main(int argc, char *argv[]) {
       {"SR-INDEX_VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 16}},
       {"SR-INDEX_VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 32}},
       {"SR-INDEX_VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 64}},
+
+      {"SR-INDEX_VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 4}},
+      {"SR-INDEX_VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 8}},
+      {"SR-INDEX_VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 16}},
+      {"SR-INDEX_VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 32}},
+      {"SR-INDEX_VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 64}},
   };
 
   std::string print_bm_prefix = "Print-";
