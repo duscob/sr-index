@@ -214,15 +214,21 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
   template<typename TGetMarkToSampleIdx>
   auto constructPhi(TSource &t_source, const TGetMarkToSampleIdx &t_get_mark_to_sample_idx) {
+    return constructPhi(t_source, t_get_mark_to_sample_idx, SampleValidatorDefault());
+  }
+
+  template<typename TGetMarkToSampleIdx, typename TSampleValidator>
+  auto constructPhi(TSource &t_source,
+                    const TGetMarkToSampleIdx &t_get_mark_to_sample_idx,
+                    const TSampleValidator &t_sample_validator) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     auto predecessor = CircularPredecessor(bv_mark_rank, bv_mark_select, this->n_);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
-    SampleValidatorDefault sample_validator_default;
 
-    return buildPhiBackward(predecessor, t_get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    return buildPhiBackward(predecessor, t_get_mark_to_sample_idx, get_sample, t_sample_validator, this->n_);
   }
 
   auto constructPhiForRange(TSource &t_source) {
