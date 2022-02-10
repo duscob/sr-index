@@ -79,11 +79,17 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
   using typename Base::TSource;
   using typename Base::Range;
 
-  virtual void loadAllItems(TSource &t_source) {
+  void loadAllItems(TSource &t_source) override {
+    loadAllItems(t_source,
+                 [this](auto &t_source) { return this->constructPhiForRange(t_source); });
+  }
+
+  template<typename TConstructPhiForRange>
+  void loadAllItems(TSource &t_source, const TConstructPhiForRange &t_construct_phi_for_range) {
     this->index_.reset(new RIndexBase{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
-        this->constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
+        this->constructComputeSAValues(t_construct_phi_for_range(t_source), constructComputeToehold(t_source)),
         this->n_,
         [](const auto &tt_step) { return DataBackwardSearchStep{0, RunDataExt{0, 0, false, 0}}; },
         this->constructGetSymbol(t_source),
