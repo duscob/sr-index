@@ -91,6 +91,11 @@ auto BM_ConstructSRIndex = [](benchmark::State &t_state, sdsl::cache_config t_co
   BM_ConstructSrIndex<sri::SRIndex<>>(t_state, t_config, t_data_path);
 };
 
+auto BM_ConstructSRIndexValidMark =
+    [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+      BM_ConstructSrIndex<sri::SRIndexValidMark<>>(t_state, t_config, t_data_path);
+    };
+
 int main(int argc, char **argv) {
   gflags::SetUsageMessage("This program calculates the sr-csa items for the given text.");
   gflags::AllowCommandLineReparsing();
@@ -112,6 +117,11 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark("Construct-R-Index", BM_ConstructRIndex, config, data_path)->Iterations(1);
 
   benchmark::RegisterBenchmark("Construct-SR-Index", BM_ConstructSRIndex, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-Index-ValidMarks", BM_ConstructSRIndexValidMark, config, data_path)
       ->Iterations(1)
       ->RangeMultiplier(2)
       ->Range(4, 2u << 8u);
