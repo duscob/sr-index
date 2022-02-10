@@ -242,6 +242,104 @@ class SRIndex : public RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TM
   std::string key_prefix_;
 };
 
+template<uint8_t t_width = 8,
+    typename TStorage = GenericStorage,
+    typename TAlphabet = sdsl::byte_alphabet,
+    typename TBwtRLE = RLEString<>,
+    typename TBvMark = sdsl::sd_vector<>,
+    typename TMarkToSampleIdx = sdsl::int_vector<>,
+    typename TSample = sdsl::int_vector<>,
+    typename TBvSampleIdx = sdsl::sd_vector<>,
+    typename TBvValidMark = sdsl::bit_vector>
+class SRIndexValidMark
+    : public SRIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
+ public:
+  using Base = SRIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
+
+  SRIndexValidMark(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+
+  explicit SRIndexValidMark(std::size_t t_sr) : Base(t_sr) {}
+
+  using typename Base::size_type;
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = Base::serialize(out, v, name);
+
+    written_bytes +=
+        this->template serializeItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
+
+    return written_bytes;
+  }
+
+ protected:
+
+  using Base::key;
+  void setupKeyNames() override {
+    if (!this->keys_.empty()) return;
+
+    Base::setupKeyNames();
+    this->keys_.resize(8);
+//    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
+//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+//    key(SrIndexKey::SAMPLES) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARK_TO_SAMPLE) =
+//        this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+//    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
+    key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
+  }
+
+  using typename Base::TSource;
+
+  void loadAllItems(TSource &t_source) override {
+    Base::loadAllItems(t_source, [this](auto &t_source) { return constructPhiForRange(t_source); });
+  }
+
+  using Base::loadAllItems;
+
+  auto constructGetMarkToSampleIdx(TSource &t_source) {
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
+  }
+
+  auto constructPhiForRange(TSource &t_source) {
+    auto phi = this->constructPhi(t_source, constructGetMarkToSampleIdx(t_source));
+    return constructPhiForRange(t_source, phi);
+  }
+
+  using typename Base::Range;
+  using typename Base::Run;
+
+  template<typename TPhi>
+  auto constructPhiForRange(TSource &t_source, const TPhi &t_phi) {
+    auto get_sample = this->constructGetSample(t_source);
+    auto get_sample_run =
+        [get_sample](const Run &tt_run) { return tt_run.is_run_end ? get_sample(tt_run.rnk) : std::nullopt; };
+    auto split = this->constructSplitInBWTRuns(t_source);
+    auto split_range = [split](const Range &tt_range) { return split(tt_range.start, tt_range.end); };
+    auto split_run = [split](const Run &tt_run) { return split(tt_run.start, tt_run.end); };
+    auto lf = this->constructLFForPhi(t_source);
+    auto is_range_empty = [](const Range &tt_range) { return !(tt_range.start < tt_range.end); };
+    auto update_run = [](Run &tt_run) {
+      --tt_run.end;
+      tt_run.is_run_end = false;
+    };
+    auto is_run_empty = [](const Run &tt_run) { return !(tt_run.start < tt_run.end); };
+    return PhiBackwardForRangeWithValidity(t_phi,
+                                           get_sample_run,
+                                           split_range,
+                                           split_run,
+                                           lf,
+                                           this->subsample_rate_,
+                                           this->n_,
+                                           is_range_empty,
+                                           update_run,
+                                           is_run_empty);
+  }
+};
+
 template<uint8_t t_width>
 void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
