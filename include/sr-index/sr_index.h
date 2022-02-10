@@ -338,6 +338,88 @@ class SRIndexValidMark
   }
 };
 
+template<uint8_t t_width = 8,
+    typename TStorage = GenericStorage,
+    typename TAlphabet = sdsl::byte_alphabet,
+    typename TBwtRLE = RLEString<>,
+    typename TBvMark = sdsl::sd_vector<>,
+    typename TMarkToSampleIdx = sdsl::int_vector<>,
+    typename TSample = sdsl::int_vector<>,
+    typename TBvSampleIdx = sdsl::sd_vector<>,
+    typename TBvValidMark = sdsl::bit_vector,
+    typename TValidArea = sdsl::int_vector<>>
+class SRIndexValidArea
+    : public SRIndexValidMark<
+        t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> {
+ public:
+  using Base = SRIndexValidMark<
+      t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark>;
+
+  SRIndexValidArea(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+
+  explicit SRIndexValidArea(std::size_t t_sr) : Base(t_sr) {}
+
+  using typename Base::size_type;
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = Base::serialize(out, v, name);
+
+    written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
+        key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
+    written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
+
+    return written_bytes;
+  }
+
+ protected:
+
+  using Base::key;
+  void setupKeyNames() override {
+    if (!this->keys_.empty()) return;
+
+    Base::setupKeyNames();
+    this->keys_.resize(9);
+//    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
+//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+//    key(SrIndexKey::SAMPLES) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+//    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
+//    key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
+    key(SrIndexKey::VALID_AREAS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA;
+  }
+
+  using typename Base::TSource;
+
+  void loadAllItems(TSource &t_source) override {
+    Base::loadAllItems(t_source,
+                       [this](auto &t_source) {
+                         auto phi = this->constructPhi(t_source,
+                                                       constructGetMarkToSampleIdx(t_source),
+                                                       constructValidateSample(t_source));
+                         return this->constructPhiForRange(t_source, phi);
+                       });
+  }
+
+  using Base::loadAllItems;
+
+  auto constructGetMarkToSampleIdx(TSource &t_source) {
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
+  }
+
+  auto constructValidateSample(TSource &t_source) {
+    auto bv_valid_mark_rank = this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
+        key(SrIndexKey::VALID_MARKS), t_source, true);
+    auto cref_valid_area = this->template loadItem<TValidArea>(key(SrIndexKey::VALID_AREAS), t_source);
+    auto get_valid_area = RandomAccessForCRefContainer(cref_valid_area);
+
+    return SampleValidator(bv_valid_mark_rank, get_valid_area);
+  }
+};
+
 template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
 void constructSRIndex(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
