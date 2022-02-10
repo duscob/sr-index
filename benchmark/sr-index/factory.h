@@ -21,6 +21,7 @@ class Factory {
   enum class IndexEnum {
     R_INDEX = 0,
     SR_INDEX,
+    SR_INDEX_VM,
   };
 
   struct Config {
@@ -45,6 +46,13 @@ class Factory {
 
       case IndexEnum::SR_INDEX: {
         auto idx = std::make_shared<sri::SRIndex<t_width, ExternalGenericStorage>>(
+            std::ref(storage_), t_config.sampling_size);
+        idx->load(config_);
+        return {idx, sdsl::size_in_bytes(*idx)};
+      }
+
+      case IndexEnum::SR_INDEX_VM: {
+        auto idx = std::make_shared<sri::SRIndexValidMark<t_width, ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
