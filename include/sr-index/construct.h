@@ -30,6 +30,8 @@ struct key_trait {
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
   static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
+  static const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA;
   static const std::string KEY_BWT_RUN_FIRST_IDX;
 
   static const std::string KEY_BWT_RUN_LAST;
@@ -64,6 +66,12 @@ const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX =
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX =
     key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_to_last_idx";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_valid_mark";
+template<uint8_t t_width>
+const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA =
+    key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_valid_area";
 template<uint8_t t_width>
 const std::string key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX = key_trait<t_width>::KEY_BWT_RUN_FIRST + "_idx";
 
@@ -495,6 +503,30 @@ void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
   sdsl::store_to_cache(mark_to_sample_links,
                        key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX,
                        t_config);
+}
+
+template<typename TGetNextMark, typename TGetNextSubmark, typename TReport>
+void computeSubmarksValidity(std::size_t t_r_prime,
+                             TGetNextMark t_get_next_mark,
+                             TGetNextSubmark t_get_next_submark,
+                             TReport t_report) {
+  // Marks sampled BWT run heads indices in text and if they are trustworthy
+  std::size_t mark = t_get_next_mark();
+  std::size_t submark = t_get_next_submark();
+  for (std::size_t i = 0, j = 0; i < t_r_prime - 1; ++i) {
+    std::size_t next_mark = t_get_next_mark();
+    std::size_t next_submark = t_get_next_submark();
+    if (next_mark != next_submark) {
+      // Report current submark as invalid, and what is the next mark to compute valid area
+      t_report(i, submark, next_mark);
+
+      do {
+        next_mark = t_get_next_mark();
+      } while (next_mark != next_submark);
+    }
+
+    submark = next_submark;
+  }
 }
 
 template<typename TValues>

@@ -56,7 +56,7 @@ auto BM_ConstructRIndex = [](benchmark::State &t_state, sdsl::cache_config t_con
 };
 
 template<typename TSrIndex>
-void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config, const std::string &t_data_path) {
+void BM_ConstructSRI(benchmark::State &t_state, sdsl::cache_config t_config, const std::string &t_data_path) {
   std::size_t subsample_rate = t_state.range(0); // Subsampling rate
 
   TSrIndex index(subsample_rate);
@@ -88,7 +88,15 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config,
 };
 
 auto BM_ConstructSRIndex = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SRIndex<>>(t_state, t_config, t_data_path);
+  BM_ConstructSRI<sri::SRIndex<>>(t_state, t_config, t_data_path);
+};
+
+auto BM_ConstructSRIValidMark = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSRI<sri::SRIndexValidMark<>>(t_state, t_config, t_data_path);
+};
+
+auto BM_ConstructSRIValidArea = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  BM_ConstructSRI<sri::SRIndexValidArea<>>(t_state, t_config, t_data_path);
 };
 
 int main(int argc, char **argv) {
@@ -112,6 +120,16 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark("Construct-R-Index", BM_ConstructRIndex, config, data_path)->Iterations(1);
 
   benchmark::RegisterBenchmark("Construct-SR-Index", BM_ConstructSRIndex, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-Index-ValidMark", BM_ConstructSRIValidMark, config, data_path)
+      ->Iterations(1)
+      ->RangeMultiplier(2)
+      ->Range(4, 2u << 8u);
+
+  benchmark::RegisterBenchmark("Construct-SR-Index-ValidArea", BM_ConstructSRIValidArea, config, data_path)
       ->Iterations(1)
       ->RangeMultiplier(2)
       ->Range(4, 2u << 8u);

@@ -487,14 +487,14 @@ auto buildPhiForwardForRange(const TPhi &t_phi,
 }
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
-class PhiBackwardForRangeWithValidity {
+class PhiBackwardForRangeWithValidityOriginal {
  public:
-  PhiBackwardForRangeWithValidity(const TPhi &t_phi,
-                                  const TSplitInBWTRun &t_split,
-                                  const TBackwardNav &t_lf,
-                                  const TSampleAt &t_sample_at,
-                                  std::size_t t_sampling_size,
-                                  std::size_t t_bwt_size)
+  PhiBackwardForRangeWithValidityOriginal(const TPhi &t_phi,
+                                          const TSplitInBWTRun &t_split,
+                                          const TBackwardNav &t_lf,
+                                          const TSampleAt &t_sample_at,
+                                          std::size_t t_sampling_size,
+                                          std::size_t t_bwt_size)
       : phi_{t_phi},
         split_{t_split},
         lf_{t_lf},
@@ -584,9 +584,111 @@ auto buildPhiForRange(const TPhi &t_phi,
                       const TSampleAt &t_sample_at,
                       std::size_t t_sampling_size,
                       std::size_t t_bwt_size) {
-  return PhiBackwardForRangeWithValidity<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
+  return PhiBackwardForRangeWithValidityOriginal<TPhi, TSplitInBWTRun, TBackwardNav, TSampleAt>(
       t_phi, t_split, t_lf, t_sample_at, t_sampling_size, t_bwt_size);
 }
+
+template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TNavigate, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
+class PhiBackwardForRangeWithValidity {
+ public:
+  PhiBackwardForRangeWithValidity(const TPhi &t_phi,
+                                  const TGetSample &t_get_sample,
+                                  const TSplitRangeInBWTRuns &t_split_range,
+                                  const TSplitRunInBWTRuns &t_split_run,
+                                  const TNavigate &t_lf,
+                                  std::size_t t_sampling_size,
+                                  std::size_t t_seq_size,
+                                  const TIsRangeEmpty &t_is_range_empty,
+                                  const TUpdateRun &t_update_run,
+                                  const TIsRunEmpty &t_is_run_empty)
+      : phi_{t_phi},
+        get_sample_{t_get_sample},
+        split_range_{t_split_range},
+        split_run_{t_split_run},
+        navigate_{t_lf},
+        sampling_size_{t_sampling_size},
+        seq_size_{t_seq_size},
+        is_range_empty_{t_is_range_empty},
+        update_run_{t_update_run},
+        is_run_empty_{t_is_run_empty} {
+  }
+
+  template<typename TRange, typename TReport>
+  void operator()(const TRange &t_range, std::size_t t_prev_value, TReport &t_report) const {
+    if (is_range_empty_(t_range)) return;
+
+    auto[value, validity] = phi_(t_prev_value);
+
+    auto runs = split_range_(t_range);
+    computeForRuns(runs, value, validity, 0, t_report);
+  }
+
+ private:
+
+  template<typename TRuns, typename TReport>
+  std::pair<std::size_t, bool> computeForRuns(
+      TRuns &&t_runs, std::size_t t_value, bool t_validity, std::size_t t_level, TReport &t_report) const {
+    for (auto it = rbegin(t_runs); it != rend(t_runs); ++it) {
+      auto &run = *it;
+
+      do {
+        // Report the last values while they are valid
+        while (!is_run_empty_(run) && t_validity) {
+          t_report(t_value);
+          update_run_(run);
+          std::tie(t_value, t_validity) = phi_(t_value);
+        }
+
+        if (is_run_empty_(run)) { break; }
+
+        auto sample = get_sample_(run);
+        if (sample) {
+          // Extreme position in range is sampled, so we can use the sampled value
+          // NOTE we sampled the position of the i-th BWT char, but here we want the position of SA[i], so we need + 1
+          t_value = (*sample + 1 + t_level) % seq_size_;
+          t_validity = true;
+        }
+      } while (t_validity);
+
+      if (!is_run_empty_(run)) {
+        std::tie(t_value, t_validity) = compute(navigate_(run), t_value, t_validity, t_level + 1, t_report);
+      }
+    }
+
+    return std::make_pair(t_value, t_validity);
+  }
+
+  template<typename TRun, typename TReport>
+  auto compute(TRun &&t_run, std::size_t t_value, bool t_validity, std::size_t t_level, TReport &t_report) const {
+    if (sampling_size_ <= t_level) {
+      // Reach the limits of backward jumps, so phi for the previous value is valid
+      do {
+        t_report(t_value);
+        update_run_(t_run);
+        std::tie(t_value, t_validity) = phi_(t_value);
+      } while (!is_run_empty_(t_run));
+
+      return std::make_pair(t_value, t_validity);
+    }
+
+    // TODO Don't split it in all sub-runs. We can go in depth recursively with only the last remaining sub-run, and continue with the other at the same level.
+    auto runs = split_run_(t_run);
+    return computeForRuns(runs, t_value, t_validity, t_level, t_report);
+  }
+
+  TPhi phi_;
+  TGetSample get_sample_; // Access to last value of a BWT run. Note that some tails are not sampled.
+  TSplitRangeInBWTRuns split_range_; // Split the first interval (range) in its internal BWT runs
+  TSplitRunInBWTRuns split_run_; // Split an interval (run) in its internal BWT runs
+  TNavigate navigate_; // LFOnBWT in backward navigate or Psi in forward navigate
+
+  std::size_t sampling_size_;
+  std::size_t seq_size_;
+
+  TIsRangeEmpty is_range_empty_;
+  TUpdateRun update_run_;
+  TIsRunEmpty is_run_empty_;
+};
 
 template<typename TPhi, typename TGetSample, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TIsRangeEmpty, typename TUpdateRun, typename TIsRunEmpty>
 class PhiForwardForRangeWithValidity {
