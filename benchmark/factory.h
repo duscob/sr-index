@@ -261,8 +261,7 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), false);
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(
-            bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
+        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(bwt_rle_.item[seq_size_ - 1], seq_size_ - 1);
 
         return {sri::buildSharedPtrRIndex(makeLF(),
                                           makeGetLastSpecialBackwardSearchStep(),
@@ -281,8 +280,7 @@ class Factory {
             std::cref(components.tail_idxs_by_heads_in_text.item), std::cref(components.marked_sampled_idxs_bv.item));
         auto phi = makePhi(components, get_pred_to_run);
 
-        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(
-            bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
+        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(bwt_rle_.item[seq_size_ - 1], seq_size_ - 1);
 
         return {sri::buildSharedPtrRIndex(makeLF(),
                                           makeGetLastSpecialBackwardSearchStep(),
@@ -304,8 +302,7 @@ class Factory {
             sri::buildRandomAccessForContainer(std::cref(components.head_marked_sample_trusted_areas.item)));
         auto phi = makePhi(components, get_pred_to_run, sample_validator);
 
-        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(
-            bwt_rle_.item[seq_size_ - 1], components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
+        auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(bwt_rle_.item[seq_size_ - 1], seq_size_ - 1);
 
         return {sri::buildSharedPtrRIndex(makeLF(),
                                           makeGetLastSpecialBackwardSearchStep(),
