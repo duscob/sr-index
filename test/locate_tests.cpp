@@ -12,15 +12,13 @@
 #include "sr-index/sr_index.h"
 
 using String = std::string;
-using Values = std::vector<std::size_t>;
 
-class LocateTests : public testing::TestWithParam<std::tuple<String, String, Values>> {
+class BaseLocateTests : public testing::Test {
  protected:
 
-  void SetUp() override {
-    const auto &data = std::get<0>(GetParam());
+  void Init(const String &t_data) {
     auto filename = sdsl::cache_file_name(key_tmp_input_, config_);
-    sdsl::store_to_file(data, filename);
+    sdsl::store_to_file(t_data, filename);
     register_cache_file(key_tmp_input_, config_);
   }
 
@@ -30,6 +28,18 @@ class LocateTests : public testing::TestWithParam<std::tuple<String, String, Val
 
   sdsl::cache_config config_;
   std::string key_tmp_input_ = "data";
+};
+
+using Values = std::vector<std::size_t>;
+
+class LocateTests : public BaseLocateTests,
+                    public testing::WithParamInterface<std::tuple<String, String, Values>> {
+ protected:
+
+  void SetUp() override {
+    const auto &data = std::get<0>(GetParam());
+    Init(data);
+  }
 };
 
 TEST_P(LocateTests, CSA) {
@@ -158,3 +168,68 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(String{"abcabcababc\0"}, String{"bc"}, Values{9, 4, 1})
     )
 );
+
+template<typename TIndex>
+class LocateTypedTests : public BaseLocateTests {
+ public:
+  void SetUp() override {
+    data_ = std::make_tuple(String{"abcabcababc\0"}, String{"ab"}, Values{6, 8, 3, 0});
+
+    const auto &data = std::get<0>(data_);
+    Init(data);
+  }
+
+  std::tuple<String, String, Values> data_;
+};
+
+template<typename TIndex>
+class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
+
+using RIndexes = ::testing::Types<sri::RIndex<>>;
+TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
+
+TYPED_TEST(RIndexLocateTypedTests, serialize) {
+  auto key_index = "index";
+  {
+    TypeParam index;
+    sri::construct<8>(index, this->config_.file_map[this->key_tmp_input_], this->config_);
+    sdsl::store_to_cache(index, key_index, this->config_);
+  }
+
+  TypeParam index;
+  sdsl::load_from_cache(index, key_index, this->config_);
+
+  const auto &pattern = std::get<1>(this->data_);
+  auto results = index.Locate(pattern);
+  std::sort(results.begin(), results.end());
+
+  auto e_results = std::get<2>(this->data_);
+  std::sort(e_results.begin(), e_results.end());
+  EXPECT_EQ(results, e_results);
+}
+
+template<typename TIndex>
+class SRIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
+
+using SRIndexes = ::testing::Types<sri::SRIndex<>, sri::SRIndexValidMark<>, sri::SRIndexValidArea<>>;
+TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
+
+TYPED_TEST(SRIndexLocateTypedTests, serialize) {
+  auto key_index = "index";
+  {
+    TypeParam index(6);
+    sri::construct<8>(index, this->config_.file_map[this->key_tmp_input_], this->config_);
+    sdsl::store_to_cache(index, key_index, this->config_);
+  }
+
+  TypeParam index;
+  sdsl::load_from_cache(index, key_index, this->config_);
+
+  const auto &pattern = std::get<1>(this->data_);
+  auto results = index.Locate(pattern);
+  std::sort(results.begin(), results.end());
+
+  auto e_results = std::get<2>(this->data_);
+  std::sort(e_results.begin(), e_results.end());
+  EXPECT_EQ(results, e_results);
+}
