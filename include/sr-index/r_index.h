@@ -38,18 +38,16 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   RIndex() = default;
 
   void load(sdsl::cache_config t_config) override {
-    setupKeyNames();
     TSource source(std::ref(t_config));
-    loadAllItems(source);
+    loadInner(source);
+  }
+
+  void load(std::istream &in) override {
+    TSource source(std::ref(in));
+    loadInner(source);
   }
 
   using typename Base::size_type;
-  void load(std::istream &in) override {
-    setupKeyNames();
-    TSource source(std::ref(in));
-    loadAllItems(source);
-  }
-
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -72,6 +70,14 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
  protected:
 
+  using typename Base::TSource;
+
+  virtual void loadInner(TSource &t_source) {
+    setupKeyNames();
+    loadAllItems(t_source);
+    constructIndex(t_source);
+  }
+
   using Base::key;
   virtual void setupKeyNames() {
     if (!this->keys_.empty()) return;
@@ -79,14 +85,27 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     this->keys_.resize(5);
     key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
     key(SrIndexKey::NAVIGATE) = key_trait<t_width>::KEY_BWT_RLE;
-    key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
     key(SrIndexKey::SAMPLES) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
     key(SrIndexKey::MARK_TO_SAMPLE) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   }
 
-  using typename Base::TSource;
 
   virtual void loadAllItems(TSource &t_source) {
+    this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+
+    this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+
+    this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+
+    this->template loadItem<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+
+    this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+  }
+
+  virtual void constructIndex(TSource &t_source) {
     this->index_.reset(new RIndexBase{
         constructLF(t_source),
         constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
