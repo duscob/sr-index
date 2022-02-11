@@ -62,8 +62,8 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
     written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
 
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+    written_bytes += this->template serializeItem<TMarkToSampleIdx>(
+        key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
 
     return written_bytes;
   }
@@ -89,7 +89,6 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
     key(SrIndexKey::MARK_TO_SAMPLE) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   }
-
 
   virtual void loadAllItems(TSource &t_source) {
     this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);

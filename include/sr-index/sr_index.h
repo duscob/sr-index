@@ -277,8 +277,8 @@ class SRIndexValidMark
 
     size_type written_bytes = Base::serialize(out, v, name);
 
-    written_bytes +=
-        this->template serializeItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
+    written_bytes += this->template serializeItem<TBvValidMark>(
+        key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
 
     return written_bytes;
   }
@@ -286,6 +286,7 @@ class SRIndexValidMark
  protected:
 
   using Base::key;
+
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
@@ -386,6 +387,7 @@ class SRIndexValidArea
 
     written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
         key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
+
     written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
 
     return written_bytes;
@@ -428,8 +430,6 @@ class SRIndexValidArea
                            return this->constructPhiForRange(t_source, phi);
                          });
   }
-
-  using Base::loadAllItems;
 
   auto constructGetMarkToSampleIdx(TSource &t_source) {
     auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);

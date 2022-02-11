@@ -32,8 +32,28 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
 
   std::size_t SubsampleRate() const { return subsample_rate_; }
 
+  void load(sdsl::cache_config t_config) override {
+    TSource source(std::ref(t_config));
+    this->loadInner(source);
+  }
+
+  void load(std::istream &in) override {
+    sdsl::read_member(this->subsample_rate_, in);
+    TSource source(std::ref(in));
+    this->loadInner(source);
+  }
+
   using typename Base::size_type;
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override = 0;
+  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = 0;
+    written_bytes += sdsl::write_member(this->subsample_rate_, out, child, "subsample_rate");
+
+    written_bytes += Base::serialize(out, v, name);
+
+    return written_bytes;
+  }
 
  protected:
 
@@ -45,8 +65,8 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
     this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-    key(SrIndexKey::MARKS) = key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
     key(SrIndexKey::SAMPLES) = key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(SrIndexKey::MARKS) = key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
     key(SrIndexKey::MARK_TO_SAMPLE) = key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
     key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
   }
@@ -159,26 +179,15 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
+    written_bytes += Base::serialize(out, v, name);
 
-    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
+    written_bytes += this->template serializeItem<TBvSampleIdx>(
+        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
+    written_bytes += this->template serializeRank<TBvSampleIdx>(
+        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
 
     written_bytes += this->template serializeItem<TRunCumulativeCount>(
         key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
-
-    written_bytes +=
-        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
-    written_bytes +=
-        this->template serializeRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
-
-    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
-
-    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
-
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
 
     return written_bytes;
   }
@@ -186,6 +195,7 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
  protected:
 
   using Base::key;
+
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
@@ -193,8 +203,8 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
     this->keys_.resize(7);
 //    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
     key(SrIndexKey::SAMPLES) = KeySortedByAlphabet(this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS);
+    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
     key(SrIndexKey::MARK_TO_SAMPLE) = KeySortedByAlphabet(
         this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX);
     key(SrIndexKey::SAMPLES_IDX) = KeySortedByAlphabet(this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX);
@@ -204,21 +214,30 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
   using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    loadAllItems(t_source,
-                 [this](auto &t_source) {
-                   return this->constructPhiForRange(t_source,
-                                                     constructGetSampleForRun(t_source),
-                                                     constructSplitRangeInBWTRuns(t_source),
-                                                     constructSplitRunInBWTRuns(t_source),
-                                                     constructUpdateRun(),
-                                                     constructIsRunEmpty());
-                 });
+    Base::loadAllItems(t_source);
+
+    this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+
+    this->template loadItem<TRunCumulativeCount>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
+  }
+
+  void constructIndex(TSource &t_source) override {
+    constructIndex(t_source,
+                   [this](auto &t_source) {
+                     return this->constructPhiForRange(t_source,
+                                                       constructGetSampleForRun(t_source),
+                                                       constructSplitRangeInBWTRuns(t_source),
+                                                       constructSplitRunInBWTRuns(t_source),
+                                                       constructUpdateRun(),
+                                                       constructIsRunEmpty());
+                   });
   }
 
   using typename Base::Range;
   using typename Base::RangeLF;
   template<typename TPhiRange>
-  void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
+  void constructIndex(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new RIndexBase{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
@@ -378,25 +397,14 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
+    written_bytes += Base::serialize(out, v, name);
 
-    written_bytes += this->template serializeItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), out, child, "psi");
-
-    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
-
-    written_bytes +=
-        this->template serializeItem<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
-    written_bytes +=
-        this->template serializeRank<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
-    written_bytes +=
-        this->template serializeSelect<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_select");
-
-    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
-
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+    written_bytes += this->template serializeItem<TBvSamplePos>(
+        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
+    written_bytes += this->template serializeRank<TBvSamplePos>(
+        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+    written_bytes += this->template serializeSelect<TBvSamplePos>(
+        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_select");
 
     return written_bytes;
   }
@@ -411,8 +419,8 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
 //    this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::MARK_TO_SAMPLE) =
 //        this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
     key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST;
@@ -421,15 +429,22 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
   using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    loadAllItems(t_source,
-                 [this](auto &t_source) {
-                   return this->constructPhiForRange(t_source,
-                                                     constructGetSampleForRun(t_source),
-                                                     constructSplitRangeInBWTRuns(t_source),
-                                                     constructSplitRunInBWTRuns(t_source),
-                                                     constructUpdateRun(),
-                                                     constructIsRunEmpty());
-                 });
+    Base::loadAllItems(t_source);
+
+    this->template loadItem<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    this->template loadBVRank<TBvSamplePos>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+  }
+
+  void constructIndex(TSource &t_source) override {
+    constructIndex(t_source,
+                   [this](auto &t_source) {
+                     return this->constructPhiForRange(t_source,
+                                                       constructGetSampleForRun(t_source),
+                                                       constructSplitRangeInBWTRuns(t_source),
+                                                       constructSplitRunInBWTRuns(t_source),
+                                                       constructUpdateRun(),
+                                                       constructIsRunEmpty());
+                   });
   }
 
   using typename Base::Range;
@@ -437,7 +452,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
   using typename Base::DataBackwardSearchStep;
   using typename Base::RunData;
   template<typename TPhiRange>
-  void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
+  void constructIndex(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new RIndexBase{
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
@@ -499,9 +514,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
   }
 
   auto constructCreateRun() {
-    return [](auto tt_first, auto tt_last, auto, auto, auto) {
-      return Run{tt_first, tt_last};
-    };
+    return [](auto tt_first, auto tt_last, auto, auto, auto) { return Run{tt_first, tt_last}; };
   }
 
   auto constructSplitRangeInBWTRuns(TSource &t_source) {
@@ -565,8 +578,8 @@ class SrCSAValidMark : public TSrCSA {
 
     size_type written_bytes = Base::serialize(out, v, name);
 
-    written_bytes +=
-        this->template serializeItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
+    written_bytes += this->template serializeItem<TBvValidMark>(
+        key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
 
     return written_bytes;
   }
@@ -574,6 +587,7 @@ class SrCSAValidMark : public TSrCSA {
  protected:
 
   using Base::key;
+
   void setupKeyNames() override {
     if (!this->keys_.empty()) return;
 
@@ -582,8 +596,8 @@ class SrCSAValidMark : public TSrCSA {
     constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
 //    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::MARK_TO_SAMPLE) =
 //        this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
 //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
@@ -593,19 +607,25 @@ class SrCSAValidMark : public TSrCSA {
   using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    Base::loadAllItems(t_source,
-                       [this](auto &t_source) {
-                         return constructPhiForRange(t_source,
-                                                     Base::constructGetSampleForRun(t_source),
-                                                     Base::constructSplitRangeInBWTRuns(t_source),
-                                                     Base::constructSplitRunInBWTRuns(t_source),
-                                                     Base::constructUpdateRun(),
-                                                     Base::constructIsRunEmpty(),
-                                                     []() { return SampleValidatorDefault(); });
-                       });
+    Base::loadAllItems(t_source);
+
+    this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
   }
 
-  using Base::loadAllItems;
+  void constructIndex(TSource &t_source) override {
+    Base::constructIndex(t_source,
+                         [this](auto &t_source) {
+                           return constructPhiForRange(t_source,
+                                                       Base::constructGetSampleForRun(t_source),
+                                                       Base::constructSplitRangeInBWTRuns(t_source),
+                                                       Base::constructSplitRunInBWTRuns(t_source),
+                                                       Base::constructUpdateRun(),
+                                                       Base::constructIsRunEmpty(),
+                                                       []() { return SampleValidatorDefault(); });
+                         });
+  }
+
+  using Base::constructIndex;
 
   using typename Base::BvMark;
   using typename Base::MarkToSampleIdx;
@@ -661,6 +681,7 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
 
     written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
         key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
+
     written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
 
     return written_bytes;
@@ -677,8 +698,8 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
     constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
 //    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+//    key(SrIndexKey::MARKS) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::MARK_TO_SAMPLE) =
 //        this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
 //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + key_trait<t_width>::KEY_BWT_RUN_FIRST_IDX;
@@ -689,16 +710,25 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
   using typename Base::TSource;
 
   void loadAllItems(TSource &t_source) override {
-    Base::loadAllItems(t_source,
-                       [this](auto &t_source) {
-                         return Base::constructPhiForRange(t_source,
-                                                           Base::constructGetSampleForRun(t_source),
-                                                           Base::constructSplitRangeInBWTRuns(t_source),
-                                                           Base::constructSplitRunInBWTRuns(t_source),
-                                                           Base::constructUpdateRun(),
-                                                           Base::constructIsRunEmpty(),
-                                                           constructValidateSample(t_source));
-                       });
+    Base::loadAllItems(t_source);
+
+    this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
+        key(SrIndexKey::VALID_MARKS), t_source, true);
+
+    this->template loadItem<TValidArea>(key(SrIndexKey::VALID_AREAS), t_source);
+  }
+
+  void constructIndex(TSource &t_source) override {
+    Base::constructIndex(t_source,
+                         [this](auto &t_source) {
+                           return Base::constructPhiForRange(t_source,
+                                                             Base::constructGetSampleForRun(t_source),
+                                                             Base::constructSplitRangeInBWTRuns(t_source),
+                                                             Base::constructSplitRunInBWTRuns(t_source),
+                                                             Base::constructUpdateRun(),
+                                                             Base::constructIsRunEmpty(),
+                                                             constructValidateSample(t_source));
+                         });
   }
 
   auto constructValidateSample(TSource &t_source) {
