@@ -129,13 +129,7 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
   template<typename TGetSampleRunData, typename TPsiRunData>
   auto constructComputeToehold(TSource &t_source, const TGetSampleRunData &t_get_sample, const TPsiRunData &t_psi) {
     auto compute_sa_value_run_data = buildComputeSAValueForward(t_get_sample, t_psi, this->n_);
-    auto compute_sa_value = [compute_sa_value_run_data](const std::shared_ptr<RunData> &tt_run_data) {
-      return compute_sa_value_run_data(tt_run_data.get());
-    };
-
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
-
-    return buildComputeToeholdForPhiForward(compute_sa_value, cref_psi_core.get().size());
+    return buildComputeToeholdForPhiForward(compute_sa_value_run_data, this->n_);
   }
 
   std::size_t subsample_rate_ = 1;
@@ -223,7 +217,6 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
 
   using typename Base::Range;
   using typename Base::RangeLF;
-  using typename Base::DataBackwardSearchStep;
   template<typename TPhiRange>
   void loadAllItems(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new RIndexBase{
@@ -231,8 +224,8 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, Char tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
               const auto &run = tt_next_range.start.run;
-              return DataBackwardSearchStep{
-                  tt_step, std::make_shared<RunDataExt>(run.start, tt_c, run.rank, tt_range.start != run.start)};
+              return DataBackwardSearchStep{tt_step,
+                                            RunDataExt(run.start, tt_c, run.rank, tt_range.start != run.start)};
             }),
         this->constructComputeSAValues(
             t_phi_range(t_source),
@@ -240,7 +233,7 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
                                           constructGetSampleForRunData(t_source),
                                           constructPsiForRunData(t_source))),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunDataExt>()}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunDataExt()}; },
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
@@ -254,9 +247,11 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
     std::size_t partial_rank;
     bool is_run_start;
 
-    explicit RunDataExt(std::size_t t_pos = 0, Char t_c = 0, std::size_t t_partial_rank = 0, bool t_is_run_start = true)
+    RunDataExt(std::size_t t_pos = 0, Char t_c = 0, std::size_t t_partial_rank = 0, bool t_is_run_start = false)
         : RunData(t_pos), c{t_c}, partial_rank{t_partial_rank}, is_run_start{t_is_run_start} {}
   };
+
+  using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunDataExt>;
 
   using typename Base::Value;
   auto constructGetSample(TSource &t_source) {
@@ -282,10 +277,8 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
 
   auto constructGetSampleForRunData(TSource &t_source) {
     auto get_sample = constructGetSample(t_source);
-
-    return [get_sample](const RunData *tt_run_data) {
-      auto run_data_ext = dynamic_cast<const RunDataExt *>(tt_run_data);
-      return get_sample(run_data_ext->c, run_data_ext->partial_rank, run_data_ext->is_run_start);
+    return [get_sample](const RunDataExt &tt_run_data) {
+      return get_sample(tt_run_data.c, tt_run_data.partial_rank, tt_run_data.is_run_start);
     };
   }
 
@@ -359,11 +352,7 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
 
     auto psi = Psi(psi_select, get_c, cumulative);
 
-    return [psi](RunData *tt_run_data) {
-      auto run_data_ext = dynamic_cast<RunDataExt *>(tt_run_data);
-      *run_data_ext = psi(tt_run_data->pos);
-      return run_data_ext;
-    };
+    return [psi](const RunDataExt &tt_run_data) { return psi(tt_run_data.pos); };
   }
 };
 
@@ -454,7 +443,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
         this->constructComputeDataBackwardSearchStep(
             [](const auto &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
               const auto &[start, end] = tt_next_range;
-              return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
+              return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
             }),
         this->constructComputeSAValues(
             t_phi_range(t_source),
@@ -462,7 +451,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
                                           constructGetSampleForRunData(t_source),
                                           constructPsiForRunData(t_source))),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData(0)}; },
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
@@ -485,10 +474,7 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
 
   auto constructGetSampleForRunData(TSource &t_source) {
     auto get_sample = constructGetSample(t_source);
-
-    return [get_sample](const RunData *tt_run_data) {
-      return get_sample(tt_run_data->pos);
-    };
+    return [get_sample](const RunData &tt_run_data) { return get_sample(tt_run_data.pos); };
   }
 
   auto constructGetSampleForRun(TSource &t_source) {
@@ -556,8 +542,8 @@ class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, T
 
     auto psi = Psi(psi_select, get_c, cumulative);
 
-    return [psi](RunData *tt_run_data) {
-      tt_run_data->pos = psi(tt_run_data->pos);
+    return [psi](RunData tt_run_data) {
+      tt_run_data.pos = psi(tt_run_data.pos);
       return tt_run_data;
     };
   }

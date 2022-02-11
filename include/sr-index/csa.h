@@ -93,11 +93,11 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
         constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
               const auto &[start, end] = tt_next_range;
-              return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
+              return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
             }),
         constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData(0)}; },
         constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         constructIsRangeEmpty()
@@ -176,12 +176,11 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
   struct RunData {
     std::size_t pos;
 
-    explicit RunData(std::size_t t_pos = 0) : pos{t_pos} {}
+    explicit RunData(std::size_t t_pos) : pos{t_pos} {}
     virtual ~RunData() = default;
   };
 
-  // TODO Use unique_ptr instead shared_ptr
-  using DataBackwardSearchStep = sri::DataBackwardSearchStep<std::shared_ptr<RunData>>;
+  using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
 
   template<typename TCreateData>
   auto constructComputeDataBackwardSearchStep(const TCreateData &t_create_data) {
@@ -218,8 +217,8 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const std::shared_ptr<RunData> &tt_run_data) {
-      auto run = cref_psi_core.get().rankRun(tt_run_data->pos);
+    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData &tt_run_data) {
+      auto run = cref_psi_core.get().rankRun(tt_run_data.pos);
       return cref_samples.get()[run] + 1;
     };
 
@@ -240,7 +239,7 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
   auto constructGetSymbol(TSource &t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[(uint8_t)tt_c]; };
+    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[(uint8_t) tt_c]; };
     return get_symbol;
   }
 
@@ -289,11 +288,11 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
               const auto &[start, end] = tt_next_range;
-              return DataBackwardSearchStep{tt_step, std::make_shared<RunData>(start.run.start)};
+              return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
             }),
         constructComputeSAValues(t_source),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, std::make_shared<RunData>(0)}; },
+        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData(0)}; },
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
