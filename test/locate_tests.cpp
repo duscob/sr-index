@@ -185,14 +185,14 @@ class LocateTypedTests : public BaseLocateTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::CSA<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
   auto key_index = "index";
   {
     TypeParam index;
-    sri::construct<8>(index, this->config_.file_map[this->key_tmp_input_], this->config_);
+    sri::construct(index, this->config_.file_map[this->key_tmp_input_], this->config_);
     sdsl::store_to_cache(index, key_index, this->config_);
   }
 
@@ -211,14 +211,22 @@ TYPED_TEST(RIndexLocateTypedTests, serialize) {
 template<typename TIndex>
 class SRIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using SRIndexes = ::testing::Types<sri::SRIndex<>, sri::SRIndexValidMark<>, sri::SRIndexValidArea<>>;
+using SRIndexes = ::testing::Types<sri::SRIndex<>,
+                                   sri::SRIndexValidMark<>,
+                                   sri::SRIndexValidArea<>,
+                                   sri::SrCSA<>,
+                                   sri::SrCSAValidMark<sri::SrCSA<>>,
+                                   sri::SrCSAValidArea<sri::SrCSA<>>,
+                                   sri::SrCSASlim<>,
+                                   sri::SrCSAValidMark<sri::SrCSASlim<>>,
+                                   sri::SrCSAValidArea<sri::SrCSASlim<>>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {
   auto key_index = "index";
   {
     TypeParam index(6);
-    sri::construct<8>(index, this->config_.file_map[this->key_tmp_input_], this->config_);
+    sri::construct(index, this->config_.file_map[this->key_tmp_input_], this->config_);
     sdsl::store_to_cache(index, key_index, this->config_);
   }
 
