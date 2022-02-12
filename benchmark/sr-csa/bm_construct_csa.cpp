@@ -31,7 +31,7 @@ auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
-    sri::constructSRI<8>(index, t_data_path, t_config);
+    sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
   }
 
@@ -65,7 +65,7 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config,
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
-    sri::constructSRI<8>(index, t_data_path, t_config);
+    sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
   }
 

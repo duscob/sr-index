@@ -340,9 +340,38 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
 
 };
 
+template<uint8_t t_width, typename TBvMark>
+void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config);
+
 template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
+               const std::string &t_data_path,
                sdsl::cache_config &t_config) {
+  constructCSA<t_width, TBvMark>(t_data_path, t_config);
+
+  t_index.load(t_config);
+}
+
+template<uint8_t t_width, typename TBvMark>
+void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config) {
+  constructIndexBaseItems<t_width>(t_data_path, t_config);
+
+  {
+    // Construct Psi
+    auto event = sdsl::memory_monitor::event("Psi");
+    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
+      constructPsi<t_width>(t_config);
+    }
+  }
+
+  {
+    // Construct Links from Mark to Sample
+    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
+    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
+      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
+    }
+  }
+
   std::size_t n;
   {
     sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
@@ -357,8 +386,6 @@ void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampl
       constructBitVectorFromIntVector<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
     }
   }
-
-  t_index.load(t_config);
 }
 
 }

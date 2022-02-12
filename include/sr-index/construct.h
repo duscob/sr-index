@@ -406,30 +406,6 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TIndex>
-void constructSRI(TIndex &t_index, const std::string &t_data_path, sdsl::cache_config &t_config) {
-
-  constructIndexBaseItems<t_width>(t_data_path, t_config);
-
-  {
-    // Construct Psi
-    auto event = sdsl::memory_monitor::event("Psi");
-    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
-      constructPsi<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct Links from Mark to Sample
-    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
-      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
-    }
-  }
-
-  construct(t_index, t_config);
-}
-
 template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
   {
