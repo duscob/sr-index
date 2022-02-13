@@ -201,22 +201,22 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   std::shared_ptr<LocateIndex> index_ = nullptr;
 };
 
-template<typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue, typename TGetSymbol, typename TCreateFullRange, typename TIsRangeEmpty>
+template<typename TBackwardNav, typename TUpdateToeholdData, typename TComputeAllValues, typename TGetInitialToeholdData, typename TGetSymbol, typename TCreateFullRange, typename TIsRangeEmpty>
 class RIndexBase : public LocateIndex {
  public:
   RIndexBase(const TBackwardNav &t_lf,
-             const TGetLastValue &t_get_last_value,
+             const TUpdateToeholdData &t_update_toehold_data,
              const TComputeAllValues &t_compute_all_values,
              std::size_t t_bwt_size,
-             const TGetFinalValue &t_get_final_sa_value,
+             const TGetInitialToeholdData &t_get_initial_toehold_data,
              const TGetSymbol &t_get_symbol,
              const TCreateFullRange &t_create_full_range,
              const TIsRangeEmpty &t_is_range_empty)
       : lf_{t_lf},
-        get_last_value_{t_get_last_value},
+        update_toehold_data_{t_update_toehold_data},
         compute_all_values_{t_compute_all_values},
         bwt_size_{t_bwt_size},
-        get_final_value_{t_get_final_sa_value},
+        get_initial_toehold_data_{t_get_initial_toehold_data},
         get_symbol_{t_get_symbol},
         create_full_range_{t_create_full_range},
         is_range_empty_{t_is_range_empty} {
@@ -236,20 +236,20 @@ class RIndexBase : public LocateIndex {
     auto range = create_full_range_(bwt_size_);
 
     auto i = t_pattern.size() - 1;
-    auto last_value = get_final_value_(i); //TODO use default value (step == 0) instead of get_final_value_
+    //TODO use default value (step == 0) instead of get_initial_toehold_data_
+    auto toehold_data = get_initial_toehold_data_(i);
 
     for (auto it = rbegin(t_pattern); it != rend(t_pattern) && !is_range_empty_(range); ++it, --i) {
       auto c = get_symbol_(*it);
 
       auto next_range = lf_(range, c);
-      // TODO refactor get_last_value to avoid unneeded copy of last_value in trivial case (parameter as reference)
-      last_value = get_last_value_(range, next_range, c, i, last_value);
+      update_toehold_data_(range, next_range, c, i, toehold_data);
 
       range = next_range;
     }
 
     if (!is_range_empty_(range)) {
-      compute_all_values_(range, last_value, t_report);
+      compute_all_values_(range, toehold_data, t_report);
     }
   }
 
@@ -280,11 +280,11 @@ class RIndexBase : public LocateIndex {
  private:
 
   TBackwardNav lf_;
-  TGetLastValue get_last_value_;
+  TUpdateToeholdData update_toehold_data_;
   TComputeAllValues compute_all_values_;
 
   std::size_t bwt_size_;
-  TGetFinalValue get_final_value_;
+  TGetInitialToeholdData get_initial_toehold_data_;
 
   TGetSymbol get_symbol_;
 
@@ -303,11 +303,24 @@ auto buildSharedPtrRIndex(const TBackwardNav &t_lf,
   using TFnCreateFullRange = std::function<Range(std::size_t)>;
   auto create_full_range = [](auto tt_seq_size) { return Range{0, tt_seq_size - 1}; };
 
-  using TFnIsRangeEmpty = std::function<bool(const Range&)>;
-  auto is_range_empty = [](const auto &tt_range) { return  tt_range.second < tt_range.first; };
+  using TFnIsRangeEmpty = std::function<bool(const Range &)>;
+  auto is_range_empty = [](const auto &tt_range) { return tt_range.second < tt_range.first; };
 
-  return std::make_shared<RIndexBase<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol, TFnCreateFullRange, TFnIsRangeEmpty>>(
-      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol, create_full_range, is_range_empty);
+  return std::make_shared<RIndexBase<TBackwardNav,
+                                     TGetLastValue,
+                                     TComputeAllValues,
+                                     TGetFinalValue,
+                                     TGetSymbol,
+                                     TFnCreateFullRange,
+                                     TFnIsRangeEmpty>>(
+      t_lf,
+      t_get_last_value,
+      t_compute_all_values,
+      t_bwt_size,
+      t_get_final_sa_value,
+      t_get_symbol,
+      create_full_range,
+      is_range_empty);
 }
 
 }

@@ -61,18 +61,15 @@ class ComputeDataBackwardSearchStep {
       : is_lf_trivial_{t_is_lf_trivial}, create_data_{t_create_data} {}
 
   template<typename TRange, typename TNextRange, typename TChar, typename TRunData>
-  auto operator()(const TRange &t_range,
+  void operator()(const TRange &t_range,
                   const TNextRange &t_next_range,
                   const TChar &t_c,
                   std::size_t t_step,
-                  const DataBackwardSearchStep<TRunData> &t_last_special_step) const {
-    if (t_last_special_step.step != 0 && is_lf_trivial_(t_range, t_c, t_next_range)) {
-      // Next range is empty or
+                  DataBackwardSearchStep<TRunData> &t_last_special_step) const {
+    if (t_last_special_step.step == 0 || !is_lf_trivial_(t_range, t_c, t_next_range)) {
       // LF step on a current range limit (range end for backward phi or range start for forward phi) goes to next range limit.
-      return t_last_special_step;
+      t_last_special_step = create_data_(t_range, t_c, t_next_range, t_step);
     }
-
-    return create_data_(t_range, t_c, t_next_range, t_step);
   }
 
  private:
