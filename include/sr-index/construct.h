@@ -82,16 +82,6 @@ void constructBWTRLE(sdsl::cache_config &t_config) {
   sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
 
   {
-    // TODO Remove this rle string once the other representation is tested.
-    std::string bwt_s;
-    replace_copy(bwt_buf.begin(), bwt_buf.end(), back_inserter(bwt_s), 0, 1);
-
-    sri::rle_string<> bwt_rle(bwt_s);
-
-    sdsl::store_to_cache(bwt_rle, conf::KEY_BWT_RLE + "_original", t_config, true);
-  }
-
-  {
     typename alphabet_trait<t_width>::type alphabet;
     sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
 
@@ -221,26 +211,6 @@ void constructPsi(sdsl::cache_config &t_config) {
     psi = constructPsi(bwt_buf, alphabet);
     sdsl::util::bit_compress(psi);
     sdsl::store_to_cache(psi, sdsl::conf::KEY_PSI, t_config);
-
-    // TODO Don't create psi_enc
-    {
-      sdsl::enc_vector<> psi_enc(psi);
-      sri::store_to_cache(psi_enc, sdsl::conf::KEY_PSI, t_config, true);
-    }
-  }
-
-  // TODO Don't create unused PsiCore
-  {
-    sri::PsiCoreBV<> psi_core(alphabet.C, psi);
-    sri::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
-  }
-  {
-    sri::PsiCoreBV<sdsl::sd_vector<>> psi_core(alphabet.C, psi);
-    sri::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
-  }
-  {
-    sri::PsiCoreBV<sdsl::rrr_vector<>> psi_core(alphabet.C, psi);
-    sri::store_to_cache(psi_core, sdsl::conf::KEY_PSI, t_config, true);
   }
 
   {
