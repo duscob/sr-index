@@ -83,11 +83,11 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     if (!this->keys_.empty()) return;
 
     this->keys_.resize(5);
-    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
-    key(SrIndexKey::NAVIGATE) = key_trait<t_width>::KEY_BWT_RLE;
-    key(SrIndexKey::SAMPLES) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
-    key(SrIndexKey::MARK_TO_SAMPLE) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
+    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
+    key(SrIndexKey::NAVIGATE) = conf::KEY_BWT_RLE;
+    key(SrIndexKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(SrIndexKey::MARKS) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(SrIndexKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   }
 
   virtual void loadAllItems(TSource &t_source) {
@@ -303,8 +303,8 @@ void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_confi
   {
     // Construct Links from Mark to Sample
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config)) {
-      constructMarkToSampleLinksForPhiBackward<t_width>(t_config);
+    if (!cache_file_exists(conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config)) {
+      constructMarkToSampleLinksForPhiBackward(t_config);
     }
   }
 
@@ -317,7 +317,7 @@ void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_confi
   {
     // Construct Predecessor on the text positions of BWT run first letter
     auto event = sdsl::memory_monitor::event("Predecessor");
-    const auto key_marks = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+    const auto key_marks = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
     if (!sdsl::cache_file_exists<TBvMark>(key_marks, t_config)) {
       constructBitVectorFromIntVector<TBvMark>(key_marks, t_config, n, false);
     }

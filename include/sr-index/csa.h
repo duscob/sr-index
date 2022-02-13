@@ -84,11 +84,11 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
     if (!this->keys_.empty()) return;
 
     this->keys_.resize(5);
-    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
+    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
     key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-    key(SrIndexKey::SAMPLES) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
-    key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(SrIndexKey::MARK_TO_SAMPLE) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+    key(SrIndexKey::SAMPLES) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(SrIndexKey::MARKS) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(SrIndexKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   }
 
   virtual void loadAllItems(TSource &t_source) {
@@ -282,8 +282,7 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(
-        key_trait<t_width>::KEY_ALPHABET, out, child, "alphabet");
+    written_bytes += this->template serializeItem<TAlphabet>(conf::KEY_ALPHABET, out, child, "alphabet");
 
     written_bytes += this->template serializeItem<TPsiRLE>(sdsl::conf::KEY_PSI, out, child, "psi");
 
@@ -367,7 +366,7 @@ void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config) 
   {
     // Construct Links from Mark to Sample
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
+    if (!cache_file_exists(conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
       constructMarkToSampleLinksForPhiForward<t_width>(t_config);
     }
   }
@@ -381,9 +380,8 @@ void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config) 
   {
     // Construct Successor on the text positions of BWT run last letter
     auto event = sdsl::memory_monitor::event("Successor");
-    const auto KEY_BWT_RUN_LAST_TEXT_POS = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
-    if (!sdsl::cache_file_exists<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
-      constructBitVectorFromIntVector<TBvMark>(KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
+    if (!sdsl::cache_file_exists<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
+      constructBitVectorFromIntVector<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
     }
   }
 }
