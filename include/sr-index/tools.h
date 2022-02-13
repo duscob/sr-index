@@ -143,6 +143,11 @@ class SplitInRuns {
     return string_.get().break_in_runs(std::make_pair(t_first, t_last));
   }
 
+  template<typename TRange>
+  auto operator()(const TRange &t_range) const {
+    return string_.get().break_in_runs(t_range);
+  }
+
  private:
   TRLEString string_;
 };
