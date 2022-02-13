@@ -12,6 +12,7 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 
 #include "index_base.h"
+#include "alphabet.h"
 #include "rle_string.hpp"
 #include "lf.h"
 #include "sequence_ops.h"
@@ -19,19 +20,15 @@
 
 namespace sri {
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TBwtRLE = RLEString<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>
->
+    typename TSample = sdsl::int_vector<>>
 class RIndex : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Base = IndexBaseWithExternalStorage<TStorage>;
-
-  static constexpr uint8_t AlphabetWidth = t_width;
 
   explicit RIndex(const TStorage &t_storage) : Base(t_storage) {}
 
@@ -286,8 +283,8 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 template<uint8_t t_width, typename TBvMark>
 void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
+template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
+void construct(RIndex<TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
 

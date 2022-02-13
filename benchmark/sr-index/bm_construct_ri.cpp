@@ -29,7 +29,7 @@ auto BM_ConstructRIndex = [](benchmark::State &t_state, sdsl::cache_config t_con
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
-    sri::construct<8>(index, t_data_path, t_config);
+    sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
   }
 
@@ -63,7 +63,7 @@ void BM_ConstructSRI(benchmark::State &t_state, sdsl::cache_config t_config, con
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
-    sri::construct<8>(index, t_data_path, t_config);
+    sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
   }
 

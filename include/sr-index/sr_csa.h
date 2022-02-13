@@ -12,16 +12,15 @@
 
 namespace sri {
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>>
-class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSABase : public CSA<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = CSA<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSABase(const TStorage &t_storage, std::size_t t_sr)
       : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {
@@ -158,18 +157,17 @@ class SrCSABase : public CSA<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMa
   std::string key_prefix_;
 };
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>,
     typename TRunCumulativeCount = sdsl::int_vector<>>
-class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSASlim : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSASlim(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
@@ -379,17 +377,16 @@ class SrCSASlim : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMar
   }
 };
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSamplePos = sdsl::sd_vector<>>
-class SrCSA : public SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSA : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = SrCSABase<t_width, TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSA(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
@@ -756,15 +753,13 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
 template<uint8_t t_width, typename TBVMark>
 void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width>
 void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config);
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSample, typename TSample, typename TBVSampleIdx, typename TRunCumCnt>
+template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSample, typename TSample, typename TBVSampleIdx, typename TRunCumCnt>
 void construct(SrCSASlim<
-    t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt> &t_index,
+    TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);
@@ -778,7 +773,7 @@ void construct(SrCSASlim<
     auto event = sdsl::memory_monitor::event("Samples");
     auto key = KeySortedByAlphabet(conf::KEY_BWT_RUN_FIRST_IDX);
     if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSamplesSortedByAlphabet<t_width>(t_config);
+      constructSamplesSortedByAlphabet(t_config);
     }
   }
 
@@ -789,7 +784,7 @@ void construct(SrCSASlim<
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = KeySortedByAlphabet(prefix_key + conf::KEY_BWT_RUN_FIRST_TEXT_POS);
     if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
-      constructSubsamplingBackwardSamplesSortedByAlphabet<t_width>(subsample_rate, t_config);
+      constructSubsamplingBackwardSamplesSortedByAlphabet(subsample_rate, t_config);
     }
   }
 
@@ -811,11 +806,10 @@ void construct(SrCSASlim<
   t_index.load(t_config);
 }
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
-void construct(SrCSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> &t_index,
+template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
+void construct(SrCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);
@@ -837,7 +831,7 @@ void construct(SrCSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSam
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = prefix + conf::KEY_BWT_RUN_FIRST;
     if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSubsamplingBackwardSamplesPosition<t_width>(subsample_rate, t_config);
+      constructSubsamplingBackwardSamplesPosition(subsample_rate, t_config);
     }
 
     if (!sdsl::cache_file_exists<TBvSamplePos>(key, t_config)) {
@@ -848,15 +842,15 @@ void construct(SrCSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSam
   t_index.load(t_config);
 }
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, template<uint8_t> typename TSrCSA, typename TBvValidMark>
-void construct(SrCSAValidMark<TSrCSA<t_width>, TBvValidMark> &t_index,
+template<template<typename, typename> typename TSrCSA, typename TStorage,
+    template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBvValidMark>
+void construct(SrCSAValidMark<TSrCSA<TStorage, TAlphabet<t_width>>, TBvValidMark> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
 //  construct(dynamic_cast<TSrCSA &>(t_index), t_config);
-  auto base_index = TSrCSA<t_width>(t_index);
+  auto base_index = TSrCSA<TStorage, TAlphabet<t_width>>(t_index);
   construct(base_index, t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
@@ -867,7 +861,7 @@ void construct(SrCSAValidMark<TSrCSA<t_width>, TBvValidMark> &t_index,
     auto event = sdsl::memory_monitor::event("Subsampling Validity");
     auto key = prefix_key + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK;
     if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSubsamplingBackwardMarksValidity<t_width>(subsample_rate, t_config);
+      constructSubsamplingBackwardMarksValidity(subsample_rate, t_config);
     }
 
     if (!sdsl::cache_file_exists<TBvValidMark>(key, t_config)) {
@@ -885,16 +879,15 @@ void construct(SrCSAValidMark<TSrCSA<t_width>, TBvValidMark> &t_index,
   t_index.load(t_config);
 }
 
-template<uint8_t t_width, template<uint8_t> typename TSrCSA, typename TBvValidMark, typename TValidArea>
-void construct(SrCSAValidArea<TSrCSA<t_width>, TBvValidMark, TValidArea> &t_index,
+template<typename TSrCSA, typename TBvValidMark>
+void construct(SrCSAValidArea<TSrCSA, TBvValidMark> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
-  construct<t_width>(dynamic_cast<SrCSAValidMark<TSrCSA<t_width>, TBvValidMark> &>(t_index), t_data_path, t_config);
+  construct(dynamic_cast<SrCSAValidMark<TSrCSA, TBvValidMark> &>(t_index), t_data_path, t_config);
 
   t_index.load(t_config);
 }
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesForPhiForward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
@@ -1068,7 +1061,7 @@ void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_c
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = prefix + conf::KEY_BWT_RUN_FIRST_IDX;
     if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSubsamplingBackwardSamplesForPhiForward<t_width>(t_subsample_rate, t_config);
+      constructSubsamplingBackwardSamplesForPhiForward(t_subsample_rate, t_config);
     }
   }
 
@@ -1090,7 +1083,6 @@ void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_c
   }
 }
 
-template<uint8_t t_width>
 void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   PsiCoreRLE<> psi_rle;
   sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
@@ -1126,7 +1118,6 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   cumulative.close();
 }
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto key_prefix = std::to_string(t_subsample_rate) + "_";
   const std::size_t buffer_size = 1 << 20;
@@ -1185,7 +1176,6 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
   mark_to_sample_idx_sorted.close();
 }
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
@@ -1203,7 +1193,6 @@ void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, s
   sdsl::store_to_cache(subsamples_pos, prefix + conf::KEY_BWT_RUN_FIRST, t_config);
 }
 
-template<uint8_t t_width>
 void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 

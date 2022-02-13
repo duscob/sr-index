@@ -11,6 +11,7 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 #include <sdsl/memory_management.hpp>
 
+#include "alphabet.h"
 #include "psi.h"
 #include "tools.h"
 #include "phi.h"
@@ -383,11 +384,7 @@ void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config 
   }
 }
 
-template<uint8_t t_width>
 void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
-  static_assert(t_width == 0 or t_width == 8,
-                "constructMarkToSampleLinksForPhiBackward: width must be `0` for integer alphabet and `8` for byte alphabet");
-
   // Marks
   sdsl::int_vector<> marks; // Text position of the first symbol in BWT runs
   sdsl::load_from_cache(marks, conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);

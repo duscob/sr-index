@@ -13,6 +13,7 @@
 
 #include <sdsl/csa_alphabet_strategy.hpp>
 
+#include "alphabet.h"
 #include "psi.h"
 #include "lf.h"
 #include "construct.h"
@@ -21,9 +22,8 @@
 
 namespace sri {
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
@@ -31,8 +31,6 @@ template<uint8_t t_width = 8,
 class CSA : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Base = IndexBaseWithExternalStorage<TStorage>;
-
-  static constexpr uint8_t AlphabetWidth = t_width;
 
   explicit CSA(const TStorage &t_storage) : Base(t_storage) {}
 
@@ -263,14 +261,13 @@ class CSA : public IndexBaseWithExternalStorage<TStorage> {
 
 };
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TSA = sdsl::int_vector<>>
-class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
+class CSARaw : public CSA<TStorage, TAlphabet, TPsiRLE> {
  public:
-  using Base = CSA<t_width, TStorage, TAlphabet, TPsiRLE>;
+  using Base = CSA<TStorage, TAlphabet, TPsiRLE>;
 
   explicit CSARaw(const TStorage &t_storage) : Base(t_storage) {}
 
@@ -342,8 +339,8 @@ class CSARaw : public CSA<t_width, TStorage, TAlphabet, TPsiRLE> {
 template<uint8_t t_width, typename TBvMark>
 void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(CSA<t_width, TStorage, TAlphabet, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
+template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
+void construct(CSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);
