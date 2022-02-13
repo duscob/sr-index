@@ -39,6 +39,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
 
 set(SOURCE_FILES
+        ${PROJECT_SOURCE_DIR}/include/sr-index/alphabet.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/lf.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/bwt.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sequence_ops.h

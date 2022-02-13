@@ -111,16 +111,6 @@ auto KeySortedByAlphabet(const std::string &t_key) {
 }
 
 template<uint8_t t_width>
-struct alphabet_trait {
-  typedef sdsl::byte_alphabet type;
-};
-
-template<>
-struct alphabet_trait<0> {
-  typedef sdsl::int_alphabet<> type;
-};
-
-template<uint8_t t_width>
 void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
   static_assert(t_width == 0 or t_width == 8,
                 "constructText: width must be `0` for integer alphabet and `8` for byte alphabet");
