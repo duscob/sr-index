@@ -125,7 +125,7 @@ auto buildPhiBackward(const TPredecessor &t_predecessor,
                       const TSampleValidator &t_sample_validator,
                       std::size_t t_bwt_size) {
   auto get_sample = GetSampleForPhi(t_get_sample_index, t_get_sample, t_sample_validator);
-  return PhiBackward<TPredecessor, decltype(get_sample)>(t_predecessor, get_sample, t_bwt_size);
+  return PhiBackward(t_predecessor, get_sample, t_bwt_size);
 }
 
 //! Phi function based on forward search using soft-successor data structure.
@@ -174,7 +174,7 @@ auto buildPhiForward(const TSoftSuccessor &t_soft_successor,
                      const TSampleValidator &t_sample_validator,
                      std::size_t t_bwt_size) {
   auto get_sample = GetSampleForPhi(t_get_sample_index, t_get_sample, t_sample_validator);
-  return PhiForward<TSoftSuccessor, decltype(get_sample)>(t_soft_successor, get_sample, t_bwt_size);
+  return PhiForward(t_soft_successor, get_sample, t_bwt_size);
 }
 
 //! Compute the links between marked positions (BWT tails) and its corresponding samples (BWT heads) to be used in PhiForward function.
@@ -455,36 +455,6 @@ class PhiForwardForRange {
   TUpdateRun update_run_;
   TIsRunEmpty is_run_empty_;
 };
-
-template<typename TPhi, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TGetSample>
-auto buildPhiForwardForRange(const TPhi &t_phi,
-                             const TSplitRangeInBWTRuns &t_split_range,
-                             const TSplitRunInBWTRuns &t_split_run,
-                             const TGetSample &t_get_sample,
-                             std::size_t t_sampling_size,
-                             std::size_t t_bwt_size) {
-
-  auto phi = [t_phi](const auto tt_prev_value) { return t_phi(tt_prev_value).first; };
-
-  auto is_range_empty = [](const auto &tt_range) {
-    const auto &[first, last] = tt_range;
-    return last <= first;
-  };
-
-  auto update_run = [](auto &tt_run) {
-    auto &[first, last] = limits(tt_run);
-    ++first;
-    return tt_run;
-  };
-
-  auto is_run_empty = [](const auto &tt_run) {
-    const auto &[first, last] = limits(tt_run);
-    return last <= first;
-  };
-
-  return PhiForwardForRange(
-      phi, t_get_sample, t_split_range, t_split_run, t_sampling_size, t_bwt_size, is_range_empty, update_run, is_run_empty);
-}
 
 template<typename TPhi, typename TSplitInBWTRun, typename TBackwardNav, typename TSampleAt>
 class PhiBackwardForRangeWithValidityOriginal {
@@ -842,18 +812,6 @@ auto buildComputeAllValuesWithPhiBackwardForRange(const TPhiBackwardForRange &t_
   };
 
   return ComputeAllValuesWithPhiForRange(t_phi_backward_for_range, t_get_sa_value, get_new_range);
-}
-
-template<typename TPhiForwardForRange, typename TGetSAValue>
-auto buildComputeAllValuesWithPhiForwardForRange(const TPhiForwardForRange &t_phi_forward_for_range,
-                                                 const TGetSAValue &t_get_sa_value) {
-  auto get_new_range = [](auto tt_range) {
-    auto &[start, end] = tt_range;
-    ++start;
-    return tt_range;
-  };
-
-  return ComputeAllValuesWithPhiForRange(t_phi_forward_for_range, t_get_sa_value, get_new_range);
 }
 
 }

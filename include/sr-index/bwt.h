@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/8/20.
 //
 
-#ifndef RI_BWT_H_
-#define RI_BWT_H_
+#ifndef SRI_BWT_H_
+#define SRI_BWT_H_
 
 #include <cstddef>
 #include <cassert>
@@ -152,4 +152,4 @@ auto buildBasicLF(const TGetChar &t_get_char, const TGetCRankOnBWT &t_get_c_rank
 
 }
 
-#endif //RI_BWT_H_
+#endif //SRI_BWT_H_
