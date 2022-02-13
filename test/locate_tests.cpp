@@ -44,7 +44,7 @@ class LocateTests : public BaseLocateTests,
 
 TEST_P(LocateTests, CSA) {
   sri::CSA<> index;
-  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -57,7 +57,7 @@ TEST_P(LocateTests, CSA) {
 
 TEST_P(LocateTests, SRCSA) {
   sri::SrCSA<> index(6);
-  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -70,7 +70,7 @@ TEST_P(LocateTests, SRCSA) {
 
 TEST_P(LocateTests, SRCSASlim) {
   sri::SrCSASlim<> index(6);
-  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -83,7 +83,7 @@ TEST_P(LocateTests, SRCSASlim) {
 
 TEST_P(LocateTests, SRCSASlimValidMark) {
   sri::SrCSAValidMark<sri::SrCSASlim<>> index(6);
-  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -96,7 +96,7 @@ TEST_P(LocateTests, SRCSASlimValidMark) {
 
 TEST_P(LocateTests, SRCSASlimValidArea) {
   sri::SrCSAValidArea<sri::SrCSASlim<>> index(6);
-  sri::constructSRI<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -109,7 +109,7 @@ TEST_P(LocateTests, SRCSASlimValidArea) {
 
 TEST_P(LocateTests, RIndex) {
   sri::RIndex<> index;
-  sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -122,7 +122,7 @@ TEST_P(LocateTests, RIndex) {
 
 TEST_P(LocateTests, SRIndex) {
   sri::SRIndex<> index(6);
-  sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -135,7 +135,7 @@ TEST_P(LocateTests, SRIndex) {
 
 TEST_P(LocateTests, SRIndexValidMark) {
   sri::SRIndexValidMark<> index(6);
-  sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -148,7 +148,7 @@ TEST_P(LocateTests, SRIndexValidMark) {
 
 TEST_P(LocateTests, SRIndexValidArea) {
   sri::SRIndexValidArea<> index(6);
-  sri::construct<8>(index, config_.file_map[key_tmp_input_], config_);
+  sri::construct(index, config_.file_map[key_tmp_input_], config_);
 
   const auto &pattern = std::get<1>(GetParam());
   auto results = index.Locate(pattern);
@@ -185,14 +185,14 @@ class LocateTypedTests : public BaseLocateTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::CSA<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
   auto key_index = "index";
   {
     TypeParam index;
-    sri::construct<8>(index, this->config_.file_map[this->key_tmp_input_], this->config_);
+    sri::construct(index, this->config_.file_map[this->key_tmp_input_], this->config_);
     sdsl::store_to_cache(index, key_index, this->config_);
   }
 
@@ -211,14 +211,22 @@ TYPED_TEST(RIndexLocateTypedTests, serialize) {
 template<typename TIndex>
 class SRIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using SRIndexes = ::testing::Types<sri::SRIndex<>, sri::SRIndexValidMark<>, sri::SRIndexValidArea<>>;
+using SRIndexes = ::testing::Types<sri::SRIndex<>,
+                                   sri::SRIndexValidMark<>,
+                                   sri::SRIndexValidArea<>,
+                                   sri::SrCSA<>,
+                                   sri::SrCSAValidMark<sri::SrCSA<>>,
+                                   sri::SrCSAValidArea<sri::SrCSA<>>,
+                                   sri::SrCSASlim<>,
+                                   sri::SrCSAValidMark<sri::SrCSASlim<>>,
+                                   sri::SrCSAValidArea<sri::SrCSASlim<>>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {
   auto key_index = "index";
   {
     TypeParam index(6);
-    sri::construct<8>(index, this->config_.file_map[this->key_tmp_input_], this->config_);
+    sri::construct(index, this->config_.file_map[this->key_tmp_input_], this->config_);
     sdsl::store_to_cache(index, key_index, this->config_);
   }
 

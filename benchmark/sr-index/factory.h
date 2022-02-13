@@ -40,27 +40,26 @@ class Factory {
   std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) {
     switch (t_config.index_type) {
       case IndexEnum::R_INDEX: {
-        auto idx = std::make_shared<sri::RIndex<t_width, ExternalGenericStorage>>(std::ref(storage_));
+        auto idx = std::make_shared<sri::RIndex<ExternalGenericStorage>>(std::ref(storage_));
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_INDEX: {
-        auto idx = std::make_shared<sri::SRIndex<t_width, ExternalGenericStorage>>(
-            std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<sri::SRIndex<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_INDEX_VM: {
-        auto idx = std::make_shared<sri::SRIndexValidMark<t_width, ExternalGenericStorage>>(
+        auto idx = std::make_shared<sri::SRIndexValidMark<ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_INDEX_VA: {
-        auto idx = std::make_shared<sri::SRIndexValidArea<t_width, ExternalGenericStorage>>(
+        auto idx = std::make_shared<sri::SRIndexValidArea<ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};

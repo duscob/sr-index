@@ -143,6 +143,11 @@ class SplitInRuns {
     return string_.get().break_in_runs(std::make_pair(t_first, t_last));
   }
 
+  template<typename TRange>
+  auto operator()(const TRange &t_range) const {
+    return string_.get().break_in_runs(t_range);
+  }
+
  private:
   TRLEString string_;
 };
@@ -243,42 +248,6 @@ auto buildGetSampleForSAPosition(const TRunOfSAPosition &t_run_of_sa_position,
       t_run_of_sa_position, t_is_run_sampled, t_sample_for_bwt_run);
 }
 
-template<typename TRLEString>
-class GetPreviousPositionInRange {
- public:
-  explicit GetPreviousPositionInRange(const TRLEString &t_string) : string_{t_string} {}
-
-  template<typename TRange, typename TChar>
-  std::size_t operator()(const TRange &t_range, const TChar &t_c) const {
-    //find last c in range (there must be one because range1 is not empty)
-    //and get its sample (must be sampled because it is at the end of a run)
-    //note: by previous check, bwt[range.second] != c, so we can use argument range.second
-    auto rnk = string_.rank(t_range.second, t_c);
-
-    //there must be at least one c before range.second
-    assert(rnk > 0);
-
-    //this is the rank of the last c
-    rnk--;
-
-    //jump to the corresponding BWT position
-    auto j = string_.select(rnk, t_c);
-
-    //the c must be in the range
-    assert(t_range.first <= j && j < t_range.second);
-
-    return j;
-  }
-
- private:
-  TRLEString string_;
-};
-
-template<typename TRLEString>
-auto buildGetPreviousPositionInRange(const TRLEString &t_string) {
-  return GetPreviousPositionInRange<TRLEString>(t_string);
-}
-
 template<typename TRLEString, typename TSampleForSAPosition>
 class GetLastValue {
  public:
@@ -353,7 +322,7 @@ class ComputeSAValue {
       : get_sample_{t_get_sample}, navigate_{t_navigate}, seq_size_{t_seq_size}, is_backward_nav_{t_is_backward_nav} {
   }
 
-  template <typename TRunData>
+  template<typename TRunData>
   std::size_t operator()(TRunData t_run_data) const {
     std::size_t n_jumps = 0;
     auto sample = get_sample_(t_run_data); // std::optional

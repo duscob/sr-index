@@ -12,6 +12,7 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 
 #include "index_base.h"
+#include "alphabet.h"
 #include "rle_string.hpp"
 #include "lf.h"
 #include "sequence_ops.h"
@@ -19,19 +20,15 @@
 
 namespace sri {
 
-template<uint8_t t_width = 8,
-    typename TStorage = GenericStorage,
-    typename TAlphabet = sdsl::byte_alphabet,
+template<typename TStorage = GenericStorage,
+    typename TAlphabet = Alphabet<>,
     typename TBwtRLE = RLEString<>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>
->
+    typename TSample = sdsl::int_vector<>>
 class RIndex : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Base = IndexBaseWithExternalStorage<TStorage>;
-
-  static constexpr uint8_t AlphabetWidth = t_width;
 
   explicit RIndex(const TStorage &t_storage) : Base(t_storage) {}
 
@@ -62,8 +59,8 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
     written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
 
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+    written_bytes += this->template serializeItem<TMarkToSampleIdx>(
+        key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
 
     return written_bytes;
   }
@@ -83,13 +80,12 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
     if (!this->keys_.empty()) return;
 
     this->keys_.resize(5);
-    key(SrIndexKey::ALPHABET) = key_trait<t_width>::KEY_ALPHABET;
-    key(SrIndexKey::NAVIGATE) = key_trait<t_width>::KEY_BWT_RLE;
-    key(SrIndexKey::SAMPLES) = key_trait<t_width>::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(SrIndexKey::MARKS) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
-    key(SrIndexKey::MARK_TO_SAMPLE) = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
+    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
+    key(SrIndexKey::NAVIGATE) = conf::KEY_BWT_RLE;
+    key(SrIndexKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(SrIndexKey::MARKS) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(SrIndexKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   }
-
 
   virtual void loadAllItems(TSource &t_source) {
     this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
@@ -287,8 +283,8 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 template<uint8_t t_width, typename TBvMark>
 void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config);
 
-template<uint8_t t_width, typename TStorage, typename TAlphabet, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(RIndex<t_width, TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
+template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
+void construct(RIndex<TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
 
@@ -304,8 +300,8 @@ void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_confi
   {
     // Construct Links from Mark to Sample
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config)) {
-      constructMarkToSampleLinksForPhiBackward<t_width>(t_config);
+    if (!cache_file_exists(conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config)) {
+      constructMarkToSampleLinksForPhiBackward(t_config);
     }
   }
 
@@ -318,7 +314,7 @@ void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_confi
   {
     // Construct Predecessor on the text positions of BWT run first letter
     auto event = sdsl::memory_monitor::event("Predecessor");
-    const auto key_marks = key_trait<t_width>::KEY_BWT_RUN_FIRST_TEXT_POS;
+    const auto key_marks = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
     if (!sdsl::cache_file_exists<TBvMark>(key_marks, t_config)) {
       constructBitVectorFromIntVector<TBvMark>(key_marks, t_config, n, false);
     }

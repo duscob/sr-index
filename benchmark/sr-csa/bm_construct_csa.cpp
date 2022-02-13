@@ -31,7 +31,7 @@ auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
-    sri::constructSRI<8>(index, t_data_path, t_config);
+    sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
   }
 
@@ -52,7 +52,7 @@ auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config
     t_state.counters["n"] = buf.size();
   }
   {
-    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(sri::key_trait<8>::KEY_BWT_RUN_FIRST, t_config));
+    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(sri::conf::KEY_BWT_RUN_FIRST, t_config));
     t_state.counters["r"] = buf.size();
   }
 };
@@ -65,7 +65,7 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config,
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
-    sri::constructSRI<8>(index, t_data_path, t_config);
+    sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
   }
 
@@ -84,7 +84,7 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sdsl::cache_config t_config,
   t_state.counters["s"] = subsample_rate;
   auto prefix = std::to_string(subsample_rate) + "_";
   {
-    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(prefix + sri::key_trait<8>::KEY_BWT_RUN_FIRST_IDX, t_config));
+    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(prefix + sri::conf::KEY_BWT_RUN_FIRST_IDX, t_config));
     t_state.counters["r'"] = buf.size();
   }
 };
