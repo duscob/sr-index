@@ -783,7 +783,7 @@ void construct(SrCSASlim<
     // Construct subsampling backward of samples sorted by alphabet
     auto event = sdsl::memory_monitor::event("Subsampling");
     auto key = KeySortedByAlphabet(prefix_key + conf::KEY_BWT_RUN_FIRST_TEXT_POS);
-    if (!sdsl::cache_file_exists<TBVSampleIdx>(key, t_config)) {
+    if (!sdsl::cache_file_exists(key, t_config)) {
       constructSubsamplingBackwardSamplesSortedByAlphabet(subsample_rate, t_config);
     }
   }
@@ -1051,7 +1051,7 @@ void constructSrCSACommons(std::size_t t_subsample_rate, sdsl::cache_config &t_c
     // Sort samples (BWT-run last letter) by its text positions
     auto event = sdsl::memory_monitor::event("Subsampling");
     const auto key = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX;
-    if (!sdsl::cache_file_exists<TBvMark>(key, t_config)) {
+    if (!sdsl::cache_file_exists(key, t_config)) {
       constructSortedIndices(conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config, key);
     }
   }

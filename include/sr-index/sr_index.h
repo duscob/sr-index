@@ -494,18 +494,13 @@ template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
 void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   constructRIndex<t_width, TBvMark>(t_data_path, t_config);
 
-  std::size_t n;
-  {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-    n = bwt_buf.size();
-  }
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   {
     // Sort samples (BWT-run last letter) by its text positions
     auto event = sdsl::memory_monitor::event("Subsampling");
     const auto key = conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX;
-    if (!sdsl::cache_file_exists<TBvMark>(key, t_config)) {
+    if (!sdsl::cache_file_exists(key, t_config)) {
       constructSortedIndices(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, key);
     }
   }
@@ -542,6 +537,11 @@ void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, 
     auto event = sdsl::memory_monitor::event("Predecessor");
     const auto key = prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST;
     if (!sdsl::cache_file_exists<TBvMark>(key, t_config)) {
+      std::size_t n;
+      {
+        sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+        n = bwt_buf.size();
+      }
       constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
     }
   }
