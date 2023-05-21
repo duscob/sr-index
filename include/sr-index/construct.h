@@ -225,9 +225,9 @@ auto sortIndices(const TRAContainer &t_values) {
   auto log_n = sdsl::bits::hi(n) + 1;
 
   sdsl::int_vector<> values_idx(n, 0, log_n); // Indices of the values sorted
-  iota(values_idx.begin(), values_idx.end(), 0);
+  std::iota(values_idx.begin(), values_idx.end(), 0);
 
-  sort(values_idx.begin(),
+  std::sort(values_idx.begin(),
        values_idx.end(),
        [&t_values](const auto &a, const auto &b) -> bool { return t_values[a] < t_values[b]; });
 
@@ -242,7 +242,7 @@ auto constructMarkToSampleLinks(const TRAContainer &t_marks_text_pos, const TGet
   auto r = t_marks_text_pos.size();
   auto log_r = sdsl::bits::hi(r) + 1;
   sdsl::int_vector<> mark_to_sample_link(r, 0, log_r);
-  transform(marks_idx.begin(), marks_idx.end(), mark_to_sample_link.begin(), t_get_link);
+  std::transform(marks_idx.begin(), marks_idx.end(), mark_to_sample_link.begin(), t_get_link);
 
   return std::make_pair(std::move(marks_idx), std::move(mark_to_sample_link));
 }
@@ -296,7 +296,7 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
   };
 
   // Compute links
-  auto[sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(bwt_run_last_text_pos, get_link);
+  auto [sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(bwt_run_last_text_pos, get_link);
 
   sdsl::store_to_cache(sorted_marks_idx, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
@@ -364,7 +364,7 @@ void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
   };
 
   // Compute links
-  auto[sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
+  auto [sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
 
   sdsl::store_to_cache(sorted_marks_idx, conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX, t_config);
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config);
@@ -398,7 +398,7 @@ template<typename TValues>
 auto constructBitVectorFromIntVector(TValues &t_values, size_t t_bv_size, bool t_init_value) {
   sdsl::bit_vector bv_tmp(t_bv_size, t_init_value);
 
-  for (auto &&item: t_values) {
+  for (auto &&item : t_values) {
     bv_tmp[item] = !t_init_value;
   }
   return bv_tmp;

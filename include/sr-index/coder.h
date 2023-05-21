@@ -14,7 +14,7 @@ template<typename T>
 auto decode(const uint64_t *&data, std::size_t &start_idx);
 
 template<>
-auto decode<sdsl::coder::elias_delta>(const uint64_t *&d, std::size_t &start_idx) {
+auto decode<sdsl::coder::elias_delta<>>(const uint64_t *&d, std::size_t &start_idx) {
   d += (start_idx >> 6);
   uint64_t value = 0;
   uint8_t offset = start_idx & 0x3F;

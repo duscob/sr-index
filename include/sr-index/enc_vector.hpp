@@ -56,7 +56,7 @@ struct enc_vector_trait<64> {
  *  This class is a parameter of csa_sada.
  * @ingroup int_vector
  */
-template<class t_coder=sdsl::coder::elias_delta,
+template<class t_coder=sdsl::coder::elias_delta<>,
          uint32_t t_dens = 128, uint8_t t_width=0>
 class enc_vector
 {

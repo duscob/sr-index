@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  sdsl::construct_config::byte_algo_sa = FLAGS_sais
+  sdsl::construct_config().byte_algo_sa = FLAGS_sais
                                          ? sdsl::SE_SAIS
                                          : sdsl::LIBDIVSUFSORT; // or LIBDIVSUFSORT for less space-efficient but faster construction
 
