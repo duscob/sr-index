@@ -64,6 +64,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
         )
 
+include(ConfigSDSL)
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
@@ -75,12 +76,6 @@ if (sr-index_build_tests)
     enable_testing()
 
     include(ConfigGTest)
-
-    find_library(SDSL_LIB sdsl REQUIRED)
-    find_library(DIVSUFSORT_LIB divsufsort REQUIRED)
-    find_library(DIVSUFSORT64_LIB divsufsort64 REQUIRED)
-    set(SDSL_LIBS ${SDSL_LIB} ${DIVSUFSORT_LIB} ${DIVSUFSORT64_LIB})
-    set(LIBS ${SDSL_LIBS})
 
     cxx_test_with_flags_and_args(lf_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/lf_tests.cpp)
     cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
