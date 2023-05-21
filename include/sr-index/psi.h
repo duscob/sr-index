@@ -50,7 +50,7 @@ void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &
 //! \tparam TEncVector Encoded vector to store each partial psi function
 //! \tparam TIntVector Integer vector to store rank per sampled value in each RLE partial psi
 //! \tparam TChar Character or symbol in the compact alphabet
-template<typename TEncVector = enc_vector<sdsl::coder::elias_delta, 64>,
+template<typename TEncVector = enc_vector<sdsl::coder::elias_delta<>, 64>,
     typename TIntVector = sdsl::int_vector<>,
     typename TChar = uint8_t>
 class PsiCoreRLE {
