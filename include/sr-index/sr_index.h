@@ -740,7 +740,9 @@ void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl
   }
 
   valid_submarks.close();
+  sdsl::register_cache_file(prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK, t_config);
   valid_areas.close();
+  sdsl::register_cache_file(prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA, t_config);
 }
 
 }

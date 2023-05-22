@@ -1105,8 +1105,8 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   };
 
   // Cumulative number of BWT-runs per symbols
-  auto key_cum = sdsl::cache_file_name(conf::KEY_BWT_RUN_CUMULATIVE_COUNT, t_config);
-  sdsl::int_vector_buffer<> cumulative(key_cum, std::ios::out, buffer_size, log_r);
+  key = sdsl::cache_file_name(conf::KEY_BWT_RUN_CUMULATIVE_COUNT, t_config);
+  sdsl::int_vector_buffer<> cumulative(key, std::ios::out, buffer_size, log_r);
 
   auto sigma = psi_rle.sigma();
   for (decltype(sigma) c = 0; c < sigma; ++c) {
@@ -1115,7 +1115,9 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   }
 
   samples_idx_sorted.close();
+  sdsl::register_cache_file(KeySortedByAlphabet(conf::KEY_BWT_RUN_FIRST_IDX), t_config);
   cumulative.close();
+  sdsl::register_cache_file(conf::KEY_BWT_RUN_CUMULATIVE_COUNT, t_config);
 }
 
 void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
@@ -1149,7 +1151,7 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
 
     std::size_t i = 0;
     std::size_t c_subsamples = 0;
-    for (auto &&idx: samples_idx_sorted) {
+    for (auto &&idx : samples_idx_sorted) {
       if (subsamples_idx_bv[idx] == true) {
         auto rnk = rank_subsamples_idx_bv(idx);
         subsamples_sorted.push_back(subsamples[rnk]);
@@ -1161,7 +1163,9 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
     }
 
     subsamples_sorted.close();
+    sdsl::register_cache_file(KeySortedByAlphabet(key_prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS), t_config);
     subsamples_idx_sorted.close();
+    sdsl::register_cache_file(KeySortedByAlphabet(key_prefix + conf::KEY_BWT_RUN_FIRST_IDX), t_config);
   }
 
   sdsl::int_vector<> mark_to_sample_idx;
@@ -1169,11 +1173,13 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
   auto key = sdsl::cache_file_name(
       KeySortedByAlphabet(key_prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX), t_config);
   sdsl::int_vector_buffer<> mark_to_sample_idx_sorted(key, std::ios::out, buffer_size, mark_to_sample_idx.width());
-  for (const auto &idx: mark_to_sample_idx) {
+  for (const auto &idx : mark_to_sample_idx) {
     mark_to_sample_idx_sorted.push_back(subsamples_idx_to_sorted[idx]);
   }
 
   mark_to_sample_idx_sorted.close();
+  sdsl::register_cache_file(KeySortedByAlphabet(key_prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX),
+                            t_config);
 }
 
 void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
@@ -1236,13 +1242,14 @@ void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sds
       sdsl::bits::hi(max_valid_area) + 1);
 
   for (auto it = validity.rbegin(); it != validity.rend(); ++it) {
-    auto[idx, area] = *it;
     valid_submarks.push_back(it->first);
     valid_areas.push_back(it->second);
   }
 
   valid_submarks.close();
+  sdsl::register_cache_file(prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK, t_config);
   valid_areas.close();
+  sdsl::register_cache_file(prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA, t_config);
 }
 
 }
