@@ -39,6 +39,7 @@ class LocateTests : public BaseLocateTests,
   void SetUp() override {
     const auto &data = std::get<0>(GetParam());
     Init(data);
+    sdsl::construct_config().byte_algo_sa = sdsl::LIBDIVSUFSORT;
   }
 };
 
@@ -177,6 +178,7 @@ class LocateTypedTests : public BaseLocateTests {
 
     const auto &data = std::get<0>(data_);
     Init(data);
+    sdsl::construct_config().byte_algo_sa = sdsl::SE_SAIS;
   }
 
   std::tuple<String, String, Values> data_;
