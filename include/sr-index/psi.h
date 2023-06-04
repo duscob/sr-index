@@ -21,29 +21,26 @@
 namespace sri {
 
 //! Constructs the Psi function using BWT for text.
-template<typename TBwt, typename TAlphabet>
-auto constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet) {
-  const auto &n = t_bwt.size();
-  const auto &sigma = t_alphabet.sigma;
-  sdsl::int_vector<> cnt_chr(sigma, 0, sdsl::bits::hi(n) + 1);
-  for (typename TAlphabet::sigma_type i = 0; i < sigma; ++i) {
-    cnt_chr[i] = t_alphabet.C[i];
-  }
+template<typename TGetBwtSymbol, typename TCumulativeC>
+auto constructPsi(const TGetBwtSymbol &t_get_bwt_symbol, const TCumulativeC &t_cumulative_c) {
+  const auto sigma = t_cumulative_c.size() - 1;
+  const auto n = t_cumulative_c[sigma];
+  auto sa_position = t_cumulative_c;
 
   // Calculate psi
   sdsl::int_vector<> psi(n, 0, sdsl::bits::hi(n) + 1);
   for (std::size_t i = 0; i < n; ++i) {
-    psi[cnt_chr[t_alphabet.char2comp[t_bwt[i]]]++] = i;
+    psi[sa_position[t_get_bwt_symbol(i)]++] = i;
   }
 
   return psi;
 }
 
 //! Constructs and stores the Psi function using BWT for text.
-template<typename TBwt, typename TAlphabet>
-void constructPsi(TBwt &t_bwt, const TAlphabet &t_alphabet, sdsl::cache_config &t_config) {
+template<typename TGetBwtSymbol, typename TCumulativeC>
+void constructPsi(TGetBwtSymbol &t_get_bwt_symbol, const TCumulativeC &t_cumulative_c, sdsl::cache_config &t_config) {
   // Store psi
-  sdsl::store_to_cache(constructPsi(t_bwt, t_alphabet), sdsl::conf::KEY_PSI, t_config);
+  sdsl::store_to_cache(constructPsi(t_get_bwt_symbol, t_cumulative_c), sdsl::conf::KEY_PSI, t_config);
 }
 
 //! Psi function core based on partial psi per symbol using run-length encoded representation.
