@@ -10,6 +10,7 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 
 #include "sr-index/psi.h"
+#include "sr-index/rle_string.hpp"
 #include "sr-index/tools.h"
 
 #include "base_tests.h"
@@ -57,8 +58,22 @@ class PsiTests : public BaseAlphabetTests, public testing::WithParamInterface<st
 
 TEST_P(PsiTests, construct) {
   const auto &bwt = std::get<0>(GetParam());
+  auto get_bwt_symbol = [&bwt, this](auto tt_i) { return this->alphabet_.char2comp[bwt[tt_i]]; };
 
-  auto psi = sri::constructPsi(bwt, alphabet_);
+  auto psi = sri::constructPsi(get_bwt_symbol, alphabet_.C);
+
+  const auto &e_psi = std::get<1>(GetParam());
+  EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
+}
+
+TEST_P(PsiTests, construct_bwt_rle) {
+  const auto &bwt = std::get<0>(GetParam());
+  auto get_bwt_symbol = [&bwt, this](auto tt_i) { return this->alphabet_.char2comp[bwt[tt_i]]; };
+  auto bwt_s = sdsl::random_access_container(get_bwt_symbol, bwt.size());
+  sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
+  auto get_bwt_rle_symbol = [&bwt_rle](auto tt_i) { return bwt_rle[tt_i]; };
+
+  auto psi = sri::constructPsi(get_bwt_rle_symbol, alphabet_.C);
 
   const auto &e_psi = std::get<1>(GetParam());
   EXPECT_THAT(psi, testing::ElementsAreArray(e_psi));
@@ -66,8 +81,9 @@ TEST_P(PsiTests, construct) {
 
 TEST_P(PsiTests, store) {
   const auto &bwt = std::get<0>(GetParam());
+  auto get_bwt_symbol = [&bwt, this](size_t tt_i) { return this->alphabet_.char2comp[bwt[tt_i]]; };
 
-  sri::constructPsi(bwt, alphabet_, config_);
+  sri::constructPsi(get_bwt_symbol, alphabet_.C, config_);
 
   sdsl::int_vector<> psi;
   sdsl::load_from_cache(psi, sdsl::conf::KEY_PSI, config_);

@@ -206,9 +206,11 @@ void constructPsi(sdsl::cache_config &t_config) {
 
   sdsl::int_vector<> psi;
   {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+    RLEString<> bwt_rle;
+    sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
+    auto get_bwt_symbol = [&bwt_rle](size_t tt_i) { return bwt_rle[tt_i]; };
 
-    psi = constructPsi(bwt_buf, alphabet);
+    psi = constructPsi(get_bwt_symbol, alphabet.C);
     sdsl::util::bit_compress(psi);
     sdsl::store_to_cache(psi, sdsl::conf::KEY_PSI, t_config);
   }
