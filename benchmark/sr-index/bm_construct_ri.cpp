@@ -88,15 +88,15 @@ void BM_ConstructSRI(benchmark::State &t_state, sdsl::cache_config t_config, con
 };
 
 auto BM_ConstructSRIndex = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSRI<sri::SRIndex<>>(t_state, t_config, t_data_path);
+  BM_ConstructSRI<sri::SrIndex<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSRIValidMark = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSRI<sri::SRIndexValidMark<>>(t_state, t_config, t_data_path);
+  BM_ConstructSRI<sri::SrIndexValidMark<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSRIValidArea = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  BM_ConstructSRI<sri::SRIndexValidArea<>>(t_state, t_config, t_data_path);
+  BM_ConstructSRI<sri::SrIndexValidArea<>>(t_state, t_config, t_data_path);
 };
 
 int main(int argc, char **argv) {

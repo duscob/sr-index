@@ -46,20 +46,20 @@ class Factory {
       }
 
       case IndexEnum::SR_INDEX: {
-        auto idx = std::make_shared<sri::SRIndex<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
+        auto idx = std::make_shared<sri::SrIndex<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_INDEX_VM: {
-        auto idx = std::make_shared<sri::SRIndexValidMark<ExternalGenericStorage>>(
+        auto idx = std::make_shared<sri::SrIndexValidMark<ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
 
       case IndexEnum::SR_INDEX_VA: {
-        auto idx = std::make_shared<sri::SRIndexValidArea<ExternalGenericStorage>>(
+        auto idx = std::make_shared<sri::SrIndexValidArea<ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
