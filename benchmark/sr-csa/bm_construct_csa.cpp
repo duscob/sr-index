@@ -11,7 +11,7 @@
 #include <sdsl/memory_management.hpp>
 
 #include "sr-index/construct.h"
-#include "sr-index/csa.h"
+#include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
@@ -26,8 +26,8 @@ void setupCommonCounters(benchmark::State &t_state) {
 //  t_state.counters["mr'"] = 0;
 }
 
-auto BM_ConstructCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
-  sri::CSA<> index;
+auto BM_ConstructRCSA = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+  sri::RCSA<> index;
 
   for (auto _: t_state) {
     sdsl::memory_monitor::start();
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 
   sdsl::cache_config config(false, ".", sdsl::util::basename(FLAGS_data));
 
-  benchmark::RegisterBenchmark("Construct-R-CSA", BM_ConstructCSA, config, data_path)->Iterations(1);
+  benchmark::RegisterBenchmark("Construct-R-CSA", BM_ConstructRCSA, config, data_path)->Iterations(1);
 
   benchmark::RegisterBenchmark("Construct-SR-CSA", BM_ConstructSrCSA, config, data_path)
       ->Iterations(1)

@@ -6,7 +6,7 @@
 
 #include <sdsl/io.hpp>
 
-#include "sr-index/csa.h"
+#include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
 #include "sr-index/r_index.h"
 #include "sr-index/sr_index.h"
@@ -89,7 +89,7 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrIndex<>>(),
             createSrIndexBuilder<sri::SrIndexValidMark<>>(),
             createSrIndexBuilder<sri::SrIndexValidArea<>>(),
-            createIndexBuilder<sri::CSA<>>(),
+            createIndexBuilder<sri::RCSA<>>(),
             createSrIndexBuilder<sri::SrCSA<>>(),
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSA<>>>(),
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSA<>>>(),
@@ -122,7 +122,7 @@ class LocateTypedTests : public BaseLocateTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>, sri::CSA<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSA<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {

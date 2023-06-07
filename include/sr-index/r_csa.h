@@ -28,13 +28,13 @@ template<typename TStorage = GenericStorage,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>>
-class CSA : public IndexBaseWithExternalStorage<TStorage> {
+class RCSA : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
-  explicit CSA(const TStorage &t_storage) : Base(t_storage) {}
+  explicit RCSA(const TStorage &t_storage) : Base(t_storage) {}
 
-  CSA() = default;
+  RCSA() = default;
 
   void load(sdsl::cache_config t_config) override {
     TSource source(std::ref(t_config));
@@ -265,9 +265,9 @@ template<typename TStorage = GenericStorage,
     typename TAlphabet = Alphabet<>,
     typename TPsiRLE = PsiCoreRLE<>,
     typename TSA = sdsl::int_vector<>>
-class CSARaw : public CSA<TStorage, TAlphabet, TPsiRLE> {
+class CSARaw : public RCSA<TStorage, TAlphabet, TPsiRLE> {
  public:
-  using Base = CSA<TStorage, TAlphabet, TPsiRLE>;
+  using Base = RCSA<TStorage, TAlphabet, TPsiRLE>;
 
   explicit CSARaw(const TStorage &t_storage) : Base(t_storage) {}
 
@@ -324,7 +324,7 @@ class CSARaw : public CSA<TStorage, TAlphabet, TPsiRLE> {
     auto cref_sa = this->template loadItem<TSA>(sdsl::conf::KEY_SA, t_source);
 
     auto compute_sa_values = [cref_sa](const auto &tt_range, const auto &, auto tt_report) {
-      auto[first, last] = tt_range;
+      auto [first, last] = tt_range;
 
       while (first < last) {
         tt_report(cref_sa.get()[first++]);
@@ -340,7 +340,7 @@ template<uint8_t t_width, typename TBvMark>
 void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(CSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
+void construct(RCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);

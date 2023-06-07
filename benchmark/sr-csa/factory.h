@@ -10,7 +10,7 @@
 #include <sdsl/config.hpp>
 #include <sdsl/int_vector_buffer.hpp>
 
-#include "sr-index/csa.h"
+#include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
@@ -44,7 +44,7 @@ class Factory {
   std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) {
     switch (t_config.index_type) {
       case IndexEnum::R_CSA: {
-        auto idx = std::make_shared<sri::CSA<ExternalGenericStorage>>(std::ref(storage_));
+        auto idx = std::make_shared<sri::RCSA<ExternalGenericStorage>>(std::ref(storage_));
         idx->load(config_);
         return {idx, sdsl::size_in_bytes(*idx)};
       }
