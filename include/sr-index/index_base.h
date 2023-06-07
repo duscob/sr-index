@@ -32,7 +32,7 @@ const TItem *get(const GenericStorage &t_storage, const std::string &t_key) {
 
 template<typename TItem>
 const TItem *set(GenericStorage &t_storage, const std::string &t_key, TItem &&t_item) {
-  auto[it, inserted] = t_storage.emplace(t_key, t_item);
+  auto [it, inserted] = t_storage.emplace(t_key, t_item);
   return std::any_cast<TItem>(&it->second);
 }
 
@@ -107,7 +107,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   template<typename TItem>
   auto load(TItem &t_item, TSource t_source, const std::string &t_key, bool t_add_type_hash) {
     std::visit([&t_item, &t_key, &t_add_type_hash, this](auto &&tt_source) {
-                 return load(t_item, tt_source.get(), t_key, t_add_type_hash);
+                 return this->load(t_item, tt_source.get(), t_key, t_add_type_hash);
                },
                t_source);
   }

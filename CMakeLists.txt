@@ -60,7 +60,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/index_base.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_index.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_index.h
-        ${PROJECT_SOURCE_DIR}/include/sr-index/csa.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
         )
 

@@ -19,17 +19,17 @@ template<typename TStorage = GenericStorage,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>>
-class SRIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
   using Base = RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SRIndex(const TStorage &t_storage, std::size_t t_sr)
+  SrIndex(const TStorage &t_storage, std::size_t t_sr)
       : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  explicit SRIndex(std::size_t t_sr)
+  explicit SrIndex(std::size_t t_sr)
       : Base(), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  SRIndex() = default;
+  SrIndex() = default;
 
   std::size_t SubsampleRate() const { return subsample_rate_; }
 
@@ -258,16 +258,16 @@ template<typename TStorage = GenericStorage,
     typename TSample = sdsl::int_vector<>,
     typename TBvSampleIdx = sdsl::sd_vector<>,
     typename TBvValidMark = sdsl::bit_vector>
-class SRIndexValidMark : public SRIndex<
+class SrIndexValidMark : public SrIndex<
     TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
  public:
-  using Base = SRIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
+  using Base = SrIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
 
-  SRIndexValidMark(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrIndexValidMark(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SRIndexValidMark(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrIndexValidMark(std::size_t t_sr) : Base(t_sr) {}
 
-  SRIndexValidMark() = default;
+  SrIndexValidMark() = default;
 
   using typename Base::size_type;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
@@ -363,17 +363,17 @@ template<typename TStorage = GenericStorage,
     typename TBvSampleIdx = sdsl::sd_vector<>,
     typename TBvValidMark = sdsl::bit_vector,
     typename TValidArea = sdsl::int_vector<>>
-class SRIndexValidArea : public SRIndexValidMark<
+class SrIndexValidArea : public SrIndexValidMark<
     TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> {
  public:
-  using Base = SRIndexValidMark<
+  using Base = SrIndexValidMark<
       TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark>;
 
-  SRIndexValidArea(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrIndexValidArea(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SRIndexValidArea(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrIndexValidArea(std::size_t t_sr) : Base(t_sr) {}
 
-  SRIndexValidArea() = default;
+  SrIndexValidArea() = default;
 
   using typename Base::size_type;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
@@ -447,7 +447,7 @@ template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
 void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx>
-void construct(SRIndex<
+void construct(SrIndex<
     TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
@@ -460,7 +460,7 @@ template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvV
 void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx, typename TBvValidMark>
-void construct(SRIndexValidMark<
+void construct(SrIndexValidMark<
     TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> &t_index,
                const std::string &t_data_path,
                sdsl::cache_config &t_config) {
@@ -470,7 +470,7 @@ void construct(SRIndexValidMark<
 }
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx, typename TBvValidMark, typename TValidArea>
-void construct(SRIndexValidArea<TStorage,
+void construct(SrIndexValidArea<TStorage,
                                 TAlphabet<t_width>,
                                 TBwtRLE,
                                 TBvMark,
@@ -539,8 +539,8 @@ void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, 
     if (!sdsl::cache_file_exists<TBvMark>(key, t_config)) {
       std::size_t n;
       {
-        sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-        n = bwt_buf.size();
+        sdsl::int_vector_buffer<t_width> bwt(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+        n = bwt.size();
       }
       constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
     }
