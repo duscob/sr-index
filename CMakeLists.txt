@@ -66,9 +66,11 @@ set(SOURCE_FILES
         )
 
 include(ConfigSDSL)
+include(ConfigBigBWT)
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
+add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 
 include(internal_utils)
 
