@@ -41,6 +41,44 @@ void constructBWT(const std::string &t_data_path, const std::string &t_bigbwt_ex
   std::system(command.c_str());
 }
 
+void constructBWTRuns(sdsl::cache_config &t_config) {
+  const auto n = std::filesystem::file_size(sdsl::cache_file_name(conf::KEY_BIG_BWT, t_config));
+
+  // Prepare to store BWT runs to disc
+  const std::size_t buffer_size = 1 << 20;
+  const std::size_t n_width = sdsl::bits::hi(n) + 1;
+  auto out_int_vector_buf = [buffer_size, n_width, &t_config](const auto &tt_key) {
+    return sdsl::int_vector_buffer<>(cache_file_name(tt_key, t_config), std::ios::out, buffer_size, n_width);
+  };
+
+  auto read_runs = [n, &t_config, &out_int_vector_buf](
+      const auto &tt_key, const auto &tt_key_bwt_run_pos, const auto &tt_key_bwt_run_text_pos
+  ) {
+    // Prepare to stream BWT run positions <j, SA[j]> from disc
+    std::ifstream input(cache_file_name(tt_key, t_config));
+    if (!input) return;
+
+    auto bwt_run_pos = out_int_vector_buf(tt_key_bwt_run_pos); // BWT run positions in BWT array
+    auto bwt_run_text_pos = out_int_vector_buf(tt_key_bwt_run_text_pos); // BWT run positions in text
+
+    uint64_t j = 0;
+    uint64_t sa_j = 0;
+    while (input.read((char *) &j, 5) && input.read((char *) &sa_j, 5)) {
+      bwt_run_pos.push_back(j);
+      bwt_run_text_pos.push_back(sa_j ? sa_j - 1 : n - 1);
+    }
+
+    bwt_run_pos.close();
+    register_cache_file(tt_key_bwt_run_pos, t_config);
+
+    bwt_run_text_pos.close();
+    register_cache_file(tt_key_bwt_run_text_pos, t_config);
+  };
+
+  read_runs(conf::KEY_BIG_BWT_SSA, conf::KEY_BWT_RUN_FIRST, conf::KEY_BWT_RUN_FIRST_TEXT_POS);
+  read_runs(conf::KEY_BIG_BWT_ESA, conf::KEY_BWT_RUN_LAST, conf::KEY_BWT_RUN_LAST_TEXT_POS);
+}
+
 template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path,
                              sdsl::cache_config &t_config,
@@ -53,6 +91,12 @@ void constructIndexBaseItems(const std::string &t_data_path,
   if (!cache_file_exists(conf::KEY_BIG_BWT, t_config)) {
     auto event = sdsl::memory_monitor::event("BWT");
     constructBWT(t_data_path, t_big_bwt_exe);
+  }
+
+  // Construct BWT Runs
+  if (!cache_file_exists(conf::KEY_BWT_RUN_FIRST, t_config)) {
+    auto event = sdsl::memory_monitor::event("BWT Runs");
+    constructBWTRuns(t_config);
   }
 }
 
