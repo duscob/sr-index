@@ -36,9 +36,18 @@ void registerBigBWTFiles(const std::string &t_data_path, sdsl::cache_config &t_c
   t_config.file_map[conf::KEY_BIG_BWT_ESA] = t_data_path + ".esa";
 }
 
-void constructBWT(const std::string &t_data_path, const std::string &t_bigbwt_exe) {
+void constructBWT(const std::string &t_data_path, sdsl::cache_config &t_config, const std::string &t_bigbwt_exe) {
   auto command = t_bigbwt_exe + " -s -e " + t_data_path + " > /dev/null 2>&1";
   std::system(command.c_str());
+
+  // Prepare to stream BWT symbols from disc
+  std::ifstream bwt_file(cache_file_name(conf::KEY_BIG_BWT, t_config));
+  // Prepare to store BWT and runs to disc
+  sdsl::int_vector_buffer<8> bwt_buf(cache_file_name(sdsl::conf::KEY_BWT, t_config), std::ios::out);
+  uint8_t symbol;
+  while (bwt_file >> symbol) {
+    bwt_buf.push_back(symbol);
+  }
 }
 
 void constructBWTRuns(sdsl::cache_config &t_config) {
@@ -90,7 +99,7 @@ void constructIndexBaseItems(const std::string &t_data_path,
   // Construct BWT
   if (!cache_file_exists(conf::KEY_BIG_BWT, t_config)) {
     auto event = sdsl::memory_monitor::event("BWT");
-    constructBWT(t_data_path, t_big_bwt_exe);
+    constructBWT(t_data_path, t_config, t_big_bwt_exe);
   }
 
   // Construct BWT Runs
