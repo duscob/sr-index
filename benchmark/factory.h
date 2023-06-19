@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/28/20.
 //
 
-#ifndef RI_BENCHMARK_FACTORY_H_
-#define RI_BENCHMARK_FACTORY_H_
+#ifndef SRI_BENCHMARK_FACTORY_H_
+#define SRI_BENCHMARK_FACTORY_H_
 
 #include <iostream>
 
@@ -374,4 +374,4 @@ class Factory {
 
 };
 
-#endif //RI_BENCHMARK_FACTORY_H_
+#endif //SRI_BENCHMARK_FACTORY_H_

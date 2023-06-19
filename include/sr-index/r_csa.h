@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/15/21.
 //
 
-#ifndef SRI_CSA_H_
-#define SRI_CSA_H_
+#ifndef SRI_R_CSA_H_
+#define SRI_R_CSA_H_
 
 #include <map>
 #include <string>
@@ -385,4 +385,4 @@ void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config) 
 
 }
 
-#endif //SRI_CSA_H_
+#endif //SRI_R_CSA_H_

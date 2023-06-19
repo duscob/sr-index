@@ -5,8 +5,8 @@
  *      Author: nico
  */
 
-#ifndef INCLUDE_DEFINITIONS_HPP_
-#define INCLUDE_DEFINITIONS_HPP_
+#ifndef SRI_DEFINITIONS_HPP_
+#define SRI_DEFINITIONS_HPP_
 
 #include <string>
 #include <stdio.h>
@@ -46,4 +46,4 @@ typedef std::pair<ulint,ulint> range_t;
 
 }
 
-#endif /* INCLUDE_DEFINITIONS_HPP_ */
+#endif /* SRI_DEFINITIONS_HPP_ */

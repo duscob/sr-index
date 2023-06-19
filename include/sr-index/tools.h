@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/27/20.
 //
 
-#ifndef RI_TOOLS_H_
-#define RI_TOOLS_H_
+#ifndef SRI_TOOLS_H_
+#define SRI_TOOLS_H_
 
 #include <cstddef>
 #include <optional>
@@ -370,4 +370,4 @@ class GetOptionalValue {
 
 }
 
-#endif //RI_TOOLS_H_
+#endif //SRI_TOOLS_H_

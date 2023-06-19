@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef RLE_STRING_HPP_
-#define RLE_STRING_HPP_
+#ifndef SRI_RLE_STRING_HPP_
+#define SRI_RLE_STRING_HPP_
 
 #include "definitions.hpp"
 #include "huff_string.hpp"
@@ -1072,4 +1072,4 @@ class RLEString {
 
 }
 
-#endif /* RLE_STRING_HPP_ */
+#endif /* SRI_RLE_STRING_HPP_ */

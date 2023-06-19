@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/27/20.
 //
 
-#ifndef RI_R_INDEX_H_
-#define RI_R_INDEX_H_
+#ifndef SRI_R_INDEX_H_
+#define SRI_R_INDEX_H_
 
 #include <string>
 #include <vector>
@@ -323,4 +323,4 @@ void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_confi
 
 }
 
-#endif //RI_R_INDEX_H_
+#endif //SRI_R_INDEX_H_
