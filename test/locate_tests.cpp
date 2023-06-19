@@ -31,12 +31,17 @@ class BaseLocateTests : public testing::Test {
 };
 
 using Values = std::vector<std::size_t>;
+using PatternXValues = std::tuple<String, Values>;
+using ListPatternXValues = std::vector<PatternXValues>;
 
 typedef std::shared_ptr<sri::IndexBaseWithExternalStorage<>>(*TConstructor)(
     const std::string &tt_data_path, sdsl::cache_config &tt_config);
 
 class LocateTests : public BaseLocateTests,
-                    public testing::WithParamInterface<std::tuple<TConstructor, std::tuple<String, String, Values>>> {
+                    public testing::WithParamInterface<std::tuple<
+                        TConstructor,
+                        std::tuple<String, ListPatternXValues>
+                    >> {
  protected:
 
   void SetUp() override {
@@ -50,14 +55,18 @@ TEST_P(LocateTests, Locate) {
   auto buildIndex = std::get<0>(GetParam());
   auto index = buildIndex(config_.file_map[key_tmp_input_], config_);
   const auto &info = std::get<1>(GetParam());
-  const auto &pattern = std::get<1>(info);
 
-  auto results = index->Locate(pattern);
-  std::sort(results.begin(), results.end());
+  const auto &listPatternXValues = std::get<1>(info);
+  for (const auto &item : listPatternXValues) {
+    const auto &pattern = std::get<0>(item);
 
-  auto e_results = std::get<2>(info);
-  std::sort(e_results.begin(), e_results.end());
-  EXPECT_EQ(results, e_results);
+    auto results = index->Locate(pattern);
+    std::sort(results.begin(), results.end());
+
+    auto e_results = std::get<1>(item);
+    std::sort(e_results.begin(), e_results.end());
+    EXPECT_EQ(results, e_results) << pattern;
+  }
 }
 
 template<typename TIndex>
@@ -98,9 +107,13 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>()
         ),
         testing::Values(
-            std::make_tuple(String{"abcabcababc\0"}, String{"ab"}, Values{6, 8, 3, 0}),
-            std::make_tuple(String{"abcabcababc\0"}, String{"aba"}, Values{6}),
-            std::make_tuple(String{"abcabcababc\0"}, String{"bc"}, Values{9, 4, 1})
+            std::make_tuple(String{"abcabcababc"},
+                            ListPatternXValues{
+                                std::make_tuple(String{"ab"}, Values{6, 8, 3, 0}),
+                                std::make_tuple(String{"aba"}, Values{6}),
+                                std::make_tuple(String{"bc"}, Values{9, 4, 1})
+                            }
+            )
         )
     )
 );
@@ -109,7 +122,7 @@ template<typename TIndex>
 class LocateTypedTests : public BaseLocateTests {
  public:
   void SetUp() override {
-    data_ = std::make_tuple(String{"abcabcababc\0"}, String{"ab"}, Values{6, 8, 3, 0});
+    data_ = std::make_tuple(String{"abcabcababc"}, String{"ab"}, Values{6, 8, 3, 0});
 
     const auto &data = std::get<0>(data_);
     Init(data);
