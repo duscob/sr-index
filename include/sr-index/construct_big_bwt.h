@@ -107,6 +107,18 @@ void constructIndexBaseItems(const std::string &t_data_path,
     auto event = sdsl::memory_monitor::event("BWT Runs");
     constructBWTRuns(t_config);
   }
+
+  // Construct Alphabet
+  if (!cache_file_exists(conf::KEY_ALPHABET, t_config)) {
+    auto event = sdsl::memory_monitor::event("Alphabet");
+    constructAlphabet<t_width>(t_config);
+  }
+
+  // Construct BWT RLE
+  if (!cache_file_exists(conf::KEY_BWT_RLE, t_config)) {
+    auto event = sdsl::memory_monitor::event("BWT RLE");
+    constructBWTRLE<t_width>(t_config);
+  }
 }
 
 } // namespace big_bwt
