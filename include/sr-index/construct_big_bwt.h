@@ -37,7 +37,7 @@ void registerBigBWTFiles(const std::string &t_data_path, sdsl::cache_config &t_c
 }
 
 void constructBWT(const std::string &t_data_path, const std::string &t_bigbwt_exe) {
-  auto command = t_bigbwt_exe + " -s -e " + t_data_path;
+  auto command = t_bigbwt_exe + " -s -e " + t_data_path + " > /dev/null 2>&1";
   std::system(command.c_str());
 }
 
