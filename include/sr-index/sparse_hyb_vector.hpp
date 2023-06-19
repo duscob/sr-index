@@ -5,8 +5,8 @@
 //============================================================================
 
 
-#ifndef INTERNAL_SPARSE_HYB_VECTOR_HPP_
-#define INTERNAL_SPARSE_HYB_VECTOR_HPP_
+#ifndef SRI_SPARSE_HYB_VECTOR_HPP_
+#define SRI_SPARSE_HYB_VECTOR_HPP_
 
 #include <vector>
 
@@ -224,4 +224,4 @@ class sparse_hyb_vector {
 
 }
 
-#endif /* INTERNAL_SPARSE_HYB_VECTOR_HPP_ */
+#endif /* SRI_SPARSE_HYB_VECTOR_HPP_ */

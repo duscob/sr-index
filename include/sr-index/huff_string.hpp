@@ -7,8 +7,8 @@
  *  Huffman-compressed string with access/rank/select. The class is a wrapper on sdsl::wt_huff, with a simpler constructor
  */
 
-#ifndef HUFF_STRING_HPP_
-#define HUFF_STRING_HPP_
+#ifndef SRI_HUFF_STRING_HPP_
+#define SRI_HUFF_STRING_HPP_
 
 #include <sdsl/wavelet_trees.hpp>
 
@@ -94,4 +94,4 @@ class huff_string {
 
 }
 
-#endif /* HUFF_STRING_HPP_ */
+#endif /* SRI_HUFF_STRING_HPP_ */

@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 8/16/20.
 //
 
-#ifndef RI_BENCHMARK_DEFINITIONS_H_
-#define RI_BENCHMARK_DEFINITIONS_H_
+#ifndef SRI_BENCHMARK_DEFINITIONS_H_
+#define SRI_BENCHMARK_DEFINITIONS_H_
 
 #include <string>
 
@@ -32,4 +32,4 @@ const std::string KEY_F = "f";
 
 }
 
-#endif //RI_BENCHMARK_DEFINITIONS_H_
+#endif //SRI_BENCHMARK_DEFINITIONS_H_

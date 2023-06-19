@@ -2,8 +2,8 @@
 // Created by Dustin Cobas <dustin.cobas@gmail.com> on 1/19/22.
 //
 
-#ifndef SR_INDEX_INCLUDE_SR_INDEX_SR_INDEX_H_
-#define SR_INDEX_INCLUDE_SR_INDEX_SR_INDEX_H_
+#ifndef SRI_SR_INDEX_H_
+#define SRI_SR_INDEX_H_
 
 #include <cstdint>
 
@@ -734,7 +734,7 @@ void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl
       sdsl::bits::hi(max_valid_area) + 1);
 
   for (auto it = validity.begin(); it != validity.end(); ++it) {
-    auto[idx, area] = *it;
+    auto [idx, area] = *it;
     valid_submarks.push_back(it->first);
     valid_areas.push_back(it->second);
   }
@@ -747,4 +747,4 @@ void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl
 
 }
 
-#endif //SR_INDEX_INCLUDE_SR_INDEX_SR_INDEX_H_
+#endif //SRI_SR_INDEX_H_
