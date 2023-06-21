@@ -761,7 +761,7 @@ template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_widt
 void construct(SrCSASlim<
     TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
@@ -811,7 +811,7 @@ void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, s
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
 void construct(SrCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
@@ -848,7 +848,7 @@ template<template<typename, typename> typename TSrCSA, typename TStorage,
     template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBvValidMark>
 void construct(SrCSAValidMark<TSrCSA<TStorage, TAlphabet<t_width>>, TBvValidMark> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
 //  construct(dynamic_cast<TSrCSA &>(t_index), t_config);
   auto base_index = TSrCSA<TStorage, TAlphabet<t_width>>(t_index);
   construct(base_index, t_data_path, t_config);
@@ -882,7 +882,7 @@ void construct(SrCSAValidMark<TSrCSA<TStorage, TAlphabet<t_width>>, TBvValidMark
 template<typename TSrCSA, typename TBvValidMark>
 void construct(SrCSAValidArea<TSrCSA, TBvValidMark> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   construct(dynamic_cast<SrCSAValidMark<TSrCSA, TBvValidMark> &>(t_index), t_data_path, t_config);
 
   t_index.load(t_config);

@@ -17,6 +17,7 @@
 #include "lf.h"
 #include "sequence_ops.h"
 #include "construct.h"
+#include "config.h"
 
 namespace sri {
 
@@ -281,12 +282,12 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 };
 
 template<uint8_t t_width, typename TBvMark>
-void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config);
+void constructRIndex(const std::string &t_data_path, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RIndex<TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
 
   constructRIndex<t_width, TBvMark>(t_data_path, t_config);
 
@@ -294,7 +295,7 @@ void construct(RIndex<TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSam
 }
 
 template<uint8_t t_width, typename TBvMark>
-void constructRIndex(const std::string &t_data_path, sdsl::cache_config &t_config) {
+void constructRIndex(const std::string &t_data_path, sri::Config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   {
