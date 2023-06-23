@@ -6,7 +6,6 @@
 #define SRI_CONFIG_H_
 
 #include <filesystem>
-#include <utility>
 
 #include <sdsl/config.hpp>
 
@@ -15,14 +14,11 @@ namespace sri {
 struct Config : public sdsl::cache_config {
   std::filesystem::path data_path;
 
-  explicit Config(std::filesystem::path t_data_path = "./data")
-      : data_path(std::move(t_data_path)),
-        cache_config(false, t_data_path.parent_path(), t_data_path.filename()) {
-  }
+  Config() = default;
 
-  Config(const std::filesystem::path &t_data_dir, const std::filesystem::path &t_data_name)
-      : data_path(t_data_dir / t_data_name),
-        cache_config(false, t_data_dir, t_data_name) {
+  Config(const std::filesystem::path &t_data_path, const std::filesystem::path &t_output_dir)
+      : data_path(t_data_path),
+        cache_config(false, t_output_dir, t_data_path.filename()) {
   }
 };
 
