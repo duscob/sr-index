@@ -24,10 +24,10 @@ void setupCommonCounters(benchmark::State &t_state) {
   t_state.counters["r'"] = 0;
 }
 
-auto BM_ConstructRIndex = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+auto BM_ConstructRIndex = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   sri::RIndex<> index;
 
-  for (auto _: t_state) {
+  for (auto _ : t_state) {
     sdsl::memory_monitor::start();
     sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
@@ -56,12 +56,12 @@ auto BM_ConstructRIndex = [](benchmark::State &t_state, sdsl::cache_config t_con
 };
 
 template<typename TSrIndex>
-void BM_ConstructSRI(benchmark::State &t_state, sdsl::cache_config t_config, const std::string &t_data_path) {
+void BM_ConstructSRI(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path) {
   std::size_t subsample_rate = t_state.range(0); // Subsampling rate
 
   TSrIndex index(subsample_rate);
 
-  for (auto _: t_state) {
+  for (auto _ : t_state) {
     sdsl::memory_monitor::start();
     sri::construct(index, t_data_path, t_config);
     sdsl::memory_monitor::stop();
@@ -87,15 +87,15 @@ void BM_ConstructSRI(benchmark::State &t_state, sdsl::cache_config t_config, con
   }
 };
 
-auto BM_ConstructSRIndex = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+auto BM_ConstructSRIndex = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   BM_ConstructSRI<sri::SrIndex<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSRIValidMark = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+auto BM_ConstructSRIValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   BM_ConstructSRI<sri::SrIndexValidMark<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSRIValidArea = [](benchmark::State &t_state, sdsl::cache_config t_config, const auto &t_data_path) {
+auto BM_ConstructSRIValidArea = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   BM_ConstructSRI<sri::SrIndexValidArea<>>(t_state, t_config, t_data_path);
 };
 
@@ -110,12 +110,12 @@ int main(int argc, char **argv) {
   }
 
   sdsl::construct_config().byte_algo_sa = FLAGS_sais
-                                         ? sdsl::SE_SAIS
-                                         : sdsl::LIBDIVSUFSORT; // or LIBDIVSUFSORT for less space-efficient but faster construction
+                                          ? sdsl::SE_SAIS
+                                          : sdsl::LIBDIVSUFSORT; // or LIBDIVSUFSORT for less space-efficient but faster construction
 
   std::string data_path = FLAGS_data;
 
-  sdsl::cache_config config(false, ".", sdsl::util::basename(FLAGS_data));
+  sri::Config config(data_path, std::filesystem::current_path());
 
   benchmark::RegisterBenchmark("Construct-R-Index", BM_ConstructRIndex, config, data_path)->Iterations(1);
 
