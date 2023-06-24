@@ -58,6 +58,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/toehold.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sampling.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/construct_base.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/construct_sdsl.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/construct_big_bwt.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/construct.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/index_base.h
