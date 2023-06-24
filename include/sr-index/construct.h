@@ -11,8 +11,10 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 #include <sdsl/memory_management.hpp>
 
+#include "config.h"
 #include "construct_base.h"
 #include "construct_sdsl.h"
+#include "construct_big_bwt.h"
 #include "alphabet.h"
 #include "psi.h"
 #include "tools.h"
@@ -22,6 +24,23 @@
 #include "io.h"
 
 namespace sri {
+
+template<uint8_t t_width>
+void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_config) {
+  switch (t_config.sa_algo) {
+    case SDSL_LIBDIVSUFSORT:
+      sdsl::construct_config().byte_algo_sa = sdsl::LIBDIVSUFSORT;
+      inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
+      break;
+    case SDSL_SE_SAIS:
+      sdsl::construct_config().byte_algo_sa = sdsl::SE_SAIS;
+      inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
+      break;
+    case BIG_BWT:
+      inner_big_bwt::constructIndexBaseItems<t_width>(t_data_path, t_config);
+      break;
+  }
+}
 
 auto KeySortedByAlphabet(const std::string &t_key) {
   return t_key + "_sorted_alphabet";
@@ -133,11 +152,6 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 
   sdsl::store_to_cache(sorted_marks_idx, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
-}
-
-template<uint8_t t_width>
-void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
-  inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
 }
 
 void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
