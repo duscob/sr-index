@@ -120,7 +120,8 @@ INSTANTIATE_TEST_SUITE_P(
             )
         ),
         testing::Values(
-            sri::SDSL_LIBDIVSUFSORT
+            sri::SDSL_LIBDIVSUFSORT,
+            sri::BIG_BWT
         )
     )
 );
