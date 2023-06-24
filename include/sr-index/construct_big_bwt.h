@@ -27,7 +27,7 @@ const std::string KEY_BIG_BWT_SSA = "big_bwt_ssa";
 const std::string KEY_BIG_BWT_ESA = "big_bwt_esa";
 } // namespace conf
 
-namespace big_bwt {
+namespace inner_big_bwt {
 
 void registerBigBWTFiles(const std::string &t_data_path, sdsl::cache_config &t_config) {
   t_config.file_map[conf::KEY_BIG_BWT] = t_data_path + ".bwt";
@@ -121,7 +121,7 @@ void constructIndexBaseItems(const std::string &t_data_path,
   }
 }
 
-} // namespace big_bwt
+} // namespace inner_big_bwt
 } // namespace sri
 
 #endif //SRI_CONSTRUCT_BIG_BWT_H_

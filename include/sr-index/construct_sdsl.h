@@ -14,8 +14,7 @@
 
 #include "construct_base.h"
 
-namespace sri {
-namespace inner_sdsl {
+namespace sri::inner_sdsl {
 
 template<uint8_t t_width>
 void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
@@ -163,7 +162,6 @@ void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config 
   }
 }
 
-} // namespace inner_sdsl
-} // namespace sri
+} // namespace sri::inner_sdsl
 
 #endif //SRI_CONSTRUCT_SDSL_H_
