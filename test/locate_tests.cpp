@@ -10,6 +10,7 @@
 #include "sr-index/sr_csa.h"
 #include "sr-index/r_index.h"
 #include "sr-index/sr_index.h"
+#include "sr-index/config.h"
 
 using String = std::string;
 
@@ -26,7 +27,7 @@ class BaseLocateTests : public testing::Test {
     sdsl::util::delete_all_files(config_.file_map);
   }
 
-  sdsl::cache_config config_;
+  sri::Config config_;
   std::string key_tmp_input_ = "data";
 };
 
@@ -35,7 +36,7 @@ using PatternXValues = std::tuple<String, Values>;
 using ListPatternXValues = std::vector<PatternXValues>;
 
 typedef std::shared_ptr<sri::IndexBaseWithExternalStorage<>>(*TConstructor)(
-    const std::string &tt_data_path, sdsl::cache_config &tt_config);
+    const std::string &tt_data_path, sri::Config &tt_config);
 
 class LocateTests : public BaseLocateTests,
                     public testing::WithParamInterface<std::tuple<
@@ -71,7 +72,7 @@ TEST_P(LocateTests, Locate) {
 
 template<typename TIndex>
 TConstructor createIndexBuilder() {
-  return [](const std::string &tt_data_path, sdsl::cache_config &tt_config)
+  return [](const std::string &tt_data_path, sri::Config &tt_config)
       -> std::shared_ptr<sri::IndexBaseWithExternalStorage<>> {
     auto index = std::make_shared<TIndex>();
     sri::construct(*index, tt_data_path, tt_config);
@@ -81,7 +82,7 @@ TConstructor createIndexBuilder() {
 
 template<typename TSrIndex>
 TConstructor createSrIndexBuilder() {
-  return [](const std::string &tt_data_path, sdsl::cache_config &tt_config)
+  return [](const std::string &tt_data_path, sri::Config &tt_config)
       -> std::shared_ptr<sri::IndexBaseWithExternalStorage<>> {
     auto index = std::make_shared<TSrIndex>(6);
     sri::construct(*index, tt_data_path, tt_config);

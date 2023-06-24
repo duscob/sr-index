@@ -13,12 +13,13 @@
 
 #include <sdsl/csa_alphabet_strategy.hpp>
 
+#include "index_base.h"
 #include "alphabet.h"
 #include "psi.h"
 #include "lf.h"
-#include "construct.h"
 #include "sequence_ops.h"
-#include "index_base.h"
+#include "construct.h"
+#include "config.h"
 
 namespace sri {
 
@@ -337,19 +338,19 @@ class CSARaw : public RCSA<TStorage, TAlphabet, TPsiRLE> {
 };
 
 template<uint8_t t_width, typename TBvMark>
-void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config);
+void constructCSA(const std::string &t_data_path, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   constructCSA<t_width, TBvMark>(t_data_path, t_config);
 
   t_index.load(t_config);
 }
 
 template<uint8_t t_width, typename TBvMark>
-void constructCSA(const std::string &t_data_path, sdsl::cache_config &t_config) {
+void constructCSA(const std::string &t_data_path, sri::Config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   {

@@ -444,26 +444,26 @@ class SrIndexValidArea : public SrIndexValidMark<
 };
 
 template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
-void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx>
 void construct(SrIndex<
     TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   constructSRI<t_width, TBvMark, TBvSampleIdx>(t_data_path, t_index.SubsampleRate(), t_config);
 
   t_index.load(t_config);
 }
 
 template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
-void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx, typename TBvValidMark>
 void construct(SrIndexValidMark<
     TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   constructSRIValidMark<t_width, TBvMark, TBvSampleIdx, TBvValidMark>(t_data_path, t_index.SubsampleRate(), t_config);
 
   t_index.load(t_config);
@@ -480,7 +480,7 @@ void construct(SrIndexValidArea<TStorage,
                                 TBvValidMark,
                                 TValidArea> &t_index,
                const std::string &t_data_path,
-               sdsl::cache_config &t_config) {
+               sri::Config &t_config) {
   constructSRIValidMark<t_width, TBvMark, TBvSampleIdx, TBvValidMark>(t_data_path, t_index.SubsampleRate(), t_config);
 
   t_index.load(t_config);
@@ -491,7 +491,7 @@ void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_ra
 void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
 template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
-void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config) {
   constructRIndex<t_width, TBvMark>(t_data_path, t_config);
 
   auto prefix = std::to_string(t_subsample_rate) + "_";
@@ -551,7 +551,7 @@ void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, 
 void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
 
 template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
-void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config) {
   constructSRI<t_width, TBvMark, TBvSampleIdx>(t_data_path, t_subsample_rate, t_config);
 
   auto prefix_key = std::to_string(t_subsample_rate) + "_";
