@@ -26,12 +26,22 @@ struct Config : public sdsl::cache_config {
 
   Config(const std::filesystem::path &t_data_path,
          const std::filesystem::path &t_output_dir,
-         SAAlgo t_sa_algo = SDSL_LIBDIVSUFSORT)
+         SAAlgo t_sa_algo)
       : data_path(t_data_path),
         sa_algo(t_sa_algo),
         cache_config(false, t_output_dir, t_data_path.filename()) {
   }
 };
+
+SAAlgo toSAAlgo(const std::string &t_str) {
+  static const std::map<std::string, SAAlgo> name_to_enum = {
+      {"SDSL_LIBDIVSUFSORT", SDSL_LIBDIVSUFSORT},
+      {"SDSL_SE_SAIS", SDSL_SE_SAIS},
+      {"BIG_BWT", BIG_BWT}
+  };
+
+  return name_to_enum.at(t_str);
+}
 
 } // namespace sri
 
