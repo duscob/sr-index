@@ -17,10 +17,13 @@ using String = std::string;
 class BaseLocateTests : public testing::Test {
  protected:
 
-  void Init(const String &t_data) {
+  void Init(const String &t_data, sri::SAAlgo t_sa_algo) {
     auto filename = sdsl::cache_file_name(key_tmp_input_, config_);
     sdsl::store_to_file(t_data, filename);
     register_cache_file(key_tmp_input_, config_);
+
+    config_.data_path = filename;
+    config_.sa_algo = t_sa_algo;
   }
 
   void TearDown() override {
@@ -41,14 +44,14 @@ typedef std::shared_ptr<sri::IndexBaseWithExternalStorage<>>(*TConstructor)(
 class LocateTests : public BaseLocateTests,
                     public testing::WithParamInterface<std::tuple<
                         TConstructor,
-                        std::tuple<String, ListPatternXValues>
+                        std::tuple<String, ListPatternXValues>,
+                        sri::SAAlgo
                     >> {
  protected:
 
   void SetUp() override {
     const auto &data = std::get<0>(std::get<1>(GetParam()));
-    Init(data);
-    sdsl::construct_config().byte_algo_sa = sdsl::LIBDIVSUFSORT;
+    Init(data, std::get<2>(GetParam()));
   }
 };
 
@@ -115,6 +118,10 @@ INSTANTIATE_TEST_SUITE_P(
                                 std::make_tuple(String{"bc"}, Values{9, 4, 1})
                             }
             )
+        ),
+        testing::Values(
+            sri::SDSL_LIBDIVSUFSORT,
+            sri::BIG_BWT
         )
     )
 );
@@ -126,8 +133,7 @@ class LocateTypedTests : public BaseLocateTests {
     data_ = std::make_tuple(String{"abcabcababc"}, String{"ab"}, Values{6, 8, 3, 0});
 
     const auto &data = std::get<0>(data_);
-    Init(data);
-    sdsl::construct_config().byte_algo_sa = sdsl::SE_SAIS;
+    Init(data, sri::SDSL_SE_SAIS);
   }
 
   std::tuple<String, String, Values> data_;

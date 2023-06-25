@@ -15,7 +15,7 @@
 #include "sr-index/sr_index.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
-DEFINE_bool(sais, true, "SE_SAIS or LIBDIVSUFSORT algorithm for Suffix Array construction.");
+DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
 
 void setupCommonCounters(benchmark::State &t_state) {
   t_state.counters["n"] = 0;
@@ -109,13 +109,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  sdsl::construct_config().byte_algo_sa = FLAGS_sais
-                                          ? sdsl::SE_SAIS
-                                          : sdsl::LIBDIVSUFSORT; // or LIBDIVSUFSORT for less space-efficient but faster construction
-
   std::string data_path = FLAGS_data;
 
-  sri::Config config(data_path, std::filesystem::current_path());
+  sri::Config config(data_path, std::filesystem::current_path(), sri::toSAAlgo(FLAGS_sa_algo));
 
   benchmark::RegisterBenchmark("Construct-R-Index", BM_ConstructRIndex, config, data_path)->Iterations(1);
 

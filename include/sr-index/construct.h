@@ -11,6 +11,10 @@
 #include <sdsl/csa_alphabet_strategy.hpp>
 #include <sdsl/memory_management.hpp>
 
+#include "config.h"
+#include "construct_base.h"
+#include "construct_sdsl.h"
+#include "construct_big_bwt.h"
 #include "alphabet.h"
 #include "psi.h"
 #include "tools.h"
@@ -21,179 +25,25 @@
 
 namespace sri {
 
-namespace conf {
-const std::string KEY_ALPHABET = "alphabet";
-
-const std::string KEY_BWT_RLE = "bwt_rle";
-
-const std::string KEY_BWT_RUN_FIRST = "bwt_run_first";
-const std::string KEY_BWT_RUN_FIRST_IDX = KEY_BWT_RUN_FIRST + "_idx";
-const std::string KEY_BWT_RUN_FIRST_TEXT_POS = KEY_BWT_RUN_FIRST + "_text_pos";
-const std::string KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST = KEY_BWT_RUN_FIRST_TEXT_POS + "_by_last";
-const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX = KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_idx";
-const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX = KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_to_last_idx";
-const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK = KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_valid_mark";
-const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA = KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_valid_area";
-
-const std::string KEY_BWT_RUN_LAST = "bwt_run_last";
-const std::string KEY_BWT_RUN_LAST_IDX = KEY_BWT_RUN_LAST + "_idx";
-const std::string KEY_BWT_RUN_LAST_TEXT_POS = KEY_BWT_RUN_LAST + "_text_pos";
-const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST = KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
-const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX = KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_idx";
-const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX = KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_to_first_idx";
-const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK = KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_mark";
-const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA = KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_area";
-
-const std::string KEY_BWT_RUN_CUMULATIVE_COUNT = "bwt_run_cumulative_count";
+template<uint8_t t_width>
+void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_config) {
+  switch (t_config.sa_algo) {
+    case SDSL_LIBDIVSUFSORT:
+      sdsl::construct_config().byte_algo_sa = sdsl::LIBDIVSUFSORT;
+      inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
+      break;
+    case SDSL_SE_SAIS:
+      sdsl::construct_config().byte_algo_sa = sdsl::SE_SAIS;
+      inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
+      break;
+    case BIG_BWT:
+      inner_big_bwt::constructIndexBaseItems<t_width>(t_data_path, t_config);
+      break;
+  }
 }
 
 auto KeySortedByAlphabet(const std::string &t_key) {
   return t_key + "_sorted_alphabet";
-}
-
-template<uint8_t t_width>
-void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
-  static_assert(t_width == 0 or t_width == 8,
-                "constructText: width must be `0` for integer alphabet and `8` for byte alphabet");
-
-  using TText = sdsl::int_vector<t_width>;
-
-  const auto KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
-
-  TText text;
-  auto num_bytes = t_width / 8;
-  load_vector_from_file(text, t_file, num_bytes);
-
-  auto it_zero = std::find(text.begin(), text.end(), (uint64_t) 0);
-  if (it_zero == text.end()) {
-    sdsl::append_zero_symbol(text);
-  } else if (it_zero != text.end() - 1) {
-    throw std::logic_error(std::string("Error: File \"") + t_file + "\" contains inner zero symbol.");
-  }
-
-  sdsl::store_to_cache(text, KEY_TEXT, t_config);
-}
-
-template<uint8_t t_width>
-void constructBWTRLE(sdsl::cache_config &t_config) {
-  static_assert(t_width == 0 or t_width == 8,
-                "constructBWTRLE: width must be `0` for integer alphabet and `8` for byte alphabet");
-
-  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-
-  {
-    typename alphabet_trait<t_width>::type alphabet;
-    sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
-
-    auto get_symbol = [&bwt_buf, &alphabet](auto tt_i) { return alphabet.char2comp[bwt_buf[tt_i]]; };
-
-    auto bwt_s = sdsl::random_access_container(get_symbol, bwt_buf.size());
-
-    sri::RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
-
-    sdsl::store_to_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
-  }
-}
-
-template<uint8_t t_width>
-void constructBWTRuns(sdsl::cache_config &t_config) {
-  static_assert(t_width == 0 or t_width == 8,
-                "constructBWTRuns: width must be `0` for integer alphabet and `8` for byte alphabet");
-
-  // Prepare to stream BWT and SA from disc
-  // TODO Use int_vector_buffer instead int_vector to process big files
-//  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-  sdsl::int_vector<t_width> bwt_buf;
-  sdsl::load_from_cache(bwt_buf, sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config);
-//  sdsl::int_vector_buffer<> sa_buf(sdsl::cache_file_name(sdsl::conf::KEY_SA, t_config));
-  sdsl::int_vector<> sa_buf;
-  sdsl::load_from_cache(sa_buf, sdsl::conf::KEY_SA, t_config);
-
-  const auto n = bwt_buf.size();
-
-  auto get_bwt_text_pos = [&sa_buf, n](auto tt_bwt_idx) {
-    auto next_pos = sa_buf[tt_bwt_idx];
-    return 0 < next_pos ? next_pos - 1 : n - 1;
-  };
-
-  // Prepare to BWT runs to disc
-  const std::size_t buffer_size = 1 << 20;
-  const std::size_t n_width = sdsl::bits::hi(n) + 1;
-  auto out_int_vector_buffer = [buffer_size, n_width](const auto &tt_key) {
-    return sdsl::int_vector_buffer<>(tt_key, std::ios::out, buffer_size, n_width);
-  };
-
-  auto file_bwt_run_first = cache_file_name(conf::KEY_BWT_RUN_FIRST, t_config);
-  auto file_bwt_run_first_text_pos = cache_file_name(conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
-  auto file_bwt_run_last = cache_file_name(conf::KEY_BWT_RUN_LAST, t_config);
-  auto file_bwt_run_last_text_pos = cache_file_name(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
-
-  auto bwt_run_first_pos = out_int_vector_buffer(file_bwt_run_first); // BWT run heads positions in BWT array
-  auto bwt_run_first_text_pos = out_int_vector_buffer(file_bwt_run_first_text_pos); // BWT run heads positions in text
-  auto bwt_run_last_pos = out_int_vector_buffer(file_bwt_run_last); // BWT run tails positions in BWT array
-  auto bwt_run_last_text_pos = out_int_vector_buffer(file_bwt_run_last_text_pos); // BWT run tails positions in text
-
-  size_t n_runs = 0; // # BWT runs
-
-  // First BWT value
-  auto bwt_symbol = bwt_buf[0];
-  auto text_pos = get_bwt_text_pos(0);
-
-  // First position starts the first BWT run.
-  bwt_run_first_pos.push_back(0);
-  bwt_run_first_text_pos.push_back(text_pos);
-
-  auto prev_bwt_symbol = bwt_symbol;
-  auto prev_text_pos = text_pos;
-  for (int i = 1; i < n; ++i) {
-    bwt_symbol = bwt_buf[i];
-    text_pos = get_bwt_text_pos(i);
-
-    if (bwt_symbol != prev_bwt_symbol) {
-      // Last position of the previous BWT run
-      bwt_run_last_pos.push_back(i - 1);
-      bwt_run_last_text_pos.push_back(prev_text_pos);
-
-      ++n_runs;
-
-      // First position of the current BWT run
-      bwt_run_first_pos.push_back(i);
-      bwt_run_first_text_pos.push_back(text_pos);
-
-      prev_bwt_symbol = bwt_symbol;
-    }
-
-    prev_text_pos = text_pos;
-  }
-
-  // Last position ends the last BWT run
-  bwt_run_last_pos.push_back(n - 1);
-  bwt_run_last_text_pos.push_back(text_pos);
-
-  bwt_run_first_pos.close();
-  register_cache_file(conf::KEY_BWT_RUN_FIRST, t_config);
-
-  bwt_run_first_text_pos.close();
-  register_cache_file(conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
-
-  bwt_run_last_pos.close();
-  register_cache_file(conf::KEY_BWT_RUN_LAST, t_config);
-
-  bwt_run_last_text_pos.close();
-  register_cache_file(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
-}
-
-template<uint8_t t_width>
-void constructAlphabet(sdsl::cache_config &t_config) {
-  static_assert(t_width == 0 or t_width == 8,
-                "constructAlphabet: width must be `0` for integer alphabet and `8` for byte alphabet");
-
-  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-  auto n = bwt_buf.size();
-
-  typename alphabet_trait<t_width>::type alphabet(bwt_buf, n);
-
-  sdsl::store_to_cache(alphabet, conf::KEY_ALPHABET, t_config);
 }
 
 template<uint8_t t_width>
@@ -230,8 +80,8 @@ auto sortIndices(const TRAContainer &t_values) {
   std::iota(values_idx.begin(), values_idx.end(), 0);
 
   std::sort(values_idx.begin(),
-       values_idx.end(),
-       [&t_values](const auto &a, const auto &b) -> bool { return t_values[a] < t_values[b]; });
+            values_idx.end(),
+            [&t_values](const auto &a, const auto &b) -> bool { return t_values[a] < t_values[b]; });
 
   return values_idx;
 }
@@ -302,58 +152,6 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 
   sdsl::store_to_cache(sorted_marks_idx, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
-}
-
-template<uint8_t t_width>
-void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
-  {
-    // Parse Text
-    auto event = sdsl::memory_monitor::event("Text");
-    const char *KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
-    if (!cache_file_exists(KEY_TEXT, t_config)) {
-      constructText<t_width>(t_data_path, t_config);
-    }
-  }
-
-  {
-    // Construct Suffix Array
-    auto event = sdsl::memory_monitor::event("SA");
-    if (!cache_file_exists(sdsl::conf::KEY_SA, t_config)) {
-      sdsl::construct_sa<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct BWT
-    auto event = sdsl::memory_monitor::event("BWT");
-    if (!cache_file_exists(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config)) {
-      sdsl::construct_bwt<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct BWT Runs
-    auto event = sdsl::memory_monitor::event("BWT Runs");
-    if (!cache_file_exists(conf::KEY_BWT_RUN_FIRST, t_config)) {
-      constructBWTRuns<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct Alphabet
-    auto event = sdsl::memory_monitor::event("Alphabet");
-    if (!cache_file_exists(conf::KEY_ALPHABET, t_config)) {
-      constructAlphabet<t_width>(t_config);
-    }
-  }
-
-  {
-    // Construct BWT RLE
-    auto event = sdsl::memory_monitor::event("BWT RLE");
-    if (!cache_file_exists(conf::KEY_BWT_RLE, t_config)) {
-      constructBWTRLE<t_width>(t_config);
-    }
-  }
 }
 
 void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {

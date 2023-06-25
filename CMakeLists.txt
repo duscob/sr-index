@@ -57,6 +57,9 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/coder.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/toehold.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sampling.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/construct_base.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/construct_sdsl.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/construct_big_bwt.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/construct.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/index_base.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_index.h
@@ -66,9 +69,11 @@ set(SOURCE_FILES
         )
 
 include(ConfigSDSL)
+include(ConfigBigBWT)
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
+add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 
 include(internal_utils)
 
