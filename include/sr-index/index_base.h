@@ -114,7 +114,8 @@ class IndexBaseWithExternalStorage : public LocateIndex {
 
   template<typename TItem>
   auto load(TItem &t_item, const sdsl::cache_config &t_config, const std::string &t_key, bool t_add_type_hash) {
-    sdsl::load_from_cache(t_item, t_key, t_config, t_add_type_hash);
+    if (!sdsl::load_from_cache(t_item, t_key, t_config, t_add_type_hash))
+      throw std::invalid_argument("File not found (Key: '" + t_key + "')");
   }
 
   template<typename TItem>
