@@ -29,7 +29,7 @@ void SetupDefaultCounters(benchmark::State &t_state) {
 
 // Benchmark Warm-up
 static void BM_WarmUp(benchmark::State &_state) {
-  for (auto _: _state) {
+  for (auto _ : _state) {
     std::vector<int> empty_vector(1000000, 0);
   }
 
@@ -40,9 +40,9 @@ BENCHMARK(BM_WarmUp);
 auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
   std::size_t total_occs = 0;
 
-  for (auto _: t_state) {
+  for (auto _ : t_state) {
     total_occs = 0;
-    for (const auto &pattern: t_patterns) {
+    for (const auto &pattern : t_patterns) {
       auto occs = t_idx.first->Locate(pattern);
       total_occs += occs.size();
     }
@@ -68,16 +68,16 @@ auto BM_PrintQueryLocate = [](
 
   std::size_t total_occs = 0;
 
-  for (auto _: t_state) {
+  for (auto _ : t_state) {
     std::ofstream out(output_filename);
     total_occs = 0;
-    for (const auto &pattern: t_patterns) {
+    for (const auto &pattern : t_patterns) {
       out << pattern << std::endl;
       auto occs = t_idx.first->Locate(pattern);
       total_occs += occs.size();
 
       sort(occs.begin(), occs.end());
-      for (const auto &item: occs) {
+      for (const auto &item : occs) {
         out << "  " << item << std::endl;
       }
     }
@@ -151,15 +151,20 @@ int main(int argc, char *argv[]) {
   };
 
   std::string print_bm_prefix = "Print-";
-  for (const auto &idx_config: index_configs) {
-    auto index = factory.make(idx_config.second);
+  for (const auto &idx_config : index_configs) {
+    try {
+      auto index = factory.make(idx_config.second);
 
-    benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, index, patterns, factory.sizeSequence());
+      benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, index, patterns, factory.sizeSequence());
 
-    if (FLAGS_print_result) {
-      auto print_bm_name = print_bm_prefix + idx_config.first;
-      benchmark::RegisterBenchmark(
-          print_bm_name.c_str(), BM_PrintQueryLocate, idx_config.first, index, patterns, factory.sizeSequence());
+      if (FLAGS_print_result) {
+        auto print_bm_name = print_bm_prefix + idx_config.first;
+        benchmark::RegisterBenchmark(
+            print_bm_name.c_str(), BM_PrintQueryLocate, idx_config.first, index, patterns, factory.sizeSequence());
+      }
+    }
+    catch (const std::exception &error) {
+      std::cerr << error.what() << std::endl;
     }
   }
 
