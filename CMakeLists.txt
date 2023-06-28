@@ -68,7 +68,10 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
         )
 
-include(ConfigSDSL)
+find_package(sdsl)
+if (NOT sdsl_FOUND)
+    include(ConfigSDSL)
+endif ()
 include(ConfigBigBWT)
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
