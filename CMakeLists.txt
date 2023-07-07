@@ -1,15 +1,11 @@
-option(sr-index_build_tests "Build all of sr-index's tests." ON)
-
-option(sr-index_build_tools "Build all of sr-index's tools." ON)
-
-option(sr-index_build_benchmarks "Build all of sr-index's benchmarks." ON)
-
-
-cmake_minimum_required(VERSION 3.0)
-
+cmake_minimum_required(VERSION 3.10)
 
 #Project Information
-project(sr-index)
+project(sr-index LANGUAGES CXX)
+
+option(SR-INDEX_ENABLE_TESTS "Enable tests of the ${PROJECT_NAME} project." ON)
+option(SR-INDEX_ENABLE_TOOLS "Enable tools of the ${PROJECT_NAME} project." ON)
+option(SR-INDEX_ENABLE_BENCHMARKS "Enable benchmarks of the ${PROJECT_NAME} project." ON)
 
 
 # Location of internal cmake modules
@@ -38,6 +34,15 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
 
+# Setup dependencies
+find_package(sdsl 3.0)
+if (NOT sdsl_FOUND)
+    include(ConfigSDSL)
+endif ()
+
+include(ConfigBigBWT)
+
+# Build targets
 set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/config.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/alphabet.h
@@ -68,11 +73,6 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
         )
 
-find_package(sdsl)
-if (NOT sdsl_FOUND)
-    include(ConfigSDSL)
-endif ()
-include(ConfigBigBWT)
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
@@ -81,7 +81,7 @@ add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 include(internal_utils)
 
 
-if (sr-index_build_tests)
+if (SR-INDEX_ENABLE_TESTS)
     enable_testing()
 
     include(ConfigGTest)
@@ -98,12 +98,10 @@ if (sr-index_build_tests)
 endif ()
 
 
-if (sr-index_build_tools)
+if (SR-INDEX_ENABLE_TOOLS)
 endif ()
 
 
-if (sr-index_build_benchmarks)
-    include(ConfigGBenchmark)
-
+if (SR-INDEX_ENABLE_BENCHMARKS)
     add_subdirectory(benchmark)
 endif ()
