@@ -34,6 +34,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
 
+# Always link with libstdc++fs.a (std::filesystem) when using GCC 8.
+# Note: This command makes sure that this option comes pretty late on the cmdline.
+link_libraries("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0>>:-lstdc++fs>")
+add_link_options(LINKER:--as-needed)
+
+
 # Setup dependencies
 find_package(sdsl 3.0)
 if (NOT sdsl_FOUND)
