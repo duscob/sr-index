@@ -20,15 +20,6 @@ include(ConfigSafeGuards)
 #Global Setup
 set(CMAKE_CXX_STANDARD 17)
 
-
-# Set common include folder for module
-set(COMMON_INCLUDES
-        ${PROJECT_SOURCE_DIR}/include
-        ${CMAKE_INSTALL_PREFIX}/include
-        ${CMAKE_PREFIX_PATH}/include)
-
-include_directories(${COMMON_INCLUDES})
-
 #TODO Verify these compilation flags
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
@@ -47,6 +38,13 @@ if (NOT sdsl_FOUND)
 endif ()
 
 include(ConfigBigBWT)
+
+# Set common include folder for module
+set(COMMON_INCLUDES
+        ${PROJECT_SOURCE_DIR}/include
+        ${CMAKE_INSTALL_PREFIX}/include
+        ${CMAKE_PREFIX_PATH}/include)
+include_directories(${COMMON_INCLUDES})
 
 # Build targets
 set(SOURCE_FILES
@@ -84,8 +82,8 @@ target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 
-include(internal_utils)
 
+include(internal_utils)
 
 if (SR-INDEX_ENABLE_TESTS)
     enable_testing()
