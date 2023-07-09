@@ -20,19 +20,16 @@ include(ConfigSafeGuards)
 #Global Setup
 set(CMAKE_CXX_STANDARD 17)
 
-
-# Set common include folder for module
-set(COMMON_INCLUDES
-        ${PROJECT_SOURCE_DIR}/include
-        ${CMAKE_INSTALL_PREFIX}/include
-        ${CMAKE_PREFIX_PATH}/include)
-
-include_directories(${COMMON_INCLUDES})
-
 #TODO Verify these compilation flags
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fstrict-aliasing -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
+
+# Always link with libstdc++fs.a (std::filesystem) when using GCC 8.
+# Note: This command makes sure that this option comes pretty late on the cmdline.
+link_libraries("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0>>:-lstdc++fs>")
+add_link_options(LINKER:--as-needed)
+
 
 # Setup dependencies
 find_package(sdsl 3.0)
@@ -41,6 +38,13 @@ if (NOT sdsl_FOUND)
 endif ()
 
 include(ConfigBigBWT)
+
+# Set common include folder for module
+set(COMMON_INCLUDES
+        ${PROJECT_SOURCE_DIR}/include
+        ${CMAKE_INSTALL_PREFIX}/include
+        ${CMAKE_PREFIX_PATH}/include)
+include_directories(${COMMON_INCLUDES})
 
 # Build targets
 set(SOURCE_FILES
@@ -78,23 +82,29 @@ target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 
-include(internal_utils)
 
+include(internal_utils)
 
 if (SR-INDEX_ENABLE_TESTS)
     enable_testing()
 
-    include(ConfigGTest)
+    list(APPEND test_LIBS sr-index ${LIBS})
 
-    cxx_test_with_flags_and_args(lf_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/lf_tests.cpp)
-    cxx_test_with_flags_and_args(bwt_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
-    cxx_test_with_flags_and_args(sequence_ops_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sequence_ops_tests.cpp)
-    cxx_test_with_flags_and_args(rle_string_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/rle_string_tests.cpp)
-    cxx_test_with_flags_and_args(phi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/phi_tests.cpp)
-    cxx_test_with_flags_and_args(psi_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/psi_tests.cpp)
-    cxx_test_with_flags_and_args(toehold_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/toehold_tests.cpp)
-    cxx_test_with_flags_and_args(sampling_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sampling_test.cpp)
-    cxx_test_with_flags_and_args(locate_tests "" "gtest;gtest_main;gmock;${LIBS}" "" ${PROJECT_SOURCE_DIR}/test/locate_tests.cpp)
+    find_package(gtest 1.11)
+    if (NOT gtest_FOUND)
+        include(ConfigGTest)
+    endif ()
+    list(APPEND test_LIBS gtest gtest_main gmock)
+
+    cxx_test_with_flags_and_args(lf_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/lf_tests.cpp)
+    cxx_test_with_flags_and_args(bwt_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/bwt_tests.cpp)
+    cxx_test_with_flags_and_args(sequence_ops_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sequence_ops_tests.cpp)
+    cxx_test_with_flags_and_args(rle_string_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/rle_string_tests.cpp)
+    cxx_test_with_flags_and_args(phi_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/phi_tests.cpp)
+    cxx_test_with_flags_and_args(psi_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/psi_tests.cpp)
+    cxx_test_with_flags_and_args(toehold_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/toehold_tests.cpp)
+    cxx_test_with_flags_and_args(sampling_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sampling_test.cpp)
+    cxx_test_with_flags_and_args(locate_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/locate_tests.cpp)
 endif ()
 
 
