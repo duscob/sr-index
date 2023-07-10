@@ -37,21 +37,23 @@ static void BM_WarmUp(benchmark::State &_state) {
 }
 BENCHMARK(BM_WarmUp);
 
-auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
+auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, const auto &t_config, const auto &t_patterns) {
+  auto idx = t_factory->make(t_config);
+
   std::size_t total_occs = 0;
 
   for (auto _ : t_state) {
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
-      auto occs = t_idx.first->Locate(pattern);
+      auto occs = idx.first->Locate(pattern);
       total_occs += occs.size();
     }
   }
 
   SetupDefaultCounters(t_state);
-  t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.second;
+  t_state.counters["Bits_x_Symbol"] = idx.second * 8.0 / t_factory->sizeSequence();
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -61,10 +63,12 @@ auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const aut
 };
 
 auto BM_PrintQueryLocate = [](
-    benchmark::State &t_state, const auto &t_idx_name, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
+    benchmark::State &t_state, const auto &t_idx_name, auto t_factory, const auto &t_config, const auto &t_patterns) {
   std::string idx_name = t_idx_name;
   replace(idx_name.begin(), idx_name.end(), '/', '_');
   std::string output_filename = "result-locate-" + idx_name + ".txt";
+
+  auto idx = t_factory->make(t_config);
 
   std::size_t total_occs = 0;
 
@@ -73,7 +77,7 @@ auto BM_PrintQueryLocate = [](
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
       out << pattern << std::endl;
-      auto occs = t_idx.first->Locate(pattern);
+      auto occs = idx.first->Locate(pattern);
       total_occs += occs.size();
 
       sort(occs.begin(), occs.end());
@@ -84,9 +88,9 @@ auto BM_PrintQueryLocate = [](
   }
 
   SetupDefaultCounters(t_state);
-  t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.second;
+  t_state.counters["Bits_x_Symbol"] = idx.second * 8.0 / t_factory->sizeSequence();
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -126,7 +130,7 @@ int main(int argc, char *argv[]) {
   // Indexes
   sdsl::cache_config config(true, FLAGS_data_dir, FLAGS_data_name);
 
-  Factory<> factory(config);
+  auto factory = std::make_shared<Factory<>>(config);
 
   std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
       {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}},
@@ -177,14 +181,12 @@ int main(int argc, char *argv[]) {
   std::string print_bm_prefix = "Print-";
   for (const auto &idx_config : index_configs) {
     try {
-      auto index = factory.make(idx_config.second);
-
-      benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, index, patterns, factory.sizeSequence());
+      benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, factory, idx_config.second, patterns);
 
       if (FLAGS_print_result) {
         auto print_bm_name = print_bm_prefix + idx_config.first;
         benchmark::RegisterBenchmark(
-            print_bm_name.c_str(), BM_PrintQueryLocate, idx_config.first, index, patterns, factory.sizeSequence());
+            print_bm_name, BM_PrintQueryLocate, idx_config.first, factory, idx_config.second, patterns);
       }
     }
     catch (const std::exception &error) {
