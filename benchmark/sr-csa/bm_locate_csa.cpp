@@ -15,6 +15,8 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
+DEFINE_int32(max_s, 64, "Maximum sampling parameter s.");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 void SetupDefaultCounters(benchmark::State &t_state) {
@@ -37,8 +39,16 @@ static void BM_WarmUp(benchmark::State &_state) {
 }
 BENCHMARK(BM_WarmUp);
 
-auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, const auto &t_config, const auto &t_patterns) {
-  auto idx = t_factory->make(t_config);
+auto MakeIndex = [](auto t_factory, auto &t_config, auto &t_state) {
+  if (t_config.has_sampling) {
+    t_config.fac_config.sampling_size = t_state.range(0);
+  }
+
+  return t_factory->make(t_config.fac_config);
+};
+
+auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns) {
+  auto idx = MakeIndex(t_factory, t_config, t_state);
 
   std::size_t total_occs = 0;
 
@@ -62,13 +72,13 @@ auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, const auto &
       total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 };
 
-auto BM_PrintQueryLocate = [](
-    benchmark::State &t_state, const auto &t_idx_name, auto t_factory, const auto &t_config, const auto &t_patterns) {
-  std::string idx_name = t_idx_name;
+auto BM_PrintQueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns) {
+  auto bm_name = t_state.name();
+  std::string idx_name = bm_name.substr(bm_name.find('/') + 1);
   replace(idx_name.begin(), idx_name.end(), '/', '_');
-  std::string output_filename = "result-locate-" + idx_name + ".txt";
+  std::string output_filename = "result-" + idx_name + ".txt";
 
-  auto idx = t_factory->make(t_config);
+  auto idx = MakeIndex(t_factory, t_config, t_state);
 
   std::size_t total_occs = 0;
 
@@ -132,61 +142,36 @@ int main(int argc, char *argv[]) {
 
   auto factory = std::make_shared<Factory<>>(config);
 
-  std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
-      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}},
-
-      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
-
-      {"SR-CSA/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 4}},
-      {"SR-CSA/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 8}},
-      {"SR-CSA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 16}},
-      {"SR-CSA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 32}},
-      {"SR-CSA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA, 64}},
-
-      {"SR-CSA-VM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM, 4}},
-      {"SR-CSA-VM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM, 8}},
-      {"SR-CSA-VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM, 16}},
-      {"SR-CSA-VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM, 32}},
-      {"SR-CSA-VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM, 64}},
-
-      {"SR-CSA-VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 4}},
-      {"SR-CSA-VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 8}},
-      {"SR-CSA-VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 16}},
-      {"SR-CSA-VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 32}},
-      {"SR-CSA-VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 64}},
-//      {"SR-CSA-VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 128}},
-//      {"SR-CSA-VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA, 256}},
-
-      {"SR-CSA-SLIM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 4}},
-      {"SR-CSA-SLIM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 8}},
-      {"SR-CSA-SLIM/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 16}},
-      {"SR-CSA-SLIM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 32}},
-      {"SR-CSA-SLIM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM, 64}},
-
-      {"SR-CSA-SLIM-VM/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 4}},
-      {"SR-CSA-SLIM-VM/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 8}},
-      {"SR-CSA-SLIM-VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 16}},
-      {"SR-CSA-SLIM-VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 32}},
-      {"SR-CSA-SLIM-VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM, 64}},
-
-      {"SR-CSA-SLIM-VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 4}},
-      {"SR-CSA-SLIM-VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 8}},
-      {"SR-CSA-SLIM-VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 16}},
-      {"SR-CSA-SLIM-VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 32}},
-      {"SR-CSA-SLIM-VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 64}},
-//      {"SR-CSA-SLIM-VA/128", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 128}},
-//      {"SR-CSA-SLIM-VA/256", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA, 256}},
+  struct BenchmarkConfig {
+    std::string name;
+    Factory<>::Config fac_config;
+    bool has_sampling = false;
+  };
+  std::vector<BenchmarkConfig> bm_configs = {
+      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
+      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+      {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
+      {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
+      {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
+      {"SR-CSA-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM}, true},
+      {"SR-CSA-Slim-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM}, true},
+      {"SR-CSA-Slim-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA}, true},
   };
 
-  std::string print_bm_prefix = "Print-";
-  for (const auto &idx_config : index_configs) {
+  std::string print_bm_prefix = "Print/";
+  for (const auto &bm_config : bm_configs) {
     try {
-      benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, factory, idx_config.second, patterns);
+      auto bm = benchmark::RegisterBenchmark(bm_config.name, BM_QueryLocate, factory, bm_config, patterns);
+      if (bm_config.has_sampling) {
+        bm->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+      }
 
       if (FLAGS_print_result) {
-        auto print_bm_name = print_bm_prefix + idx_config.first;
-        benchmark::RegisterBenchmark(
-            print_bm_name, BM_PrintQueryLocate, idx_config.first, factory, idx_config.second, patterns);
+        auto print_bm_name = print_bm_prefix + bm_config.name;
+        auto bm_print = benchmark::RegisterBenchmark(print_bm_name, BM_PrintQueryLocate, factory, bm_config, patterns);
+        if (bm_config.has_sampling) {
+          bm_print->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+        }
       }
     }
     catch (const std::exception &error) {
