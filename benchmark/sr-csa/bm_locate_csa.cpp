@@ -16,7 +16,7 @@ DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
-DEFINE_int32(max_s, 64, "Maximum sampling parameter s.");
+DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 void SetupDefaultCounters(benchmark::State &t_state) {
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     bool has_sampling = false;
   };
   std::vector<BenchmarkConfig> bm_configs = {
-      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
+//      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
       {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
       {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
       {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
