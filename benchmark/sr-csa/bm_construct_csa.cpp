@@ -16,14 +16,25 @@
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
+DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
+DEFINE_int32(max_s, 2u << 8u, "Maximum sampling parameter s.");
 
 void setupCommonCounters(benchmark::State &t_state) {
   t_state.counters["n"] = 0;
   t_state.counters["r"] = 0;
   t_state.counters["s"] = 0;
   t_state.counters["r'"] = 0;
-//  t_state.counters["mr'"] = 0;
 }
+
+// Benchmark Warm-up
+static void BM_WarmUp(benchmark::State &_state) {
+  for (auto _ : _state) {
+    std::vector<int> empty_vector(1000000, 0);
+  }
+
+  setupCommonCounters(_state);
+}
+BENCHMARK(BM_WarmUp);
 
 auto BM_ConstructRCSA = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   sri::RCSA<> index;
@@ -118,27 +129,23 @@ int main(int argc, char **argv) {
 
   sri::Config config(data_path, std::filesystem::current_path(), sri::toSAAlgo(FLAGS_sa_algo));
 
-  benchmark::RegisterBenchmark("Construct-R-CSA", BM_ConstructRCSA, config, data_path)->Iterations(1);
+  benchmark::RegisterBenchmark("R-CSA", BM_ConstructRCSA, config, data_path);
 
-  benchmark::RegisterBenchmark("Construct-SR-CSA", BM_ConstructSrCSA, config, data_path)
-      ->Iterations(1)
+  benchmark::RegisterBenchmark("SR-CSA", BM_ConstructSrCSA, config, data_path)
       ->RangeMultiplier(2)
-      ->Range(4, 2u << 8u);
+      ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("Construct-SR-CSA-Slim", BM_ConstructSrCSASlim, config, data_path)
-      ->Iterations(1)
+  benchmark::RegisterBenchmark("SR-CSA-Slim", BM_ConstructSrCSASlim, config, data_path)
       ->RangeMultiplier(2)
-      ->Range(4, 2u << 8u);
+      ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("Construct-SR-CSA-ValidMark", BM_ConstructSrCSAValidMark, config, data_path)
-      ->Iterations(1)
+  benchmark::RegisterBenchmark("SR-CSA-VM", BM_ConstructSrCSAValidMark, config, data_path)
       ->RangeMultiplier(2)
-      ->Range(4, 2u << 8u);
+      ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("Construct-SR-CSA-ValidArea", BM_ConstructSrCSAValidArea, config, data_path)
-      ->Iterations(1)
+  benchmark::RegisterBenchmark("SR-CSA-VA", BM_ConstructSrCSAValidArea, config, data_path)
       ->RangeMultiplier(2)
-      ->Range(4, 2u << 8u);
+      ->Range(FLAGS_min_s, FLAGS_max_s);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();

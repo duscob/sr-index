@@ -15,6 +15,8 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
+DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 void SetupDefaultCounters(benchmark::State &t_state) {
@@ -37,21 +39,31 @@ static void BM_WarmUp(benchmark::State &_state) {
 }
 BENCHMARK(BM_WarmUp);
 
-auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
+auto MakeIndex = [](auto t_factory, auto &t_config, auto &t_state) {
+  if (t_config.has_sampling) {
+    t_config.fac_config.sampling_size = t_state.range(0);
+  }
+
+  return t_factory->make(t_config.fac_config);
+};
+
+auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns) {
+  auto idx = MakeIndex(t_factory, t_config, t_state);
+
   std::size_t total_occs = 0;
 
   for (auto _ : t_state) {
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
-      auto occs = t_idx.first->Locate(pattern);
+      auto occs = idx.first->Locate(pattern);
       total_occs += occs.size();
     }
   }
 
   SetupDefaultCounters(t_state);
-  t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.second;
+  t_state.counters["Bits_x_Symbol"] = idx.second * 8.0 / t_factory->sizeSequence();
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -60,11 +72,13 @@ auto BM_QueryLocate = [](benchmark::State &t_state, const auto &t_idx, const aut
       total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 };
 
-auto BM_PrintQueryLocate = [](
-    benchmark::State &t_state, const auto &t_idx_name, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
-  std::string idx_name = t_idx_name;
+auto BM_PrintQueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns) {
+  auto bm_name = t_state.name();
+  std::string idx_name = bm_name.substr(bm_name.find('/') + 1);
   replace(idx_name.begin(), idx_name.end(), '/', '_');
-  std::string output_filename = "result-locate-" + idx_name + ".txt";
+  std::string output_filename = "result-" + idx_name + ".txt";
+
+  auto idx = MakeIndex(t_factory, t_config, t_state);
 
   std::size_t total_occs = 0;
 
@@ -73,7 +87,7 @@ auto BM_PrintQueryLocate = [](
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
       out << pattern << std::endl;
-      auto occs = t_idx.first->Locate(pattern);
+      auto occs = idx.first->Locate(pattern);
       total_occs += occs.size();
 
       sort(occs.begin(), occs.end());
@@ -84,9 +98,9 @@ auto BM_PrintQueryLocate = [](
   }
 
   SetupDefaultCounters(t_state);
-  t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.second;
+  t_state.counters["Bits_x_Symbol"] = idx.second * 8.0 / t_factory->sizeSequence();
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -126,41 +140,34 @@ int main(int argc, char *argv[]) {
   // Indexes
   sdsl::cache_config config(true, FLAGS_data_dir, FLAGS_data_name);
 
-  Factory<> factory(config);
+  auto factory = std::make_shared<Factory<>>(config);
 
-  std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
-      {"R-INDEX", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}},
-
-      {"SR-INDEX/4", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 4}},
-      {"SR-INDEX/8", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 8}},
-      {"SR-INDEX/16", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 16}},
-      {"SR-INDEX/32", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 32}},
-      {"SR-INDEX/64", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX, 64}},
-
-      {"SR-INDEX_VM/4", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 4}},
-      {"SR-INDEX_VM/8", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 8}},
-      {"SR-INDEX_VM/16", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 16}},
-      {"SR-INDEX_VM/32", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 32}},
-      {"SR-INDEX_VM/64", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM, 64}},
-
-      {"SR-INDEX_VA/4", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 4}},
-      {"SR-INDEX_VA/8", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 8}},
-      {"SR-INDEX_VA/16", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 16}},
-      {"SR-INDEX_VA/32", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 32}},
-      {"SR-INDEX_VA/64", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA, 64}},
+  struct BenchmarkConfig {
+    std::string name;
+    Factory<>::Config fac_config;
+    bool has_sampling = false;
+  };
+  std::vector<BenchmarkConfig> bm_configs = {
+      {"R-Index", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}, false},
+      {"SR-Index", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX}, true},
+      {"SR-Index-VM", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM}, true},
+      {"SR-Index-VA", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA}, true},
   };
 
-  std::string print_bm_prefix = "Print-";
-  for (const auto &idx_config : index_configs) {
+  std::string print_bm_prefix = "Print/";
+  for (const auto &bm_config : bm_configs) {
     try {
-      auto index = factory.make(idx_config.second);
-
-      benchmark::RegisterBenchmark(idx_config.first, BM_QueryLocate, index, patterns, factory.sizeSequence());
+      auto bm = benchmark::RegisterBenchmark(bm_config.name, BM_QueryLocate, factory, bm_config, patterns);
+      if (bm_config.has_sampling) {
+        bm->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+      }
 
       if (FLAGS_print_result) {
-        auto print_bm_name = print_bm_prefix + idx_config.first;
-        benchmark::RegisterBenchmark(
-            print_bm_name.c_str(), BM_PrintQueryLocate, idx_config.first, index, patterns, factory.sizeSequence());
+        auto print_bm_name = print_bm_prefix + bm_config.name;
+        auto bm_print = benchmark::RegisterBenchmark(print_bm_name, BM_PrintQueryLocate, factory, bm_config, patterns);
+        if (bm_config.has_sampling) {
+          bm_print->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+        }
       }
     }
     catch (const std::exception &error) {
