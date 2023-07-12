@@ -15,8 +15,14 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");
+
+DEFINE_bool(report_stats, false, "Report statistics for benchmark (mean, median, ...).");
+DEFINE_int32(reps, 10, "Repetitions for the locate query benchmark.");
+DEFINE_double(min_time_micro, 0, "Minimum time (seconds) for the locate query micro benchmark.");
+
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 void SetupDefaultCounters(benchmark::State &t_state) {
@@ -47,7 +53,7 @@ auto MakeIndex = [](auto t_factory, auto &t_config, auto &t_state) {
   return t_factory->make(t_config.fac_config);
 };
 
-auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns) {
+auto BM_MacroQueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns) {
   auto idx = MakeIndex(t_factory, t_config, t_state);
 
   std::size_t total_occs = 0;
@@ -67,6 +73,35 @@ auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_confi
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
+  t_state.counters["Occurrences"] = total_occs;
+  t_state.counters["Time_x_Occurrence"] = benchmark::Counter(
+      total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
+};
+
+auto BM_MicroQueryLocate = [](
+    benchmark::State &t_state, auto t_factory, auto t_config, const auto &t_patterns, auto t_i
+) {
+  auto idx = MakeIndex(t_factory, t_config, t_state);
+
+  const auto &pattern = t_patterns[*t_i];
+  std::size_t total_occs = 0;
+
+  for (auto _ : t_state) {
+    auto occs = idx.idx->Locate(pattern);
+    total_occs = occs.size();
+  }
+
+  if (++*t_i == t_patterns.size()) {
+    *t_i = 0;
+  }
+
+  SetupDefaultCounters(t_state);
+  t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.size;
+  t_state.counters["Bits_x_Symbol"] = idx.size * 8.0 / t_factory->sizeSequence();
+  t_state.counters["Patterns"] = t_patterns.size();
+  t_state.counters["Time_x_Pattern"] = benchmark::Counter(
+      1, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
   t_state.counters["Occurrences"] = total_occs;
   t_state.counters["Time_x_Occurrence"] = benchmark::Counter(
       total_occs, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -154,12 +189,45 @@ int main(int argc, char *argv[]) {
       {"SR-Index-VA", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA}, true},
   };
 
+  auto statistics_min = [](const std::vector<double> &v) -> double {
+    return *(std::min_element(std::begin(v), std::end(v)));
+  };
+  auto statistics_max = [](const std::vector<double> &v) -> double {
+    return *(std::max_element(std::begin(v), std::end(v)));
+  };
+
   std::string print_bm_prefix = "Print/";
   for (const auto &bm_config : bm_configs) {
     try {
-      auto bm = benchmark::RegisterBenchmark(bm_config.name, BM_QueryLocate, factory, bm_config, patterns);
+      auto bm_macro = benchmark::RegisterBenchmark(bm_config.name, BM_MacroQueryLocate, factory, bm_config, patterns);
       if (bm_config.has_sampling) {
-        bm->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+        bm_macro->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+      }
+
+      if (FLAGS_report_stats) {
+        bm_macro->Name(bm_config.name + "/macro")
+            ->Repetitions(FLAGS_reps)
+            ->ComputeStatistics("min", statistics_min)
+            ->ComputeStatistics("max", statistics_max)
+            ->ReportAggregatesOnly();
+
+        auto bm_micro = benchmark::RegisterBenchmark(
+            bm_config.name + "/micro", BM_MicroQueryLocate, factory, bm_config, patterns, std::make_shared<int>(0))
+            ->Repetitions(patterns.size())
+            ->ComputeStatistics("min", statistics_min)
+            ->ComputeStatistics("max", statistics_max)
+            ->ComputeStatistics("total", [](const std::vector<double> &v) -> double {
+              return std::accumulate(std::begin(v), std::end(v), double(0));
+            })
+            ->ReportAggregatesOnly();
+        if (FLAGS_min_time_micro > 0) {
+          bm_micro->MinTime(FLAGS_min_time_micro);
+        } else {
+          bm_micro->Iterations(FLAGS_reps);
+        }
+        if (bm_config.has_sampling) {
+          bm_micro->RangeMultiplier(2)->Range(FLAGS_min_s, FLAGS_max_s);
+        }
       }
 
       if (FLAGS_print_result) {
