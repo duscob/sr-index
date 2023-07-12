@@ -43,15 +43,15 @@ auto BM_QueryCount = [](benchmark::State &t_state, const auto &t_idx, const auto
   for (auto _: t_state) {
     total_occs = 0;
     for (const auto &pattern: t_patterns) {
-      auto range = t_idx.first->Count(pattern);
+      auto range = t_idx.idx->Count(pattern);
       total_occs += range.second - range.first;
     }
   }
 
   SetupDefaultCounters(t_state);
   t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Size(bytes)"] = t_idx.size;
+  t_state.counters["Bits_x_Symbol"] = t_idx.size * 8.0 / t_seq_size;
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -71,7 +71,7 @@ auto BM_PrintQueryCount = [](
     out << "pattern,count" << std::endl;
     total_occs = 0;
     for (const auto &pattern: t_patterns) {
-      auto range = t_idx.first->Count(pattern);
+      auto range = t_idx.idx->Count(pattern);
       auto count = range.second - range.first;
       total_occs += count;
       out << "\"" << pattern << "\"," << count << "[" << range.first << ";" << range.second << "]" << std::endl;
@@ -80,8 +80,8 @@ auto BM_PrintQueryCount = [](
 
   SetupDefaultCounters(t_state);
   t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Size(bytes)"] = t_idx.size;
+  t_state.counters["Bits_x_Symbol"] = t_idx.size * 8.0 / t_seq_size;
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);

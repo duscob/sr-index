@@ -55,15 +55,15 @@ auto BM_QueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_confi
   for (auto _ : t_state) {
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
-      auto occs = idx.first->Locate(pattern);
+      auto occs = idx.idx->Locate(pattern);
       total_occs += occs.size();
     }
   }
 
   SetupDefaultCounters(t_state);
   t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
-  t_state.counters["Size(bytes)"] = idx.second;
-  t_state.counters["Bits_x_Symbol"] = idx.second * 8.0 / t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.size;
+  t_state.counters["Bits_x_Symbol"] = idx.size * 8.0 / t_factory->sizeSequence();
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -87,7 +87,7 @@ auto BM_PrintQueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
       out << pattern << std::endl;
-      auto occs = idx.first->Locate(pattern);
+      auto occs = idx.idx->Locate(pattern);
       total_occs += occs.size();
 
       sort(occs.begin(), occs.end());
@@ -99,8 +99,8 @@ auto BM_PrintQueryLocate = [](benchmark::State &t_state, auto t_factory, auto t_
 
   SetupDefaultCounters(t_state);
   t_state.counters["Collection_Size(bytes)"] = t_factory->sizeSequence();
-  t_state.counters["Size(bytes)"] = idx.second;
-  t_state.counters["Bits_x_Symbol"] = idx.second * 8.0 / t_factory->sizeSequence();
+  t_state.counters["Size(bytes)"] = idx.size;
+  t_state.counters["Bits_x_Symbol"] = idx.size * 8.0 / t_factory->sizeSequence();
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);

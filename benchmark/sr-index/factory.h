@@ -28,6 +28,10 @@ class Factory {
   struct Config {
     IndexEnum index_type;
     std::size_t sampling_size;
+
+    bool operator<(const Config &t_c) const {
+      return index_type < t_c.index_type || (index_type == t_c.index_type && sampling_size < t_c.sampling_size);
+    }
   };
 
   explicit Factory(sdsl::cache_config t_config) : config_{std::move(t_config)} {
@@ -37,36 +41,55 @@ class Factory {
 
   auto sizeSequence() const { return n_; }
 
-  std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) {
+  struct Index {
+    std::shared_ptr<sri::LocateIndex> idx;
+    std::size_t size = 0;
+  };
+
+  Index make(const Config &t_config) {
+    auto it = indexes_.find(t_config);
+    if (it != indexes_.end()) {
+      return it->second;
+    }
+
+    Index index;
     switch (t_config.index_type) {
       case IndexEnum::R_INDEX: {
         auto idx = std::make_shared<sri::RIndex<ExternalGenericStorage>>(std::ref(storage_));
         idx->load(config_);
-        return {idx, sdsl::size_in_bytes(*idx)};
+        index = {idx, sdsl::size_in_bytes(*idx)};
+        break;
       }
 
       case IndexEnum::SR_INDEX: {
         auto idx = std::make_shared<sri::SrIndex<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
-        return {idx, sdsl::size_in_bytes(*idx)};
+        index = {idx, sdsl::size_in_bytes(*idx)};
+        break;
       }
 
       case IndexEnum::SR_INDEX_VM: {
         auto idx = std::make_shared<sri::SrIndexValidMark<ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
-        return {idx, sdsl::size_in_bytes(*idx)};
+        index = {idx, sdsl::size_in_bytes(*idx)};
+        break;
       }
 
       case IndexEnum::SR_INDEX_VA: {
         auto idx = std::make_shared<sri::SrIndexValidArea<ExternalGenericStorage>>(
             std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
-        return {idx, sdsl::size_in_bytes(*idx)};
+        index = {idx, sdsl::size_in_bytes(*idx)};
+        break;
       }
     }
 
-    return {nullptr, 0};
+    if (index.idx) {
+      indexes_[t_config] = index;
+    }
+
+    return index;
   }
 
  private:
@@ -75,6 +98,8 @@ class Factory {
   std::size_t n_ = 0;
 
   sri::GenericStorage storage_;
+
+  std::map<Config, Index> indexes_;
 };
 
 #endif //SRI_BENCHMARK_SR_INDEX_FACTORY_H_
