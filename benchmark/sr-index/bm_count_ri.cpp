@@ -29,7 +29,7 @@ void SetupDefaultCounters(benchmark::State &t_state) {
 
 // Benchmark Warm-up
 static void BM_WarmUp(benchmark::State &_state) {
-  for (auto _: _state) {
+  for (auto _ : _state) {
     std::vector<int> empty_vector(1000000, 0);
   }
 
@@ -40,18 +40,18 @@ BENCHMARK(BM_WarmUp);
 auto BM_QueryCount = [](benchmark::State &t_state, const auto &t_idx, const auto &t_patterns, auto t_seq_size) {
   std::size_t total_occs = 0;
 
-  for (auto _: t_state) {
+  for (auto _ : t_state) {
     total_occs = 0;
-    for (const auto &pattern: t_patterns) {
-      auto range = t_idx.first->Count(pattern);
+    for (const auto &pattern : t_patterns) {
+      auto range = t_idx.idx->Count(pattern);
       total_occs += range.second - range.first;
     }
   }
 
   SetupDefaultCounters(t_state);
   t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Size(bytes)"] = t_idx.size;
+  t_state.counters["Bits_x_Symbol"] = t_idx.size * 8.0 / t_seq_size;
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -66,12 +66,12 @@ auto BM_PrintQueryCount = [](
 
   std::size_t total_occs = 0;
 
-  for (auto _: t_state) {
+  for (auto _ : t_state) {
     std::ofstream out(output_filename);
     out << "pattern,count" << std::endl;
     total_occs = 0;
-    for (const auto &pattern: t_patterns) {
-      auto range = t_idx.first->Count(pattern);
+    for (const auto &pattern : t_patterns) {
+      auto range = t_idx.idx->Count(pattern);
       auto count = range.second - range.first;
       total_occs += count;
       out << "\"" << pattern << "\"," << count << "[" << range.first << ";" << range.second << "]" << std::endl;
@@ -80,8 +80,8 @@ auto BM_PrintQueryCount = [](
 
   SetupDefaultCounters(t_state);
   t_state.counters["Collection_Size(bytes)"] = t_seq_size;
-  t_state.counters["Size(bytes)"] = t_idx.second;
-  t_state.counters["Bits_x_Symbol"] = t_idx.second * 8.0 / t_seq_size;
+  t_state.counters["Size(bytes)"] = t_idx.size;
+  t_state.counters["Bits_x_Symbol"] = t_idx.size * 8.0 / t_seq_size;
   t_state.counters["Patterns"] = t_patterns.size();
   t_state.counters["Time_x_Pattern"] = benchmark::Counter(
       t_patterns.size(), benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
   };
 
   std::string print_bm_prefix = "Print-";
-  for (const auto &idx_config: index_configs) {
+  for (const auto &idx_config : index_configs) {
     auto index = factory.make(idx_config.second);
 
     benchmark::RegisterBenchmark(idx_config.first, BM_QueryCount, index, patterns, factory.sizeSequence());
