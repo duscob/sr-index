@@ -103,7 +103,7 @@ auto BM_PrintLocate = [](
       auto occs = locate(pattern);
       total_occs += occs.size();
 
-      sort(occs.begin(), occs.end());
+      std::sort(occs.begin(), occs.end());
       for (const auto &item : occs) {
         out << "  " << item << std::endl;
       }
