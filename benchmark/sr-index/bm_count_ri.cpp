@@ -68,13 +68,13 @@ auto BM_PrintQueryCount = [](
 
   for (auto _ : t_state) {
     std::ofstream out(output_filename);
-    out << "pattern,count" << std::endl;
+    out << "pattern,count,range_start,range_end" << std::endl;
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
       auto range = t_idx.idx->Count(pattern);
       auto count = range.second - range.first;
       total_occs += count;
-      out << "\"" << pattern << "\"," << count << "[" << range.first << ";" << range.second << "]" << std::endl;
+      out << "\"" << pattern << "\"," << count << "," << range.first << "," << range.second << std::endl;
     }
   }
 
