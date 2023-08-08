@@ -48,6 +48,7 @@ void constructBWT(const std::string &t_data_path, sdsl::cache_config &t_config, 
   while (bwt_file >> symbol) {
     bwt_buf.push_back(symbol);
   }
+  register_cache_file(sdsl::conf::KEY_BWT, t_config);
 }
 
 void constructBWTRuns(sdsl::cache_config &t_config) {
