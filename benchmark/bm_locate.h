@@ -9,9 +9,16 @@
 #include <memory>
 #include <algorithm>
 #include <numeric>
+#include <utility>
 #include <vector>
 
 #include <benchmark/benchmark.h>
+
+#include <gflags/gflags.h>
+
+#include "base64.h"
+
+DEFINE_string(pattern_code, "PLAIN", "Codification Algorithm for pattern: PLAIN, BASE64");
 
 void SetupDefaultCounters(benchmark::State &t_state) {
   t_state.counters["Collection_Size(bytes)"] = 0;
@@ -54,7 +61,7 @@ auto BM_MacroLocate = [](benchmark::State &t_state, auto t_make_index, const aut
   for (auto _ : t_state) {
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
-      auto occs = locate(pattern);
+      auto occs = locate(pattern.decoded);
       total_occs += occs.size();
     }
   }
@@ -69,7 +76,7 @@ auto BM_MicroLocate = [](benchmark::State &t_state, auto t_make_index, const aut
   std::size_t total_occs = 0;
 
   for (auto _ : t_state) {
-    auto occs = locate(pattern);
+    auto occs = locate(pattern.decoded);
     total_occs = occs.size();
   }
 
@@ -99,8 +106,8 @@ auto BM_PrintLocate = [](
     std::ofstream out(output_filename);
     total_occs = 0;
     for (const auto &pattern : t_patterns) {
-      out << pattern << std::endl;
-      auto occs = locate(pattern);
+      out << pattern.encoded << std::endl;
+      auto occs = locate(pattern.decoded);
       total_occs += occs.size();
 
       std::sort(occs.begin(), occs.end());
@@ -179,21 +186,53 @@ auto RegisterLocateBenchmarks = [](
   return bms;
 };
 
-std::vector<std::string> ReadPatterns(const std::string &t_pattern_path) {
-  std::vector<std::string> patterns;
+struct Pattern {
+  std::string encoded;
+  std::string decoded;
 
+  Pattern(std::string t_encoded, std::string t_decoded)
+      : encoded(std::move(t_encoded)), decoded(std::move(t_decoded)) {}
+};
+
+enum PatternCode {
+  kPlain,
+  kBase64,
+};
+
+PatternCode toPatternCode(const std::string &t_str) {
+  static const std::map<std::string, PatternCode> name_to_enum = {
+      {"PLAIN", kPlain},
+      {"BASE64", kBase64},
+  };
+
+  return name_to_enum.at(t_str);
+}
+
+auto ReadPatterns(const std::string &t_pattern_path) {
   std::ifstream pattern_file(t_pattern_path, std::ios_base::binary);
   if (!pattern_file) {
     std::cerr << "ERROR: Failed to open patterns file! (" << t_pattern_path << ")" << std::endl;
     exit(3);
   }
 
+  auto pattern_code = toPatternCode(FLAGS_pattern_code);
+
+  auto decode = [pattern_code](const auto &tt_pattern) {
+    switch (pattern_code) {
+      case kBase64:
+        return base64_decode(tt_pattern);
+      default:
+        return tt_pattern;
+    }
+  };
+
+  std::vector<Pattern> patterns;
   std::string buffer;
   while (std::getline(pattern_file, buffer)) {
     if (buffer.empty())
       continue;
 
-    patterns.emplace_back(buffer);
+    patterns.emplace_back(buffer, decode(buffer));
   }
   pattern_file.close();
 
