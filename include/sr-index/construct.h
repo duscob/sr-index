@@ -71,6 +71,27 @@ void constructPsi(sdsl::cache_config &t_config) {
   }
 }
 
+template<uint8_t t_width>
+void constructPsiRuns(sdsl::cache_config &t_config) {
+  static_assert(t_width == 0 || t_width == 8,
+                "constructPsiRuns: width must be `0` for integer alphabet and `8` for byte alphabet");
+
+  typename alphabet_trait<t_width>::type alphabet;
+  sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
+
+  sri::PsiCoreRLE<> psi_rle;
+  sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
+
+  auto report = [](const auto &tt_run_start, const auto &tt_run_end) {
+  };
+
+  auto sigma = alphabet.sigma;
+  for (decltype(sigma) c = 0; c < sigma; ++c) {
+    psi_rle.traverse(c, report);
+//    cumulative.push_back(n_runs);
+  }
+}
+
 template<typename TRAContainer>
 auto sortIndices(const TRAContainer &t_values) {
   auto n = t_values.size();
