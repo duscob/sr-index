@@ -46,6 +46,7 @@ const std::string KEY_BWT_RUN_CUMULATIVE_COUNT = "bwt_run_cumulative_count";
 
 //! Psi run heads
 const std::string KEY_PSI_RUN_FIRST = "psi_run_first"; // Positions in the Psi array
+const std::string KEY_PSI_RUN_FIRST_TEXT_POS = KEY_PSI_RUN_FIRST + "_text_pos";
 }
 
 template<uint8_t t_width>

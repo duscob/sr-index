@@ -89,27 +89,32 @@ void constructPsiRuns(sdsl::cache_config &t_config) {
 //    return sdsl::int_vector_buffer<>(cache_file_name(tt_key, t_config), std::ios::in);
 //  };
 
-  std::vector<std::vector<std::size_t>> psi_run_first_text_pos_partial(alphabet.sigma);
+  const auto key_bwt_run = conf::KEY_BWT_RUN_FIRST;
+  const auto key_bwt_run_text_pos = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+  const auto key_psi_run_text_pos = conf::KEY_PSI_RUN_FIRST_TEXT_POS;
 
-//  auto bwt_run_first_pos = int_vector_buf_in(conf::KEY_BWT_RUN_FIRST);
-  auto bwt_run_first_pos = sdsl::int_vector_buffer<>(cache_file_name(conf::KEY_BWT_RUN_FIRST, t_config));
-  auto bwt_run_first_text_pos = sdsl::int_vector_buffer<>(cache_file_name(conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config));
+  std::vector<std::vector<std::size_t>> psi_run_text_pos_partial(alphabet.sigma);
 
-  auto r = bwt_run_first_pos.size();
+  auto bwt_run_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run, t_config));
+  auto bwt_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run_text_pos, t_config));
+
+  auto r = bwt_run_pos.size();
   for (std::size_t i = 0; i < r; ++i) {
-    psi_run_first_text_pos_partial[bwt_rle[bwt_run_first_pos[i]]].emplace_back(bwt_run_first_text_pos[i]);
+    psi_run_text_pos_partial[bwt_rle[bwt_run_pos[i]]].emplace_back(bwt_run_text_pos[i]);
   }
 
-  auto psi_run_first_text_pos =
-      sdsl::int_vector_buffer<>(cache_file_name(conf::KEY_PSI_RUN_FIRST_TEXT_POS, t_config), std::ios::out);
+  auto psi_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_psi_run_text_pos, t_config),
+                                                    std::ios::out,
+                                                    1 << 20,
+                                                    bwt_run_text_pos.width());
 
-  for (const auto & symbol_text_pos: psi_run_first_text_pos_partial) {
+  for (const auto &symbol_text_pos : psi_run_text_pos_partial) {
     for (const auto &text_pos : symbol_text_pos) {
-      psi_run_first_text_pos.push_back(text_pos);
+      psi_run_text_pos.push_back(text_pos);
     }
   }
 
-  psi_run_first_text_pos.close();
+  psi_run_text_pos.close();
 
 //  auto report = [](const auto &tt_run_start, const auto &tt_run_end) {
 //  };
