@@ -79,17 +79,46 @@ void constructPsiRuns(sdsl::cache_config &t_config) {
   typename alphabet_trait<t_width>::type alphabet;
   sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
 
-  sri::PsiCoreRLE<> psi_rle;
-  sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
+//  sri::PsiCoreRLE<> psi_rle;
+//  sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
 
-  auto report = [](const auto &tt_run_start, const auto &tt_run_end) {
-  };
+  RLEString<> bwt_rle;
+  sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
 
-  auto sigma = alphabet.sigma;
-  for (decltype(sigma) c = 0; c < sigma; ++c) {
-    psi_rle.traverse(c, report);
-//    cumulative.push_back(n_runs);
+//  auto int_vector_buf_in = [&t_config](const auto &tt_key) {
+//    return sdsl::int_vector_buffer<>(cache_file_name(tt_key, t_config), std::ios::in);
+//  };
+
+  std::vector<std::vector<std::size_t>> psi_run_first_text_pos_partial(alphabet.sigma);
+
+//  auto bwt_run_first_pos = int_vector_buf_in(conf::KEY_BWT_RUN_FIRST);
+  auto bwt_run_first_pos = sdsl::int_vector_buffer<>(cache_file_name(conf::KEY_BWT_RUN_FIRST, t_config));
+  auto bwt_run_first_text_pos = sdsl::int_vector_buffer<>(cache_file_name(conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config));
+
+  auto r = bwt_run_first_pos.size();
+  for (std::size_t i = 0; i < r; ++i) {
+    psi_run_first_text_pos_partial[bwt_rle[bwt_run_first_pos[i]]].emplace_back(bwt_run_first_text_pos[i]);
   }
+
+  auto psi_run_first_text_pos =
+      sdsl::int_vector_buffer<>(cache_file_name(conf::KEY_PSI_RUN_FIRST_TEXT_POS, t_config), std::ios::out);
+
+  for (const auto & symbol_text_pos: psi_run_first_text_pos_partial) {
+    for (const auto &text_pos : symbol_text_pos) {
+      psi_run_first_text_pos.push_back(text_pos);
+    }
+  }
+
+  psi_run_first_text_pos.close();
+
+//  auto report = [](const auto &tt_run_start, const auto &tt_run_end) {
+//  };
+//
+//  auto sigma = alphabet.sigma;
+//  for (decltype(sigma) c = 0; c < sigma; ++c) {
+//    psi_rle.traverse(c, report);
+////    cumulative.push_back(n_runs);
+//  }
 }
 
 template<typename TRAContainer>
