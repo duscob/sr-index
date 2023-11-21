@@ -38,6 +38,7 @@ if (NOT sdsl_FOUND)
 endif ()
 
 include(ConfigBigBWT)
+include(ConfigJSON)
 
 # Set common include folder for module
 set(COMMON_INCLUDES
@@ -81,6 +82,7 @@ add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
+target_link_libraries(sr-index INTERFACE nlohmann_json::nlohmann_json)
 
 
 include(internal_utils)
