@@ -338,19 +338,19 @@ class CSARaw : public RCSA<TStorage, TAlphabet, TPsiRLE> {
 };
 
 template<uint8_t t_width, typename TBvMark>
-void constructCSA(const std::string &t_data_path, sri::Config &t_config);
+void constructRCSA(const std::string &t_data_path, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sri::Config &t_config) {
-  constructCSA<t_width, TBvMark>(t_data_path, t_config);
+  constructRCSA<t_width, TBvMark>(t_data_path, t_config);
 
   t_index.load(t_config);
 }
 
 template<uint8_t t_width, typename TBvMark>
-void constructCSA(const std::string &t_data_path, sri::Config &t_config) {
+void constructRCSA(const std::string &t_data_path, sri::Config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   // Construct Psi

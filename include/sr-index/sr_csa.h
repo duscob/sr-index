@@ -762,7 +762,7 @@ void construct(SrCSASlim<
     TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt> &t_index,
                const std::string &t_data_path,
                sri::Config &t_config) {
-  constructCSA<t_width, TBvMark>(t_data_path, t_config);
+  constructRCSA<t_width, TBvMark>(t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
 
@@ -812,7 +812,7 @@ template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_widt
 void construct(SrCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos> &t_index,
                const std::string &t_data_path,
                sri::Config &t_config) {
-  constructCSA<t_width, TBvMark>(t_data_path, t_config);
+  constructRCSA<t_width, TBvMark>(t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
 
