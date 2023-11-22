@@ -72,9 +72,11 @@ void constructPsi(sdsl::cache_config &t_config) {
 }
 
 template<uint8_t t_width>
-void constructPsiRuns(sdsl::cache_config &t_config) {
+void constructPsiRuns(Config &t_config) {
   static_assert(t_width == 0 || t_width == 8,
                 "constructPsiRuns: width must be `0` for integer alphabet and `8` for byte alphabet");
+
+  using namespace conf;
 
   typename alphabet_trait<t_width>::type alphabet;
   sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
@@ -90,15 +92,20 @@ void constructPsiRuns(sdsl::cache_config &t_config) {
 //  };
 
 
-  for (const auto &is_head : {true, false}) {
+//  for (const auto &is_head : {true, false}) {
+  for (const auto &part : {conf::kHead, conf::kTail}) {
 
-    const auto key_bwt_run = is_head ? conf::KEY_BWT_RUN_FIRST : conf::KEY_BWT_RUN_LAST;
-    const auto key_bwt_run_text_pos = is_head ? conf::KEY_BWT_RUN_FIRST_TEXT_POS : conf::KEY_BWT_RUN_LAST_TEXT_POS;
-    const auto key_psi_run_text_pos = is_head ? conf::KEY_PSI_RUN_FIRST_TEXT_POS;
+//    const auto key_bwt_run = is_head ? conf::KEY_BWT_RUN_FIRST : conf::KEY_BWT_RUN_LAST;
+//    const auto key_bwt_run_text_pos = is_head ? conf::KEY_BWT_RUN_FIRST_TEXT_POS : conf::KEY_BWT_RUN_LAST_TEXT_POS;
+//    const auto key_psi_run_text_pos = is_head ? conf::KEY_PSI_RUN_FIRST_TEXT_POS : conf::KEY_PSI_RUN_LAST_TEXT_POS;
+
+    const auto &key_bwt_run_pos = t_config.keys[kBWT][part][kPos];
+    const auto &key_bwt_run_text_pos = t_config.keys[kBWT][part][kTextPos];
+    const auto &key_psi_run_text_pos = t_config.keys[kPsi][part][kTextPos];
 
     std::vector<std::vector<std::size_t>> psi_run_text_pos_partial(alphabet.sigma);
 
-    auto bwt_run_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run, t_config));
+    auto bwt_run_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run_pos, t_config));
     auto bwt_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run_text_pos, t_config));
 
     auto r = bwt_run_pos.size();
@@ -118,8 +125,9 @@ void constructPsiRuns(sdsl::cache_config &t_config) {
     }
 
     psi_run_text_pos.close();
-
+    sdsl::register_cache_file(key_psi_run_text_pos, t_config);
   }
+
 //  auto report = [](const auto &tt_run_start, const auto &tt_run_end) {
 //  };
 //
