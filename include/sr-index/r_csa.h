@@ -359,6 +359,12 @@ void constructCSA(const std::string &t_data_path, sri::Config &t_config) {
     constructPsi<t_width>(t_config);
   }
 
+  // Construct Psi Runs
+  if (!cache_file_exists(t_config.keys[conf::kBWT][conf::kHead][conf::kTextPos], t_config)) {
+    auto event = sdsl::memory_monitor::event("Psi Runs");
+    constructPsiRuns<t_width>(t_config);
+  }
+
   // Construct Links from Mark to Sample
   if (!cache_file_exists(conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
