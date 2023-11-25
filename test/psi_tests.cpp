@@ -274,12 +274,13 @@ TEST_P(RankPsiTests, psi_core_rle_rank_simple) {
   const auto &e_psi = std::get<1>(GetParam());
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  const auto &c = std::get<0>(std::get<2>(GetParam()));
-  const auto &value = std::get<1>(std::get<2>(GetParam()));
+  const auto &item = std::get<2>(GetParam());
+  const auto &c = std::get<0>(item);
+  const auto &value = std::get<1>(item);
 
   auto rank = psi_core.rank(c, value);
 
-  const auto &e_data_rank = std::get<2>(std::get<2>(GetParam()));
+  const auto &e_data_rank = std::get<2>(item);
   EXPECT_EQ(rank, e_data_rank.rank);
 }
 
@@ -287,8 +288,9 @@ TEST_P(RankPsiTests, psi_core_rle_rank_extra) {
   const auto &e_psi = std::get<1>(GetParam());
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  const auto &c = std::get<0>(std::get<2>(GetParam()));
-  const auto &value = std::get<1>(std::get<2>(GetParam()));
+  const auto &item = std::get<2>(GetParam());
+  const auto &c = std::get<0>(item);
+  const auto &value = std::get<1>(item);
 
   DataRank data_rank;
   auto report =
@@ -297,114 +299,62 @@ TEST_P(RankPsiTests, psi_core_rle_rank_extra) {
       };
   psi_core.rank(c, value, report);
 
-  const auto &e_data_rank = std::get<2>(std::get<2>(GetParam()));
+  const auto &e_data_rank = std::get<2>(item);
   EXPECT_EQ(data_rank, e_data_rank);
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Psi,
     RankPsiTests,
-    testing::Values(
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(0, 0, DataRank{0, {4, 5, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(0, 3, DataRank{0, {4, 5, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(0, 4, DataRank{0, {4, 5, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(0, 5, DataRank{1, {12, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(0, 6, DataRank{1, {12, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(0, 12, DataRank{1, {12, 12, 1}})),
+    testing::Combine(
+        testing::Values(
+            BWT{'c', 'c', 'b', 'c', 0, 'a', 'a', 'a', 'a', 'b', 'b', 'b'}
+        ),
+        testing::Values(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}
+        ),
+        testing::Values(
+            std::make_tuple(0, 0, DataRank{0, {4, 5, 0}}),
+            std::make_tuple(0, 3, DataRank{0, {4, 5, 0}}),
+            std::make_tuple(0, 4, DataRank{0, {4, 5, 0}}),
+            std::make_tuple(0, 5, DataRank{1, {12, 12, 1}}),
+            std::make_tuple(0, 6, DataRank{1, {12, 12, 1}}),
+            std::make_tuple(0, 12, DataRank{1, {12, 12, 1}}),
 
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 0, DataRank{0, {5, 9, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 4, DataRank{0, {5, 9, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 5, DataRank{0, {5, 9, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 6, DataRank{1, {5, 9, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 7, DataRank{2, {5, 9, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 8, DataRank{3, {5, 9, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 9, DataRank{4, {12, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 10, DataRank{4, {12, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(1, 12, DataRank{4, {12, 12, 1}})),
+            std::make_tuple(1, 0, DataRank{0, {5, 9, 0}}),
+            std::make_tuple(1, 4, DataRank{0, {5, 9, 0}}),
+            std::make_tuple(1, 5, DataRank{0, {5, 9, 0}}),
+            std::make_tuple(1, 6, DataRank{1, {5, 9, 0}}),
+            std::make_tuple(1, 7, DataRank{2, {5, 9, 0}}),
+            std::make_tuple(1, 8, DataRank{3, {5, 9, 0}}),
+            std::make_tuple(1, 9, DataRank{4, {12, 12, 1}}),
+            std::make_tuple(1, 10, DataRank{4, {12, 12, 1}}),
+            std::make_tuple(1, 12, DataRank{4, {12, 12, 1}}),
 
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 0, DataRank{0, {2, 3, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 1, DataRank{0, {2, 3, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 2, DataRank{0, {2, 3, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 3, DataRank{1, {9, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 8, DataRank{1, {9, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 9, DataRank{1, {9, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 10, DataRank{2, {9, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 11, DataRank{3, {9, 12, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(2, 12, DataRank{4, {9, 12, 1}})),
+            std::make_tuple(2, 0, DataRank{0, {2, 3, 0}}),
+            std::make_tuple(2, 1, DataRank{0, {2, 3, 0}}),
+            std::make_tuple(2, 2, DataRank{0, {2, 3, 0}}),
+            std::make_tuple(2, 3, DataRank{1, {9, 12, 1}}),
+            std::make_tuple(2, 8, DataRank{1, {9, 12, 1}}),
+            std::make_tuple(2, 9, DataRank{1, {9, 12, 1}}),
+            std::make_tuple(2, 10, DataRank{2, {9, 12, 1}}),
+            std::make_tuple(2, 11, DataRank{3, {9, 12, 1}}),
+            std::make_tuple(2, 12, DataRank{4, {9, 12, 1}}),
 
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(3, 0, DataRank{0, {0, 2, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(3, 1, DataRank{1, {0, 2, 0}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(3, 2, DataRank{2, {3, 4, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(3, 3, DataRank{2, {3, 4, 1}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(3, 4, DataRank{3, {12, 12, 2}})),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        std::make_tuple(3, 12, DataRank{3, {12, 12, 2}}))
+            std::make_tuple(3, 0, DataRank{0, {0, 2, 0}}),
+            std::make_tuple(3, 1, DataRank{1, {0, 2, 0}}),
+            std::make_tuple(3, 2, DataRank{2, {3, 4, 1}}),
+            std::make_tuple(3, 3, DataRank{2, {3, 4, 1}}),
+            std::make_tuple(3, 4, DataRank{3, {12, 12, 2}}),
+            std::make_tuple(3, 12, DataRank{3, {12, 12, 2}})
+        )
     )
 );
 
 using Ranges = std::vector<Range>;
 
-class SplitInRunsWithPsiTests
-    : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Ranges>> {
+class SplitInRunsWithPsiTests : public BaseAlphabetTests,
+                                public testing::WithParamInterface<std::tuple<BWT, Psi, std::tuple<Range, Ranges>>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
@@ -417,71 +367,46 @@ TEST_P(SplitInRunsWithPsiTests, psi_core_rle) {
 
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  const auto &range = std::get<2>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
 
   auto ranges = psi_core.splitInRuns(range.first, range.second);
 
-  auto e_ranges = std::get<3>(GetParam());
+  auto e_ranges = std::get<1>(item);
   EXPECT_THAT(ranges, testing::ElementsAreArray(e_ranges));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Psi,
     SplitInRunsWithPsiTests,
-    testing::Values(
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{0, 12},
-                        Ranges{{0, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 9}, {9, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 5},
-                        Ranges{{1, 2}, {2, 3}, {3, 4}, {4, 5}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{2, 5},
-                        Ranges{{2, 3}, {3, 4}, {4, 5}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{3, 5},
-                        Ranges{{3, 4}, {4, 5}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{4, 5},
-                        Ranges{{4, 5}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{5, 9},
-                        Ranges{{5, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{6, 9},
-                        Ranges{{6, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{7, 9},
-                        Ranges{{7, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{8, 9},
-                        Ranges{{8, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{9, 12},
-                        Ranges{{9, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{10, 12},
-                        Ranges{{10, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{9, 11},
-                        Ranges{{9, 11}})
+    testing::Combine(
+        testing::Values(
+            BWT{'c', 'c', 'b', 'c', 0, 'a', 'a', 'a', 'a', 'b', 'b', 'b'}
+        ),
+        testing::Values(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}
+        ),
+        testing::Values(
+            std::make_tuple(Range{0, 12}, Ranges{{0, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 9}, {9, 12}}),
+            std::make_tuple(Range{1, 5}, Ranges{{1, 2}, {2, 3}, {3, 4}, {4, 5}}),
+            std::make_tuple(Range{2, 5}, Ranges{{2, 3}, {3, 4}, {4, 5}}),
+            std::make_tuple(Range{3, 5}, Ranges{{3, 4}, {4, 5}}),
+            std::make_tuple(Range{4, 5}, Ranges{{4, 5}}),
+            std::make_tuple(Range{5, 9}, Ranges{{5, 9}}),
+            std::make_tuple(Range{6, 9}, Ranges{{6, 9}}),
+            std::make_tuple(Range{7, 9}, Ranges{{7, 9}}),
+            std::make_tuple(Range{8, 9}, Ranges{{8, 9}}),
+            std::make_tuple(Range{9, 12}, Ranges{{9, 12}}),
+            std::make_tuple(Range{10, 12}, Ranges{{10, 12}}),
+            std::make_tuple(Range{9, 11}, Ranges{{9, 11}})
+        )
     )
 );
 
-class ComputeForwardRunsWithPsiTests
-    : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Char, Range, Ranges>> {
+class ComputeForwardRunsWithPsiTests : public BaseAlphabetTests,
+                                       public testing::WithParamInterface<
+                                           std::tuple<BWT, Psi, std::tuple<Char, Range, Ranges>>
+                                       > {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
@@ -494,83 +419,40 @@ TEST_P(ComputeForwardRunsWithPsiTests, psi_core_rle) {
 
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  const auto &c = std::get<2>(GetParam());
-  const auto &range = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &c = std::get<0>(item);
+  const auto &range = std::get<1>(item);
 
   auto ranges = psi_core.computeForwardRuns(c, range.first, range.second);
 
-  auto e_ranges = std::get<4>(GetParam());
+  auto e_ranges = std::get<2>(item);
   EXPECT_THAT(ranges, testing::ElementsAreArray(e_ranges));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Psi,
     ComputeForwardRunsWithPsiTests,
-    testing::Values(
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        0,
-                        Range{1, 2},
-                        Ranges{{4, 5}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        1,
-                        Range{1, 5},
-                        Ranges{{5, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        2,
-                        Range{1, 5},
-                        Ranges{{2, 3}, {9, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        3,
-                        Range{1, 4},
-                        Ranges{{0, 2}, {3, 4}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        1,
-                        Range{1, 2},
-                        Ranges{{5, 6}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        1,
-                        Range{2, 5},
-                        Ranges{{6, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        1,
-                        Range{3, 5},
-                        Ranges{{7, 9}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        1,
-                        Range{3, 4},
-                        Ranges{{7, 8}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        2,
-                        Range{2, 5},
-                        Ranges{{9, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        2,
-                        Range{3, 5},
-                        Ranges{{10, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        2,
-                        Range{4, 5},
-                        Ranges{{11, 12}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        2,
-                        Range{3, 4},
-                        Ranges{{10, 11}}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        3,
-                        Range{2, 4},
-                        Ranges{{1, 2}, {3, 4}})
+    testing::Combine(
+        testing::Values(
+            BWT{'c', 'c', 'b', 'c', 0, 'a', 'a', 'a', 'a', 'b', 'b', 'b'}
+        ),
+        testing::Values(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}
+        ),
+        testing::Values(
+            std::make_tuple(0, Range{1, 2}, Ranges{{4, 5}}),
+            std::make_tuple(1, Range{1, 5}, Ranges{{5, 9}}),
+            std::make_tuple(2, Range{1, 5}, Ranges{{2, 3}, {9, 12}}),
+            std::make_tuple(3, Range{1, 4}, Ranges{{0, 2}, {3, 4}}),
+            std::make_tuple(1, Range{1, 2}, Ranges{{5, 6}}),
+            std::make_tuple(1, Range{2, 5}, Ranges{{6, 9}}),
+            std::make_tuple(1, Range{3, 5}, Ranges{{7, 9}}),
+            std::make_tuple(1, Range{3, 4}, Ranges{{7, 8}}),
+            std::make_tuple(2, Range{2, 5}, Ranges{{9, 12}}),
+            std::make_tuple(2, Range{3, 5}, Ranges{{10, 12}}),
+            std::make_tuple(2, Range{4, 5}, Ranges{{11, 12}}),
+            std::make_tuple(2, Range{3, 4}, Ranges{{10, 11}}),
+            std::make_tuple(3, Range{2, 4}, Ranges{{1, 2}, {3, 4}})
+        )
     )
 );
