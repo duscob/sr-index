@@ -12,27 +12,9 @@
 #include "sr-index/sr_index.h"
 #include "sr-index/config.h"
 
+#include "base_tests.h"
+
 using String = std::string;
-
-class BaseLocateTests : public testing::Test {
- protected:
-
-  void Init(const String &t_data, sri::SAAlgo t_sa_algo) {
-    auto filename = sdsl::cache_file_name(key_tmp_input_, config_);
-    sdsl::store_to_file(t_data, filename);
-    register_cache_file(key_tmp_input_, config_);
-
-    config_.data_path = filename;
-    config_.sa_algo = t_sa_algo;
-  }
-
-  void TearDown() override {
-    sdsl::util::delete_all_files(config_.file_map);
-  }
-
-  sri::Config config_;
-  std::string key_tmp_input_ = "data";
-};
 
 using Values = std::vector<std::size_t>;
 using PatternXValues = std::tuple<String, Values>;
@@ -41,7 +23,7 @@ using ListPatternXValues = std::vector<PatternXValues>;
 typedef std::shared_ptr<sri::IndexBaseWithExternalStorage<>>(*TConstructor)(
     const std::string &tt_data_path, sri::Config &tt_config);
 
-class LocateTests : public BaseLocateTests,
+class LocateTests : public BaseConfigTests,
                     public testing::WithParamInterface<std::tuple<
                         TConstructor,
                         std::tuple<String, ListPatternXValues>,
@@ -121,13 +103,13 @@ INSTANTIATE_TEST_SUITE_P(
         ),
         testing::Values(
             sri::SDSL_LIBDIVSUFSORT,
-            sri::BIG_BWT
+            sri::BIG_BWT // Fails in Debug Mode
         )
     )
 );
 
 template<typename TIndex>
-class LocateTypedTests : public BaseLocateTests {
+class LocateTypedTests : public BaseConfigTests {
  public:
   void SetUp() override {
     data_ = std::make_tuple(String{"abcabcababc"}, String{"ab"}, Values{6, 8, 3, 0});
