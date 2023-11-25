@@ -107,6 +107,7 @@ if (SR-INDEX_ENABLE_TESTS)
     cxx_test_with_flags_and_args(toehold_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/toehold_tests.cpp)
     cxx_test_with_flags_and_args(sampling_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sampling_test.cpp)
     cxx_test_with_flags_and_args(locate_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/locate_tests.cpp)
+    cxx_test_with_flags_and_args(construct_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/construct_tests.cpp)
 endif ()
 
 
