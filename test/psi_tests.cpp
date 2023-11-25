@@ -37,13 +37,13 @@ INSTANTIATE_TEST_SUITE_P(
     AlphabetTests,
     testing::Values(
         std::make_tuple(
-            BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
+            BWT{'c', 'c', 'b', 'c', 0, 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
             Cumulative{0, 1, 5, 9, 12}),
         std::make_tuple(
-            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+            BWT{4, 4, 3, 4, 0, 2, 2, 2, 2, 3, 3, 3},
             Cumulative{0, 1, 5, 9, 12}),
         std::make_tuple(
-            BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 'a', 'b', 'd', 'b', 'd', 'c', 'd'},
+            BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 0, 'b', 'd', 'b', 'd', 'c', 'd'},
             Cumulative{0, 1, 5, 6, 12, 16})
     )
 );
@@ -231,13 +231,13 @@ INSTANTIATE_TEST_SUITE_P(
     PsiTests,
     testing::Values(
         std::make_tuple(
-            BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
+            BWT{'c', 'c', 'b', 'c', 0, 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}),
         std::make_tuple(
-            BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
+            BWT{4, 4, 3, 4, 0, 2, 2, 2, 2, 3, 3, 3},
             Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}),
         std::make_tuple(
-            BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 'a', 'b', 'd', 'b', 'd', 'c', 'd'},
+            BWT{'d', 'e', 'e', 'e', 'e', 'd', 'd', 'b', 'b', 0, 'b', 'd', 'b', 'd', 'c', 'd'},
             Psi{9, 7, 8, 10, 12, 14, 0, 5, 6, 11, 13, 15, 1, 2, 3, 4})
     )
 );
