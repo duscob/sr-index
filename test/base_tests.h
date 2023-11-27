@@ -53,12 +53,13 @@ class BaseConfigTests : public testing::Test {
  protected:
 
   void Init(const String &t_data, sri::SAAlgo t_sa_algo) {
+    config_ = sri::Config("",  std::filesystem::current_path(), t_sa_algo);
+
     auto filename = sdsl::cache_file_name(key_tmp_input_, config_);
     sdsl::store_to_file(t_data, filename);
     register_cache_file(key_tmp_input_, config_);
 
     config_.data_path = filename;
-    config_.sa_algo = t_sa_algo;
   }
 
   void TearDown() override {
