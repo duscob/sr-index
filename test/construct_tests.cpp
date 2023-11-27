@@ -7,18 +7,15 @@
 #include <sdsl/io.hpp>
 
 #include "sr-index/r_csa.h"
-#include "sr-index/sr_csa.h"
-#include "sr-index/r_index.h"
-#include "sr-index/sr_index.h"
 #include "sr-index/config.h"
 
 #include "base_tests.h"
 
+using PsiRunHead = IntVector;
+using PsiRunTail = IntVector;
+
 class ConstructRCSATests : public BaseConfigTests,
-                           public testing::WithParamInterface<std::tuple<
-                               String,
-                               Psi
-                           >> {
+                           public testing::WithParamInterface<std::tuple<String, Psi, PsiRunHead, PsiRunTail>> {
  protected:
 
   void SetUp() override {
@@ -28,31 +25,42 @@ class ConstructRCSATests : public BaseConfigTests,
 };
 
 TEST_P(ConstructRCSATests, construct) {
+  using namespace sri::conf;
   sri::constructRCSA<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
 
   auto compare = [this](const auto &tt_key, const auto &tt_e_values) {
     sdsl::int_vector<> values;
     sdsl::load_from_cache(values, tt_key, config_);
 
-    EXPECT_THAT(values, testing::ElementsAreArray(tt_e_values)) << tt_key;
+    EXPECT_THAT(values, testing::ElementsAreArray(tt_e_values)) << "Key = " << tt_key;
   };
 
   compare(sdsl::conf::KEY_PSI, std::get<1>(GetParam()));
+  compare(config_.keys[kPsi][kHead][kTextPos], std::get<2>(GetParam()));
+  compare(config_.keys[kPsi][kTail][kTextPos], std::get<3>(GetParam()));
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    LocateIndex,
+    Basic,
     ConstructRCSATests,
     testing::Values(
         std::make_tuple(
             String{"alabaralaalabarda"},
-            Psi{6, 0, 7, 10, 11, 13, 14, 15, 16, 17, 8, 9, 1, 2, 3, 4, 5, 12}
-//            BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
+            Psi{6, 0, 7, 10, 11, 13, 14, 15, 16, 17, 8, 9, 1, 2, 3, 4, 5, 12},
+//          Psi{6,    0,    7,    10,   11,   13,   14,   15,   16,   17,   8,    9,    1,    2,    3,    4,    5,    12},
+//          SA{17,    16,   8,    2,    11,   6,    0,    9,    4,    13,   3,    12,   15,   7,    1,    10,   5,    14}
+//          BWT{'a',  'd',  'l',  'l',  'l',  'r',  '$',  'a',  'b',  'b',  'a',  'a',  'r',  'a',  'a',  'a',  'a',  'a'},
+            PsiRunHead{17, 16, 8, 2, 6, 3, 15, 7, 5, 14},
+            PsiRunTail{17, 16, 8, 11, 13, 12, 15, 10, 5, 14}
         ),
         std::make_tuple(
             String{"abcabcababc"},
-            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}
-//            BWT{'c', 'c', 'b', 'c', '$', 'a', 'a', 'a', 'a', 'b', 'b', 'b'},
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+//            Psi{4,    5,    6,    7,    8,    2,    9,    10,   11,   0,    1,    3},
+//            SA{11,    6,    8,    3,    0,    7,    9,    4,    1,    10,   5,    2},
+//            BWT{'c',  'c',  'b',  'c',  '$',  'a',  'a',  'a',  'a',  'b',  'b',  'b'},
+            PsiRunHead{11, 6, 7, 9, 10, 2},
+            PsiRunTail{11, 0, 7, 1, 5, 2}
         )
     )
 );
