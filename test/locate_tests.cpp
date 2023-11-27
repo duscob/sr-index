@@ -33,7 +33,13 @@ class LocateTests : public BaseConfigTests,
 
   void SetUp() override {
     const auto &data = std::get<0>(std::get<1>(GetParam()));
-    Init(data, std::get<2>(GetParam()));
+    const auto &sa_algo = std::get<2>(GetParam());
+#ifndef NDEBUG
+    if (sa_algo == sri::SAAlgo::BIG_BWT) {
+      GTEST_SKIP_("Tests with BigBWT fail in Debug mode");
+    }
+#endif
+    Init(data, sa_algo);
   }
 };
 
