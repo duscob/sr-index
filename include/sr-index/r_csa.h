@@ -360,7 +360,7 @@ void constructRCSA(const std::string &t_data_path, sri::Config &t_config) {
   }
 
   // Construct Psi Runs
-  if (!cache_file_exists(t_config.keys[conf::kBWT][conf::kHead][conf::kTextPos], t_config)) {
+  if (!cache_file_exists(t_config.keys[conf::kPsi][conf::kHead][conf::kTextPos], t_config)) {
     auto event = sdsl::memory_monitor::event("Psi Runs");
     constructPsiRuns<t_width>(t_config);
   }

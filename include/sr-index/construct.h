@@ -81,24 +81,10 @@ void constructPsiRuns(Config &t_config) {
   typename alphabet_trait<t_width>::type alphabet;
   sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
 
-//  sri::PsiCoreRLE<> psi_rle;
-//  sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
-
   RLEString<> bwt_rle;
   sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
 
-//  auto int_vector_buf_in = [&t_config](const auto &tt_key) {
-//    return sdsl::int_vector_buffer<>(cache_file_name(tt_key, t_config), std::ios::in);
-//  };
-
-
-//  for (const auto &is_head : {true, false}) {
   for (const auto &part : {conf::kHead, conf::kTail}) {
-
-//    const auto key_bwt_run = is_head ? conf::KEY_BWT_RUN_FIRST : conf::KEY_BWT_RUN_LAST;
-//    const auto key_bwt_run_text_pos = is_head ? conf::KEY_BWT_RUN_FIRST_TEXT_POS : conf::KEY_BWT_RUN_LAST_TEXT_POS;
-//    const auto key_psi_run_text_pos = is_head ? conf::KEY_PSI_RUN_FIRST_TEXT_POS : conf::KEY_PSI_RUN_LAST_TEXT_POS;
-
     const auto &key_bwt_run_pos = t_config.keys[kBWT][part][kPos];
     const auto &key_bwt_run_text_pos = t_config.keys[kBWT][part][kTextPos];
     const auto &key_psi_run_text_pos = t_config.keys[kPsi][part][kTextPos];
@@ -127,15 +113,6 @@ void constructPsiRuns(Config &t_config) {
     psi_run_text_pos.close();
     sdsl::register_cache_file(key_psi_run_text_pos, t_config);
   }
-
-//  auto report = [](const auto &tt_run_start, const auto &tt_run_end) {
-//  };
-//
-//  auto sigma = alphabet.sigma;
-//  for (decltype(sigma) c = 0; c < sigma; ++c) {
-//    psi_rle.traverse(c, report);
-////    cumulative.push_back(n_runs);
-//  }
 }
 
 template<typename TRAContainer>
