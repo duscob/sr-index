@@ -37,7 +37,7 @@ static void BM_WarmUp(benchmark::State &_state) {
 BENCHMARK(BM_WarmUp);
 
 auto BM_ConstructRCSA = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  sri::RCSA<> index;
+  sri::RCSAWithBWTRun<> index;
 
   for (auto _ : t_state) {
     sdsl::memory_monitor::start();

@@ -59,7 +59,7 @@ class Factory {
     Index index;
     switch (t_config.index_type) {
       case IndexEnum::R_CSA: {
-        auto idx = std::make_shared<sri::RCSA<ExternalGenericStorage>>(std::ref(storage_));
+        auto idx = std::make_shared<sri::RCSAWithBWTRun<ExternalGenericStorage>>(std::ref(storage_));
         idx->load(config_);
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;

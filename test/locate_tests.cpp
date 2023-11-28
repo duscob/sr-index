@@ -90,7 +90,7 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrIndex<>>(),
             createSrIndexBuilder<sri::SrIndexValidMark<>>(),
             createSrIndexBuilder<sri::SrIndexValidArea<>>(),
-            createIndexBuilder<sri::RCSA<>>(),
+            createIndexBuilder<sri::RCSAWithBWTRun<>>(),
             createSrIndexBuilder<sri::SrCSA<>>(),
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSA<>>>(),
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSA<>>>(),
@@ -130,7 +130,7 @@ class LocateTypedTests : public BaseConfigTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSA<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSAWithBWTRun<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
