@@ -30,6 +30,9 @@ constexpr std::string_view kHead = "head";
 constexpr std::string_view kTail = "tail";
 constexpr std::string_view kPos = "pos";
 constexpr std::string_view kTextPos = "textPos";
+constexpr std::string_view kTextPosAsc = "textPosAsc";
+constexpr std::string_view kIdx = "idx";
+constexpr std::string_view kLink = "link";
 }
 
 auto createDefaultKeys() {
@@ -55,6 +58,10 @@ auto createDefaultKeys() {
           {kTail, {
               {kPos, "psi_run_last"},
               {kTextPos, "psi_run_last_text_pos"},
+              {kTextPosAsc, {
+                  {kIdx, "psi_run_last_text_pos_asc_idx"},
+                  {kLink, "psi_run_last_text_pos_asc_link"},
+              }},
           }},
       },},
   };

@@ -13,9 +13,13 @@
 
 using PsiRunHead = IntVector;
 using PsiRunTail = IntVector;
+using PsiRunTailAsc = IntVector;
+using PsiRunTailAscLink = IntVector;
 
 class ConstructRCSATests : public BaseConfigTests,
-                           public testing::WithParamInterface<std::tuple<String, Psi, PsiRunHead, PsiRunTail>> {
+                           public testing::WithParamInterface<std::tuple<
+                               String, Psi, PsiRunHead, PsiRunTail, PsiRunTailAsc, PsiRunTailAscLink
+                           >> {
  protected:
 
   void SetUp() override {
@@ -38,6 +42,8 @@ TEST_P(ConstructRCSATests, construct) {
   compare(sdsl::conf::KEY_PSI, std::get<1>(GetParam()));
   compare(config_.keys[kPsi][kHead][kTextPos], std::get<2>(GetParam()));
   compare(config_.keys[kPsi][kTail][kTextPos], std::get<3>(GetParam()));
+  compare(config_.keys[kPsi][kTail][kTextPosAsc][kIdx], std::get<4>(GetParam()));
+  compare(config_.keys[kPsi][kTail][kTextPosAsc][kLink], std::get<5>(GetParam()));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -51,7 +57,9 @@ INSTANTIATE_TEST_SUITE_P(
 //          SA{17,    16,   8,    2,    11,   6,    0,    9,    4,    13,   3,    12,   15,   7,    1,    10,   5,    14}
 //          BWT{'a',  'd',  'l',  'l',  'l',  'r',  '$',  'a',  'b',  'b',  'a',  'a',  'r',  'a',  'a',  'a',  'a',  'a'},
             PsiRunHead{17, 16, 8, 2, 6, 3, 15, 7, 5, 14},
-            PsiRunTail{17, 16, 8, 11, 13, 12, 15, 10, 5, 14}
+            PsiRunTail{17, 16, 8, 11, 13, 12, 15, 10, 5, 14},
+            PsiRunTailAsc{8, 2, 7, 3, 5, 4, 9, 6, 1, 0},
+            PsiRunTailAscLink{9, 3, 8, 4, 6, 5, 0, 7, 2, 1}
         ),
         std::make_tuple(
             String{"abcabcababc"},
@@ -60,7 +68,9 @@ INSTANTIATE_TEST_SUITE_P(
 //            SA{11,    6,    8,    3,    0,    7,    9,    4,    1,    10,   5,    2},
 //            BWT{'c',  'c',  'b',  'c',  '$',  'a',  'a',  'a',  'a',  'b',  'b',  'b'},
             PsiRunHead{11, 6, 7, 9, 10, 2},
-            PsiRunTail{11, 0, 7, 1, 5, 2}
+            PsiRunTail{11, 0, 7, 1, 5, 2},
+            PsiRunTailAsc{1, 3, 5, 4, 2, 0},
+            PsiRunTailAscLink{2, 4, 0, 5, 3, 1}
         )
     )
 );
