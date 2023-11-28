@@ -839,7 +839,7 @@ class RLEString {
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)
   //! \return Runs in the queried range
-  std::vector<StringRun> splitInRuns(std::size_t t_first, std::size_t t_last) const {
+  auto splitInRuns(std::size_t t_first, std::size_t t_last) const {
     std::vector<StringRun> runs;
     auto report = [&runs](auto tt_idx, auto tt_c, auto tt_start, auto tt_end) {
       runs.emplace_back(sri::StringRun{tt_idx, tt_c, sri::range_t{tt_start, tt_end}});
