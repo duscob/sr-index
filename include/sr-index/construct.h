@@ -144,9 +144,10 @@ auto constructMarkToSampleLinks(const TRAContainer &t_marks_text_pos, const TGet
 }
 
 template<uint8_t t_width>
-void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
+void constructMarkToSampleLinksForPhiForwardWithBWTRuns(sdsl::cache_config &t_config) {
   static_assert(t_width == 0 or t_width == 8,
-                "constructMarkToSampleLinksForPhiForward: width must be `0` for integer alphabet and `8` for byte alphabet");
+                "constructMarkToSampleLinksForPhiForwardWithBWTRuns: width must be `0` for integer alphabet and `8` "
+                "for byte alphabet");
 
   // Marks
   sdsl::int_vector<> bwt_run_last_text_pos; // BWT run tails positions in text

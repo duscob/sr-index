@@ -338,19 +338,19 @@ class CSARaw : public RCSA<TStorage, TAlphabet, TPsiRLE> {
 };
 
 template<uint8_t t_width, typename TBvMark>
-void constructRCSA(const std::string &t_data_path, sri::Config &t_config);
+void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sri::Config &t_config) {
-  constructRCSA<t_width, TBvMark>(t_data_path, t_config);
+  constructRCSAWithBWTRuns<t_width, TBvMark>(t_data_path, t_config);
 
   t_index.load(t_config);
 }
 
 template<uint8_t t_width, typename TBvMark>
-void constructRCSA(const std::string &t_data_path, sri::Config &t_config) {
+void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   // Construct Psi
@@ -359,16 +359,10 @@ void constructRCSA(const std::string &t_data_path, sri::Config &t_config) {
     constructPsi<t_width>(t_config);
   }
 
-  // Construct Psi Runs
-  if (!cache_file_exists(t_config.keys[conf::kPsi][conf::kHead][conf::kTextPos], t_config)) {
-    auto event = sdsl::memory_monitor::event("Psi Runs");
-    constructPsiRuns<t_width>(t_config);
-  }
-
   // Construct Links from Mark to Sample
   if (!cache_file_exists(conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    constructMarkToSampleLinksForPhiForward<t_width>(t_config);
+    constructMarkToSampleLinksForPhiForwardWithBWTRuns<t_width>(t_config);
   }
 
   std::size_t n;
