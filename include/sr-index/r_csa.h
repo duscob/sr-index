@@ -338,35 +338,31 @@ class CSARaw : public RCSA<TStorage, TAlphabet, TPsiRLE> {
 };
 
 template<uint8_t t_width, typename TBvMark>
-void constructCSA(const std::string &t_data_path, sri::Config &t_config);
+void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
 void construct(RCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
                const std::string &t_data_path,
                sri::Config &t_config) {
-  constructCSA<t_width, TBvMark>(t_data_path, t_config);
+  constructRCSAWithBWTRuns<t_width, TBvMark>(t_data_path, t_config);
 
   t_index.load(t_config);
 }
 
 template<uint8_t t_width, typename TBvMark>
-void constructCSA(const std::string &t_data_path, sri::Config &t_config) {
+void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
-  {
-    // Construct Psi
+  // Construct Psi
+  if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
     auto event = sdsl::memory_monitor::event("Psi");
-    if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
-      constructPsi<t_width>(t_config);
-    }
+    constructPsi<t_width>(t_config);
   }
 
-  {
-    // Construct Links from Mark to Sample
+  // Construct Links from Mark to Sample
+  if (!cache_file_exists(conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    if (!cache_file_exists(conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
-      constructMarkToSampleLinksForPhiForward<t_width>(t_config);
-    }
+    constructMarkToSampleLinksForPhiForwardWithBWTRuns<t_width>(t_config);
   }
 
   std::size_t n;
@@ -375,12 +371,45 @@ void constructCSA(const std::string &t_data_path, sri::Config &t_config) {
     n = bwt_buf.size();
   }
 
-  {
-    // Construct Successor on the text positions of BWT run last letter
+  // Construct Successor on the text positions of BWT run last letter
+  if (!sdsl::cache_file_exists<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
     auto event = sdsl::memory_monitor::event("Successor");
-    if (!sdsl::cache_file_exists<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
-      constructBitVectorFromIntVector<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
-    }
+    constructBitVectorFromIntVector<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
+  }
+}
+
+template<uint8_t t_width, typename TBvMark>
+void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config) {
+  constructIndexBaseItems<t_width>(t_data_path, t_config);
+
+  // Construct Psi
+  if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
+    auto event = sdsl::memory_monitor::event("Psi");
+    constructPsi<t_width>(t_config);
+  }
+
+  // Construct Psi Runs
+  if (!cache_file_exists(t_config.keys[conf::kPsi][conf::kHead][conf::kTextPos], t_config)) {
+    auto event = sdsl::memory_monitor::event("Psi Runs");
+    constructPsiRuns<t_width>(t_config);
+  }
+
+  // Construct Links from Mark to Sample
+  if (!cache_file_exists(t_config.keys[conf::kPsi][conf::kTail][conf::kTextPosAsc][conf::kIdx], t_config)) {
+    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
+    constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
+  }
+
+  std::size_t n;
+  {
+    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+    n = bwt_buf.size();
+  }
+
+  // Construct Successor on the text positions of BWT run last letter
+  if (!sdsl::cache_file_exists<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
+    auto event = sdsl::memory_monitor::event("Successor");
+    constructBitVectorFromIntVector<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
   }
 }
 

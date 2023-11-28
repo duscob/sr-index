@@ -38,6 +38,7 @@ if (NOT sdsl_FOUND)
 endif ()
 
 include(ConfigBigBWT)
+include(ConfigJSON)
 
 # Set common include folder for module
 set(COMMON_INCLUDES
@@ -81,6 +82,7 @@ add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
+target_link_libraries(sr-index INTERFACE nlohmann_json::nlohmann_json)
 
 
 include(internal_utils)
@@ -105,6 +107,7 @@ if (SR-INDEX_ENABLE_TESTS)
     cxx_test_with_flags_and_args(toehold_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/toehold_tests.cpp)
     cxx_test_with_flags_and_args(sampling_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/sampling_test.cpp)
     cxx_test_with_flags_and_args(locate_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/locate_tests.cpp)
+    cxx_test_with_flags_and_args(construct_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/construct_tests.cpp)
 endif ()
 
 

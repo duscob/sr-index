@@ -11,7 +11,8 @@
 
 #include "base_tests.h"
 
-class LFTests : public BaseAlphabetTests, public testing::WithParamInterface<std::tuple<BWT, Psi, Range, Char, Range>> {
+class LFTests : public BaseAlphabetTests,
+                public testing::WithParamInterface<std::tuple<BWT, Psi, std::tuple<Range, Char, Range>>> {
  protected:
   void SetUp() override {
     const auto &bwt = std::get<0>(GetParam());
@@ -31,12 +32,13 @@ TEST_P(LFTests, rle_string) {
 
   auto lf = sri::LFOnPsi(bwt_rank, cumulative);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto new_range = lf(range, alphabet_.char2comp[c]);
 
-  auto e_range = std::get<4>(GetParam());
+  auto e_range = std::get<2>(item);
   EXPECT_EQ(new_range, e_range);
 }
 
@@ -50,12 +52,13 @@ TEST_P(LFTests, psi_core_bv) {
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto new_range = lf(range, alphabet_.char2comp[c]);
 
-  auto e_range = std::get<4>(GetParam());
+  auto e_range = std::get<2>(item);
   EXPECT_EQ(new_range, e_range);
 }
 
@@ -76,12 +79,13 @@ TEST_P(LFTests, psi_core_bv_serialized) {
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto new_range = lf(range, alphabet_.char2comp[c]);
 
-  auto e_range = std::get<4>(GetParam());
+  auto e_range = std::get<2>(item);
   EXPECT_EQ(new_range, e_range);
 }
 
@@ -95,12 +99,13 @@ TEST_P(LFTests, psi_core_rle) {
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto new_range = lf(range, alphabet_.char2comp[c]);
 
-  auto e_range = std::get<4>(GetParam());
+  auto e_range = std::get<2>(item);
   EXPECT_EQ(new_range, e_range);
 }
 
@@ -121,12 +126,13 @@ TEST_P(LFTests, psi_core_rle_serialized) {
 
   auto lf = sri::LFOnPsi(psi_rank, cumulative);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto new_range = lf(range, alphabet_.char2comp[c]);
 
-  auto e_range = std::get<4>(GetParam());
+  auto e_range = std::get<2>(item);
   EXPECT_EQ(new_range, e_range);
 }
 
@@ -135,8 +141,9 @@ TEST_P(LFTests, psi_core_bv_is_trivial) {
 
   auto psi_core = sri::PsiCoreBV(alphabet_.C, e_psi);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto is_trivial = psi_core.exist(alphabet_.char2comp[c], range.first);
 
@@ -148,8 +155,9 @@ TEST_P(LFTests, psi_core_rle_is_trivial) {
 
   auto psi_core = sri::PsiCoreRLE(alphabet_.C, e_psi);
 
-  const auto &range = std::get<2>(GetParam());
-  Char c = std::get<3>(GetParam());
+  const auto &item = std::get<2>(GetParam());
+  const auto &range = std::get<0>(item);
+  Char c = std::get<1>(item);
 
   auto is_trivial = psi_core.exist(alphabet_.char2comp[c], range.first);
 
@@ -159,104 +167,36 @@ TEST_P(LFTests, psi_core_rle_is_trivial) {
 INSTANTIATE_TEST_SUITE_P(
     Psi,
     LFTests,
-    testing::Values(
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{0, 12},
-                        1,
-                        Range{0, 1}), // 1 before empty
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{0, 12},
-                        2,
-                        Range{1, 5}), // 2 before empty
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{0, 12},
-                        3,
-                        Range{5, 9}), // 3 before empty
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{0, 12},
-                        4,
-                        Range{9, 12}), // 4 before empty
+    testing::Combine(
+        testing::Values(
+            BWT{'c', 'c', 'b', 'c', 0, 'a', 'a', 'a', 'a', 'b', 'b', 'b'}
+        ),
+        testing::Values(
+            Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3}
+        ),
+        testing::Values(
+            std::make_tuple(Range{0, 12}, 0, Range{0, 1}), // 1 before empty
+            std::make_tuple(Range{0, 12}, 'a', Range{1, 5}), // 2 before empty
+            std::make_tuple(Range{0, 12}, 'b', Range{5, 9}), // 3 before empty
+            std::make_tuple(Range{0, 12}, 'c', Range{9, 12}), // 4 before empty
 
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 5},
-                        1,
-                        Range{0, 1}), // 1 before 2
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 5},
-                        2,
-                        Range{1, 1}), // 2 before 2
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 5},
-                        3,
-                        Range{5, 6}), // 3 before 2
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 5},
-                        4,
-                        Range{10, 12}), // 4 before 2
+            std::make_tuple(Range{1, 5}, 0, Range{0, 1}), // 1 before 2
+            std::make_tuple(Range{1, 5}, 'a', Range{1, 1}), // 2 before 2
+            std::make_tuple(Range{1, 5}, 'b', Range{5, 6}), // 3 before 2
+            std::make_tuple(Range{1, 5}, 'c', Range{10, 12}), // 4 before 2
 
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{10, 12},
-                        2,
-                        Range{5, 5}), // 2 before 4
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{10, 12},
-                        3,
-                        Range{7, 9}), // 3 before 4
+            std::make_tuple(Range{10, 12}, 'a', Range{5, 5}), // 2 before 4
+            std::make_tuple(Range{10, 12}, 'b', Range{7, 9}), // 3 before 4
 
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 9},
-                        3,
-                        Range{5, 6}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 10},
-                        3,
-                        Range{5, 7}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{1, 11},
-                        3,
-                        Range{5, 8}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{2, 5},
-                        3,
-                        Range{5, 6}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{2, 9},
-                        3,
-                        Range{5, 6}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{2, 10},
-                        3,
-                        Range{5, 7}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{3, 5},
-                        3,
-                        Range{6, 6}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{3, 10},
-                        3,
-                        Range{6, 7}),
-        std::make_tuple(BWT{4, 4, 3, 4, 1, 2, 2, 2, 2, 3, 3, 3},
-                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-                        Range{9, 12},
-                        3,
-                        Range{6, 9})
+            std::make_tuple(Range{1, 9}, 'b', Range{5, 6}),
+            std::make_tuple(Range{1, 10}, 'b', Range{5, 7}),
+            std::make_tuple(Range{1, 11}, 'b', Range{5, 8}),
+            std::make_tuple(Range{2, 5}, 'b', Range{5, 6}),
+            std::make_tuple(Range{2, 9}, 'b', Range{5, 6}),
+            std::make_tuple(Range{2, 10}, 'b', Range{5, 7}),
+            std::make_tuple(Range{3, 5}, 'b', Range{6, 6}),
+            std::make_tuple(Range{3, 10}, 'b', Range{6, 7}),
+            std::make_tuple(Range{9, 12}, 'b', Range{6, 9})
+        )
     )
 );

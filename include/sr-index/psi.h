@@ -52,8 +52,6 @@ template<typename TEncVector = enc_vector<sdsl::coder::elias_delta<>, 64>,
     typename TChar = uint8_t>
 class PsiCoreRLE {
  public:
-  using Char = TChar;
-
   PsiCoreRLE() = default;
 
   //! Constructor
@@ -71,7 +69,8 @@ class PsiCoreRLE {
     partial_psi_.reserve(sigma);
 
     for (std::size_t i = 0; i < sigma; ++i) {
-      const auto sa_sp = t_cumulative_c[i], sa_ep = t_cumulative_c[i + 1];
+      const auto sa_sp = t_cumulative_c[i],
+          sa_ep = t_cumulative_c[i + 1];
       auto n_c = sa_ep - sa_sp; // Number of symbol i
 
       // Compute first symbol in BWT (BWT[0])
@@ -116,7 +115,7 @@ class PsiCoreRLE {
   auto select(TChar t_c, std::size_t t_rnk) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    auto[run, _] = selectCore(t_rnk, values, ranks);
+    auto [run, _] = selectCore(t_rnk, values, ranks);
 
     return run.end - 1 - (run.rank_end - (t_rnk));
   }
@@ -129,7 +128,7 @@ class PsiCoreRLE {
   void select(TChar t_c, std::size_t t_rnk, TReport t_report) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    auto[run, run_ops] = selectCore(t_rnk, values, ranks);
+    auto [run, run_ops] = selectCore(t_rnk, values, ranks);
 
     auto run_rank = run_ops.runSoftRank();
     t_report(run.end - 1 - (run.rank_end - (t_rnk)), run.start, run.end, run_rank);
@@ -205,7 +204,7 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_value) const {
-    auto[_, run_start_value] = rankSoftRun(t_c, t_value);
+    auto [_, run_start_value] = rankSoftRun(t_c, t_value);
 
     return run_start_value != n_;
   }
@@ -214,7 +213,7 @@ class PsiCoreRLE {
   //! \param t_value Psi value (or SA position) query
   //! \return Rank for run-starts before the given position, i.e., number of runs with start psi value less than t_value
   auto rankRun(std::size_t t_value) const {
-    auto[n_runs, run_start] = rankSoftRun(t_value);
+    auto [n_runs, run_start] = rankSoftRun(t_value);
     if (t_value != n_ && run_start == t_value) --n_runs;
 
     return n_runs;
@@ -227,7 +226,7 @@ class PsiCoreRLE {
     std::size_t n_runs = 0;
     std::size_t run_start = n_;
     for (int i = 0; i < partial_psi_.size(); ++i) {
-      auto[n_runs_c, run_start_c] = rankSoftRun(i, t_value);
+      auto [n_runs_c, run_start_c] = rankSoftRun(i, t_value);
       if (run_start_c != n_) run_start = run_start_c;
 
       n_runs += n_runs_c;
@@ -294,7 +293,7 @@ class PsiCoreRLE {
   //! \return Runs (BWT) in the queried range
   template<typename TCreateRun>
   auto splitInSortedRuns(std::size_t t_first, std::size_t t_last, TCreateRun t_create_run) const {
-    std::vector<decltype(t_create_run(t_first, t_last, (Char)0u, 0u, true))> runs;
+    std::vector<decltype(t_create_run(t_first, t_last, TChar(0u), 0u, true))> runs;
 
     auto report = [&runs, &t_create_run](auto tt_first, auto tt_last, auto tt_c, auto tt_n_run, auto tt_is_first) {
       runs.emplace_back(t_create_run(tt_first, tt_last, tt_c, tt_n_run, tt_is_first));
@@ -391,7 +390,7 @@ class PsiCoreRLE {
   void computeForwardRuns(TChar t_c, std::size_t t_first_rank, std::size_t t_last_rank, TReportRun t_report_run) const {
     const auto &[values, ranks] = partial_psi_[t_c];
 
-    auto[run, run_ops] = selectCore(t_first_rank, values, ranks);
+    auto [run, run_ops] = selectCore(t_first_rank, values, ranks);
 
     auto first = run.end - 1 - (run.rank_end - (t_first_rank)), last = run.end;
 

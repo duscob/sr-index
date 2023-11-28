@@ -15,6 +15,8 @@
 #include <sdsl/config.hpp>
 #include <sdsl/io.hpp>
 
+#include "sr-index/config.h"
+
 using BWT = sdsl::int_vector<8>;
 
 class BaseAlphabetTests : public testing::Test {
@@ -41,8 +43,31 @@ class BaseAlphabetTests : public testing::Test {
   sdsl::byte_alphabet alphabet_;
 };
 
-using Psi = sdsl::int_vector<>;
+using IntVector = sdsl::int_vector<>;
+using Psi = IntVector;
 using Range = std::pair<std::size_t, std::size_t>;
 using Char = unsigned char;
+using String = std::string;
+
+class BaseConfigTests : public testing::Test {
+ protected:
+
+  void Init(const String &t_data, sri::SAAlgo t_sa_algo) {
+    config_ = sri::Config("",  std::filesystem::current_path(), t_sa_algo);
+
+    auto filename = sdsl::cache_file_name(key_tmp_input_, config_);
+    sdsl::store_to_file(t_data, filename);
+    register_cache_file(key_tmp_input_, config_);
+
+    config_.data_path = filename;
+  }
+
+  void TearDown() override {
+    sdsl::util::delete_all_files(config_.file_map);
+  }
+
+  sri::Config config_;
+  std::string key_tmp_input_ = "data";
+};
 
 #endif //SRI_TEST_PSI_BASE_TESTS_H_

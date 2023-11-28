@@ -22,7 +22,8 @@ const std::string KEY_ALPHABET = "alphabet";
 
 const std::string KEY_BWT_RLE = "bwt_rle";
 
-const std::string KEY_BWT_RUN_FIRST = "bwt_run_first";
+//! BWT run heads
+const std::string KEY_BWT_RUN_FIRST = "bwt_run_first"; // Positions in the BWT array
 const std::string KEY_BWT_RUN_FIRST_IDX = KEY_BWT_RUN_FIRST + "_idx";
 const std::string KEY_BWT_RUN_FIRST_TEXT_POS = KEY_BWT_RUN_FIRST + "_text_pos";
 const std::string KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST = KEY_BWT_RUN_FIRST_TEXT_POS + "_by_last";
@@ -31,7 +32,8 @@ const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX = KEY_BWT_RUN_FI
 const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK = KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_valid_mark";
 const std::string KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA = KEY_BWT_RUN_FIRST_TEXT_POS + "_sorted_valid_area";
 
-const std::string KEY_BWT_RUN_LAST = "bwt_run_last";
+//! BWT run tails
+const std::string KEY_BWT_RUN_LAST = "bwt_run_last"; // Positions in the BWT array
 const std::string KEY_BWT_RUN_LAST_IDX = KEY_BWT_RUN_LAST + "_idx";
 const std::string KEY_BWT_RUN_LAST_TEXT_POS = KEY_BWT_RUN_LAST + "_text_pos";
 const std::string KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST = KEY_BWT_RUN_LAST_TEXT_POS + "_by_first";
@@ -41,6 +43,14 @@ const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_MARK = KEY_BWT_RUN_LAST
 const std::string KEY_BWT_RUN_LAST_TEXT_POS_SORTED_VALID_AREA = KEY_BWT_RUN_LAST_TEXT_POS + "_sorted_valid_area";
 
 const std::string KEY_BWT_RUN_CUMULATIVE_COUNT = "bwt_run_cumulative_count";
+
+//! Psi run heads
+const std::string KEY_PSI_RUN_FIRST = "psi_run_first"; // Positions in the Psi array
+const std::string KEY_PSI_RUN_FIRST_TEXT_POS = KEY_PSI_RUN_FIRST + "_text_pos";
+
+//! Psi run tails
+const std::string KEY_PSI_RUN_LAST = "psi_run_last"; // Positions in the Psi array
+const std::string KEY_PSI_RUN_LAST_TEXT_POS = KEY_PSI_RUN_LAST + "_text_pos";
 }
 
 template<uint8_t t_width>

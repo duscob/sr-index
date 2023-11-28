@@ -71,6 +71,50 @@ void constructPsi(sdsl::cache_config &t_config) {
   }
 }
 
+template<uint8_t t_width>
+void constructPsiRuns(Config &t_config) {
+  static_assert(t_width == 0 || t_width == 8,
+                "constructPsiRuns: width must be `0` for integer alphabet and `8` for byte alphabet");
+
+  using namespace conf;
+
+  typename alphabet_trait<t_width>::type alphabet;
+  sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
+
+  RLEString<> bwt_rle;
+  sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
+
+  for (const auto &part : {conf::kHead, conf::kTail}) {
+    const auto &key_bwt_run_pos = t_config.keys[kBWT][part][kPos];
+    const auto &key_bwt_run_text_pos = t_config.keys[kBWT][part][kTextPos];
+    const auto &key_psi_run_text_pos = t_config.keys[kPsi][part][kTextPos];
+
+    std::vector<std::vector<std::size_t>> psi_run_text_pos_partial(alphabet.sigma);
+
+    auto bwt_run_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run_pos, t_config));
+    auto bwt_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_bwt_run_text_pos, t_config));
+
+    auto r = bwt_run_pos.size();
+    for (std::size_t i = 0; i < r; ++i) {
+      psi_run_text_pos_partial[bwt_rle[bwt_run_pos[i]]].emplace_back(bwt_run_text_pos[i]);
+    }
+
+    auto psi_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_psi_run_text_pos, t_config),
+                                                      std::ios::out,
+                                                      1 << 20,
+                                                      bwt_run_text_pos.width());
+
+    for (const auto &symbol_text_pos : psi_run_text_pos_partial) {
+      for (const auto &text_pos : symbol_text_pos) {
+        psi_run_text_pos.push_back(text_pos);
+      }
+    }
+
+    psi_run_text_pos.close();
+    sdsl::register_cache_file(key_psi_run_text_pos, t_config);
+  }
+}
+
 template<typename TRAContainer>
 auto sortIndices(const TRAContainer &t_values) {
   auto n = t_values.size();
@@ -100,9 +144,10 @@ auto constructMarkToSampleLinks(const TRAContainer &t_marks_text_pos, const TGet
 }
 
 template<uint8_t t_width>
-void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
+void constructMarkToSampleLinksForPhiForwardWithBWTRuns(sdsl::cache_config &t_config) {
   static_assert(t_width == 0 or t_width == 8,
-                "constructMarkToSampleLinksForPhiForward: width must be `0` for integer alphabet and `8` for byte alphabet");
+                "constructMarkToSampleLinksForPhiForwardWithBWTRuns: width must be `0` for integer alphabet and `8` "
+                "for byte alphabet");
 
   // Marks
   sdsl::int_vector<> bwt_run_last_text_pos; // BWT run tails positions in text
@@ -152,6 +197,22 @@ void constructMarkToSampleLinksForPhiForward(sdsl::cache_config &t_config) {
 
   sdsl::store_to_cache(sorted_marks_idx, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_IDX, t_config);
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
+}
+
+void constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
+  using namespace sri::conf;
+
+  sdsl::int_vector<> marks; // Text position of the Psi run tails
+  sdsl::load_from_cache(marks, t_config.keys[kPsi][kTail][kTextPos], t_config);
+
+  auto get_link = [r = marks.size()](const auto &tt_mark_idx) {
+    return (tt_mark_idx + 1) % r;
+  };
+
+  auto [sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
+
+  sdsl::store_to_cache(sorted_marks_idx, t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config);
+  sdsl::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config);
 }
 
 void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
