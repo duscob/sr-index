@@ -26,7 +26,7 @@ class ConstructRCSATests : public BaseConfigTests,
 
 TEST_P(ConstructRCSATests, construct) {
   using namespace sri::conf;
-  sri::constructRCSA<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
+  sri::constructRCSAWithPsiRuns<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
 
   auto compare = [this](const auto &tt_key, const auto &tt_e_values) {
     sdsl::int_vector<> values;
