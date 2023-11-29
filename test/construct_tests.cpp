@@ -48,7 +48,7 @@ TEST_P(ConstructRCSATests, construct) {
     EXPECT_THAT(values, testing::ElementsAreArray(tt_e_values)) << "Key = " << tt_key;
   };
 
-  compare(sdsl::conf::KEY_PSI, std::get<1>(GetParam()));
+  compare(config_.keys[kPsi][kBase], std::get<1>(GetParam()));
   compare(config_.keys[kPsi][kHead][kTextPos], std::get<2>(GetParam()));
   compare(config_.keys[kPsi][kTail][kTextPos], std::get<3>(GetParam()));
   compare(config_.keys[kPsi][kTail][kTextPosAsc][kIdx], std::get<4>(GetParam()));

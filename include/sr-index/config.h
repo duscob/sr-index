@@ -21,11 +21,13 @@ enum SAAlgo {
   BIG_BWT
 };
 
+using JSON = nlohmann::json;
+
 namespace conf {
+constexpr std::string_view kAlphabet = "alphabet";
 constexpr std::string_view kBWT = "bwt";
 constexpr std::string_view kPsi = "psi";
 constexpr std::string_view kBase = "base";
-constexpr std::string_view kRuns = "runs";
 constexpr std::string_view kHead = "head";
 constexpr std::string_view kTail = "tail";
 constexpr std::string_view kPos = "pos";
@@ -35,11 +37,13 @@ constexpr std::string_view kIdx = "idx";
 constexpr std::string_view kLink = "link";
 }
 
+template<uint8_t t_width>
 auto createDefaultKeys() {
   using namespace conf;
-  nlohmann::json keys = {
+  JSON keys = {
+      {kAlphabet, "alphabet"},
       {kBWT, {
-          {kBase, "bwt"},
+          {kBase, sdsl::key_bwt_trait<t_width>::KEY_BWT},
           {kHead, {
               {kPos, "bwt_run_first"},
               {kTextPos, "bwt_run_first_text_pos"},
@@ -50,7 +54,7 @@ auto createDefaultKeys() {
           }},
       },},
       {kPsi, {
-          {kBase, "psi"},
+          {kBase, sdsl::conf::KEY_PSI},
           {kHead, {
               {kPos, "psi_run_first"},
               {kTextPos, "psi_run_first_text_pos"},
@@ -72,14 +76,14 @@ auto createDefaultKeys() {
 struct Config : public sdsl::cache_config {
   std::filesystem::path data_path;
   SAAlgo sa_algo = SDSL_LIBDIVSUFSORT;
-  nlohmann::json keys;
+  JSON keys;
 
   Config() = default;
 
   Config(const std::filesystem::path &t_data_path,
          const std::filesystem::path &t_output_dir,
          SAAlgo t_sa_algo,
-         nlohmann::json t_keys = createDefaultKeys())
+         JSON t_keys = createDefaultKeys<8>())
       : data_path(t_data_path),
         sa_algo(t_sa_algo),
         keys(std::move(t_keys)),

@@ -384,7 +384,7 @@ void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_con
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   // Construct Psi
-  if (!cache_file_exists(sdsl::conf::KEY_PSI, t_config)) {
+  if (!cache_file_exists(t_config.keys[kPsi][kBase], t_config)) {
     auto event = sdsl::memory_monitor::event("Psi");
     constructPsi<t_width>(t_config);
   }
@@ -403,7 +403,7 @@ void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_con
 
   std::size_t n;
   {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(t_config.keys[kBWT][kBase], t_config));
     n = bwt_buf.size();
   }
 
