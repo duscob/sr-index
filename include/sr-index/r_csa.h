@@ -380,6 +380,7 @@ void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_con
 
 template<uint8_t t_width, typename TBvMark>
 void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config) {
+  using namespace sri::conf;
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   // Construct Psi
@@ -389,13 +390,13 @@ void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_con
   }
 
   // Construct Psi Runs
-  if (!cache_file_exists(t_config.keys[conf::kPsi][conf::kHead][conf::kTextPos], t_config)) {
+  if (!cache_file_exists(t_config.keys[kPsi][kHead][kTextPos], t_config)) {
     auto event = sdsl::memory_monitor::event("Psi Runs");
     constructPsiRuns<t_width>(t_config);
   }
 
   // Construct Links from Mark to Sample
-  if (!cache_file_exists(t_config.keys[conf::kPsi][conf::kTail][conf::kTextPosAsc][conf::kIdx], t_config)) {
+  if (!cache_file_exists(t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config)) {
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
     constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
   }
@@ -407,9 +408,9 @@ void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_con
   }
 
   // Construct Successor on the text positions of BWT run last letter
-  if (!sdsl::cache_file_exists<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
+  if (!sdsl::cache_file_exists<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config)) {
     auto event = sdsl::memory_monitor::event("Successor");
-    constructBitVectorFromIntVector<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
+    constructBitVectorFromIntVector<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config, n, false);
   }
 }
 
