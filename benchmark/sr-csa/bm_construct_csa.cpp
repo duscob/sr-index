@@ -37,7 +37,7 @@ static void BM_WarmUp(benchmark::State &_state) {
 BENCHMARK(BM_WarmUp);
 
 template <typename TIndex>
-void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path) {
+void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path, bool t_bwt) {
   TIndex index;
 
   for (auto _ : t_state) {
@@ -47,12 +47,12 @@ void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std
   }
 
   {
-    std::ofstream ofs("construction-r-csa.html");
+    std::ofstream ofs(std::string("construction-r-csa-") + (t_bwt ? "bwt" : "psi") + ".html");
     sdsl::memory_monitor::write_memory_log<sdsl::HTML_FORMAT>(ofs);
     ofs.close();
   }
   {
-    std::ofstream ofs("construction-r-csa.json");
+    std::ofstream ofs(std::string("construction-r-csa-") + (t_bwt ? "bwt" : "psi") + ".json");
     sdsl::memory_monitor::write_memory_log<sdsl::JSON_FORMAT>(ofs);
     ofs.close();
   }
@@ -69,11 +69,11 @@ void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std
 }
 
 auto BM_ConstructRCSAWithBWTRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructRCSA<sri::RCSAWithBWTRun<>>(t_state, t_config, t_data_path);
+  BM_ConstructRCSA<sri::RCSAWithBWTRun<>>(t_state, t_config, t_data_path, true);
 };
 
 auto BM_ConstructRCSAWithPsiRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructRCSA<sri::RCSAWithPsiRun<>>(t_state, t_config, t_data_path);
+  BM_ConstructRCSA<sri::RCSAWithPsiRun<>>(t_state, t_config, t_data_path, false);
 };
 
 template<typename TSrIndex>
