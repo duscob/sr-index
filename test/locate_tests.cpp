@@ -96,7 +96,8 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSA<>>>(),
             createSrIndexBuilder<sri::SrCSASlim<>>(),
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSASlim<>>>(),
-            createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>()
+            createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>(),
+            createIndexBuilder<sri::RCSAWithPsiRun<>>()
         ),
         testing::Values(
             std::make_tuple(String{"abcabcababc"},
