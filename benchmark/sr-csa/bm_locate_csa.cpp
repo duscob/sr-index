@@ -45,14 +45,14 @@ int main(int argc, char *argv[]) {
 
   std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
 //      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
-      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+      {"R-CSA-BWT-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+      {"R-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_PSI_RUNS}, false},
       {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
       {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
       {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
       {"SR-CSA-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM}, true},
       {"SR-CSA-Slim-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM}, true},
       {"SR-CSA-Slim-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA}, true},
-      {"R-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_PSI_RUNS}, false},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};
