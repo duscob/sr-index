@@ -36,8 +36,9 @@ static void BM_WarmUp(benchmark::State &_state) {
 }
 BENCHMARK(BM_WarmUp);
 
-auto BM_ConstructRCSA = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  sri::RCSA<> index;
+template <typename TIndex>
+void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path, bool t_bwt) {
+  TIndex index;
 
   for (auto _ : t_state) {
     sdsl::memory_monitor::start();
@@ -46,12 +47,12 @@ auto BM_ConstructRCSA = [](benchmark::State &t_state, sri::Config t_config, cons
   }
 
   {
-    std::ofstream ofs("construction-r-csa.html");
+    std::ofstream ofs(std::string("construction-r-csa-") + (t_bwt ? "bwt" : "psi") + ".html");
     sdsl::memory_monitor::write_memory_log<sdsl::HTML_FORMAT>(ofs);
     ofs.close();
   }
   {
-    std::ofstream ofs("construction-r-csa.json");
+    std::ofstream ofs(std::string("construction-r-csa-") + (t_bwt ? "bwt" : "psi") + ".json");
     sdsl::memory_monitor::write_memory_log<sdsl::JSON_FORMAT>(ofs);
     ofs.close();
   }
@@ -65,6 +66,14 @@ auto BM_ConstructRCSA = [](benchmark::State &t_state, sri::Config t_config, cons
     sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(sri::conf::KEY_BWT_RUN_FIRST, t_config));
     t_state.counters["r"] = buf.size();
   }
+}
+
+auto BM_ConstructRCSAWithBWTRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+  BM_ConstructRCSA<sri::RCSAWithBWTRun<>>(t_state, t_config, t_data_path, true);
+};
+
+auto BM_ConstructRCSAWithPsiRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+  BM_ConstructRCSA<sri::RCSAWithPsiRun<>>(t_state, t_config, t_data_path, false);
 };
 
 template<typename TSrIndex>
@@ -97,7 +106,7 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sri::Config t_config, const 
     sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(prefix + sri::conf::KEY_BWT_RUN_FIRST_IDX, t_config));
     t_state.counters["r'"] = buf.size();
   }
-};
+}
 
 auto BM_ConstructSrCSA = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
@@ -129,7 +138,9 @@ int main(int argc, char **argv) {
 
   sri::Config config(data_path, std::filesystem::current_path(), sri::toSAAlgo(FLAGS_sa_algo));
 
-  benchmark::RegisterBenchmark("R-CSA", BM_ConstructRCSA, config, data_path);
+  benchmark::RegisterBenchmark("R-CSA-BWT-Runs", BM_ConstructRCSAWithBWTRun, config, data_path);
+
+  benchmark::RegisterBenchmark("R-CSA-Psi-Runs", BM_ConstructRCSAWithPsiRun, config, data_path);
 
   benchmark::RegisterBenchmark("SR-CSA", BM_ConstructSrCSA, config, data_path)
       ->RangeMultiplier(2)

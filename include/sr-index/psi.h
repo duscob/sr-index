@@ -271,6 +271,18 @@ class PsiCoreRLE {
     return {n_runs, t_value < run_end ? run_start : n_};
   }
 
+  //! Compute the number of runs for symbols smaller than @p t_c
+  //! \param t_c Symbol
+  //! \return Number of runs for symbol c, with 0 \<= c \< @p t_c
+  auto rankCharRun(TChar t_c) const {
+    std::size_t n_runs = 0;
+    for (int i = 0; i < t_c; ++i) {
+      n_runs += partial_psi_[i].first.size() / 2;
+    }
+
+    return n_runs;
+  }
+
   //! Split in runs (BWT runs) on the given range [t_first..t_last)
   //! \param t_first First position in queried range
   //! \param t_last Last position in queried range (not included)

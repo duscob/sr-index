@@ -90,13 +90,14 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrIndex<>>(),
             createSrIndexBuilder<sri::SrIndexValidMark<>>(),
             createSrIndexBuilder<sri::SrIndexValidArea<>>(),
-            createIndexBuilder<sri::RCSA<>>(),
+            createIndexBuilder<sri::RCSAWithBWTRun<>>(),
             createSrIndexBuilder<sri::SrCSA<>>(),
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSA<>>>(),
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSA<>>>(),
             createSrIndexBuilder<sri::SrCSASlim<>>(),
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSASlim<>>>(),
-            createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>()
+            createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>(),
+            createIndexBuilder<sri::RCSAWithPsiRun<>>()
         ),
         testing::Values(
             std::make_tuple(String{"abcabcababc"},
@@ -130,7 +131,7 @@ class LocateTypedTests : public BaseConfigTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSA<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSAWithBWTRun<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {

@@ -45,7 +45,8 @@ int main(int argc, char *argv[]) {
 
   std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
 //      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
-      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+      {"R-CSA-BWT-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+      {"R-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_PSI_RUNS}, false},
       {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
       {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
       {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
