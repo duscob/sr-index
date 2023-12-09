@@ -47,6 +47,12 @@ auto KeySortedByAlphabet(const std::string &t_key) {
 }
 
 template<uint8_t t_width>
+auto sizeIntVector(sdsl::cache_config &t_config, const std::string &t_key) {
+    sdsl::int_vector_buffer<t_width> buffer(sdsl::cache_file_name(t_key, t_config));
+    return buffer.size();
+}
+
+template<uint8_t t_width>
 void constructPsi(sdsl::cache_config &t_config) {
   static_assert(t_width == 0 or t_width == 8,
                 "constructPsi: width must be `0` for integer alphabet and `8` for byte alphabet");
