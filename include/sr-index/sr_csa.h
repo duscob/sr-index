@@ -883,7 +883,8 @@ void construct(SrCSAValidArea<TSrCSA, TBvValidMark> &t_index,
   t_index.load(t_config);
 }
 
-void constructSubsamplingBackwardSamplesForPhiForward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+inline void constructSubsamplingBackwardSamplesForPhiForwardWithBWTRuns(std::size_t t_subsample_rate,
+                                                                        sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Samples
@@ -936,7 +937,8 @@ template<uint8_t t_width>
 auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::cache_config &t_config);
 
 template<uint8_t t_width>
-void constructSubsamplingBackwardMarksForPhiForward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSubsamplingBackwardMarksForPhiForwardWithBWTRuns(std::size_t t_subsample_rate,
+                                                               sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks
@@ -1034,11 +1036,7 @@ auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::ca
 
 template<uint8_t t_width, typename TBvMark>
 void constructSrCSACommonsWithBWTRuns(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
-  std::size_t n;
-  {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-    n = bwt_buf.size();
-  }
+  auto n = sizeIntVector<t_width>(t_config, sdsl::key_bwt_trait<t_width>::KEY_BWT);
 
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
@@ -1051,13 +1049,13 @@ void constructSrCSACommonsWithBWTRuns(std::size_t t_subsample_rate, sdsl::cache_
   // Construct subsampling backward of samples (text positions of BWT-run first letter)
   if (!sdsl::cache_file_exists(prefix + conf::KEY_BWT_RUN_FIRST_IDX, t_config)) {
     auto event = sdsl::memory_monitor::event("Subsampling");
-    constructSubsamplingBackwardSamplesForPhiForward(t_subsample_rate, t_config);
+    constructSubsamplingBackwardSamplesForPhiForwardWithBWTRuns(t_subsample_rate, t_config);
   }
 
   // Construct subsampling backward of marks (text positions of BWT-run last letter)
   if (!sdsl::cache_file_exists(prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config)) {
     auto event = sdsl::memory_monitor::event("Subsampling");
-    constructSubsamplingBackwardMarksForPhiForward<t_width>(t_subsample_rate, t_config);
+    constructSubsamplingBackwardMarksForPhiForwardWithBWTRuns<t_width>(t_subsample_rate, t_config);
   }
 
   // Construct successor on the text positions of sub-sampled BWT-run last letter
