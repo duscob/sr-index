@@ -896,14 +896,8 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithBWTRuns(std::siz
   sdsl::int_vector<> sorted_samples_idx;
   sdsl::load_from_cache(sorted_samples_idx, conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX, t_config);
 
-  std::array<std::size_t, 2> req_samples_idx{};
-  {
-    // We must sub-sample the samples associated to the first and last marks in the text
-    sdsl::int_vector_buffer<> mark_to_sample(
-        sdsl::cache_file_name(conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config));
-    req_samples_idx[0] = mark_to_sample[0];
-    req_samples_idx[1] = mark_to_sample[mark_to_sample.size() - 1];
-  }
+  // We must sub-sample the samples associated to the first and last marks in the text
+  const auto req_samples_idx = getExtremes(t_config, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX);
 
   // Compute sub-sampled indices for sampled values
   sdsl::int_vector<> subsamples_idx;
