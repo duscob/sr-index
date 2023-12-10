@@ -42,14 +42,20 @@ void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_conf
   }
 }
 
-auto KeySortedByAlphabet(const std::string &t_key) {
+auto KeySortedByAlphabet(const std::string& t_key) {
   return t_key + "_sorted_alphabet";
 }
 
 template<uint8_t t_width>
-auto sizeIntVector(sdsl::cache_config &t_config, const std::string &t_key) {
-    sdsl::int_vector_buffer<t_width> buffer(sdsl::cache_file_name(t_key, t_config));
-    return buffer.size();
+auto sizeIntVector(sdsl::cache_config& t_config, const std::string& t_key) {
+  sdsl::int_vector_buffer<t_width> buffer(sdsl::cache_file_name(t_key, t_config));
+  return buffer.size();
+}
+
+inline auto getExtremes(const sdsl::cache_config& t_config, const std::string& t_key) {
+  sdsl::int_vector_buffer<> buffer(cache_file_name(t_key, t_config));
+
+  return std::array<std::size_t, 2>{buffer[0], buffer[buffer.size() - 1]};
 }
 
 template<uint8_t t_width>
