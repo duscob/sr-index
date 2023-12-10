@@ -64,6 +64,13 @@ auto createDefaultKeys() {
           kHead, {
             {kPos, "psi_run_first"},
             {kTextPos, "psi_run_first_text_pos"},
+            {kIdx, "psi_run_first_idx"},
+            {
+              kTextPosAsc, {
+                // {kBase, "psi_run_first_text_pos_asc"},
+                {kIdx, "psi_run_first_text_pos_asc_idx"},
+              }
+            }
           }
         },
         {
