@@ -6,12 +6,15 @@
 
 #include <sdsl/io.hpp>
 
-#include "sr-index/r_csa.h"
 #include "sr-index/config.h"
+#include "sr-index/r_csa.h"
+#include "sr-index/sr_csa_psi.h"
 
 #include "base_tests.h"
 
 using PsiRunHead = IntVector;
+using PsiRunHeadAsc = IntVector;
+using PsiRunHeadInd = IntVector;
 using PsiRunTail = IntVector;
 using PsiRunTailAsc = IntVector;
 using PsiRunTailAscLink = IntVector;
@@ -87,6 +90,51 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunTailAsc{1, 3, 5, 4, 2, 0},
       PsiRunTailAscLink{2, 4, 0, 5, 3, 1},
       Marks{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}
+    )
+  )
+);
+
+class ConstructSRCSATests : public BaseConstructTests,
+                            public testing::WithParamInterface<std::tuple<
+                              String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead>> {
+protected:
+  void SetUp() override {
+    const auto& data = std::get<0>(GetParam());
+    Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
+  }
+};
+
+TEST_P(ConstructSRCSATests, construct) {
+  using namespace sri::conf;
+
+  sri::constructRCSAWithPsiRuns<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
+  const auto& subsample_rate = std::get<1>(GetParam());
+  sri::constructSrCSACommonsWithPsiRuns<8, sdsl::sd_vector<>>(subsample_rate, config_);
+
+  const auto prefix = std::to_string(subsample_rate) + "_";
+
+  compare(config_.keys[kPsi][kHead][kTextPosAsc][kIdx], std::get<2>(GetParam()));
+  compare(prefix + to_string(config_.keys[kPsi][kHead][kIdx]), std::get<3>(GetParam()));
+  compare(prefix + to_string(config_.keys[kPsi][kHead][kTextPos]), std::get<4>(GetParam()));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+  Basic,
+  ConstructSRCSATests,
+  testing::Values(
+    std::make_tuple(
+      String{"alabaralaalabarda"},
+      4,
+      PsiRunHeadAsc{3, 5, 8, 4, 7, 2, 9, 6, 1, 0},
+      PsiRunHeadInd{0, 2, 3, 4, 9},
+      PsiRunHead{17, 8, 2, 6, 14}
+    ),
+    std::make_tuple(
+      String{"abcabcababc"},
+      4,
+      PsiRunHeadAsc{5, 1, 2, 3, 4, 0},
+      PsiRunHeadInd{0, 1, 4, 5},
+      PsiRunHead{11, 6, 10, 2}
     )
   )
 );
