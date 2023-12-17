@@ -102,8 +102,9 @@ struct Config : public sdsl::cache_config {
   Config(const std::filesystem::path& t_data_path,
          const std::filesystem::path& t_output_dir,
          SAAlgo t_sa_algo,
+         bool t_delete_files = false,
          JSON t_keys = createDefaultKeys<8>())
-    : cache_config(false, t_output_dir, t_data_path.filename()),
+    : cache_config(t_delete_files, t_output_dir, t_data_path.filename()),
       data_path(t_data_path),
       sa_algo(t_sa_algo),
       keys(std::move(t_keys)) {
