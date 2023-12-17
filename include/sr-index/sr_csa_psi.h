@@ -62,10 +62,8 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
   sdsl::int_vector<> sorted_samples_idx;
   sdsl::load_from_cache(sorted_samples_idx, keys[kPsi][kHead][kTextPosAsc][kIdx], t_config);
 
-  // TODO Check if it is required to sampled the extremes
   // We must sub-sample the samples associated to the first and last marks in the text
-  // const auto req_samples_idx = getExtremes(t_config, keys[kPsi][kTail][kTextPosAsc][kLink]);
-  constexpr std::array<std::size_t, 2> req_samples_idx{};
+  const auto req_samples_idx = getExtremes(t_config, keys[kPsi][kTail][kTextPosAsc][kLink]);
 
   // Compute sub-sampled indices for sampled values (sorted by BWT positions)
   const auto subsamples_idx = computeSortedSampling(t_subsample_rate,

@@ -131,21 +131,21 @@ INSTANTIATE_TEST_SUITE_P(
       String{"alabaralaalabarda"},
       4,
       PsiRunHeadAsc{3, 5, 8, 4, 7, 2, 9, 6, 1, 0},
-      PsiRunHeadInd{0, 2, 3, 4, 9},
-      PsiRunHead{17, 8, 2, 6, 14},
-      PsiRunTail{14, 16, 8, 11, 5},
-      PsiRunTailAscLink{4, 2, 3, 0, 1},
-      Marks{0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0}
+      PsiRunHeadInd{0, 1, 2, 3, 4, 9},
+      PsiRunHead{17, 16, 8, 2, 6, 14},
+      PsiRunTail{14, 17, 16, 8, 11, 5},
+      PsiRunTailAscLink{5, 3, 4, 0, 2, 1},
+      Marks{0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1}
     ),
     std::make_tuple(
       String{"abcabcababc"},
       4,
       PsiRunHeadAsc{5, 1, 2, 3, 4, 0},
-      PsiRunHeadInd{0, 1, 4, 5},
-      PsiRunHead{11, 6, 10, 2},
-      PsiRunTail{2, 11, 1, 5},
+      PsiRunHeadInd{0, 1, 2, 5},
+      PsiRunHead{11, 6, 7, 2},
+      PsiRunTail{2, 11, 0, 5},
       PsiRunTailAscLink{2, 0, 3, 1},
-      Marks{0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}
+      Marks{1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}
     )
   )
 );
