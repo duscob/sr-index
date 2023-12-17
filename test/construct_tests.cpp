@@ -97,7 +97,7 @@ INSTANTIATE_TEST_SUITE_P(
 class ConstructSRCSATests : public BaseConstructTests,
                             public testing::WithParamInterface<std::tuple<
                               String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead, PsiRunTail,
-                              PsiRunTailAscLink
+                              PsiRunTailAscLink, Marks
                             >> {
 protected:
   void SetUp() override {
@@ -120,6 +120,7 @@ TEST_P(ConstructSRCSATests, construct) {
   compare(prefix + to_string(config_.keys[kPsi][kHead][kTextPos]), std::get<4>(GetParam()));
   compare(prefix + to_string(config_.keys[kPsi][kTail][kTextPos]), std::get<5>(GetParam()));
   compare(prefix + to_string(config_.keys[kPsi][kTail][kTextPosAsc][kLink]), std::get<6>(GetParam()));
+  compare(prefix + to_string(config_.keys[kPsi][kTail][kTextPos]), std::get<7>(GetParam()));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -133,7 +134,8 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunHeadInd{0, 2, 3, 4, 9},
       PsiRunHead{17, 8, 2, 6, 14},
       PsiRunTail{14, 16, 8, 11, 5},
-      PsiRunTailAscLink{4, 2, 3, 0, 1}
+      PsiRunTailAscLink{4, 2, 3, 0, 1},
+      Marks{0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0}
     ),
     std::make_tuple(
       String{"abcabcababc"},
@@ -142,7 +144,8 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunHeadInd{0, 1, 4, 5},
       PsiRunHead{11, 6, 10, 2},
       PsiRunTail{2, 11, 1, 5},
-      PsiRunTailAscLink{2, 0, 3, 1}
+      PsiRunTailAscLink{2, 0, 3, 1},
+      Marks{0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}
     )
   )
 );

@@ -41,12 +41,12 @@ void constructSrCSACommonsWithPsiRuns(const std::size_t t_subsample_rate, Config
     auto event = sdsl::memory_monitor::event("Subsampling");
     constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(t_subsample_rate, t_config);
   }
-  //
-  // // Construct successor on the text positions of sub-sampled BWT-run last letter
-  // if (!sdsl::cache_file_exists<TBvMark>(prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, t_config)) {
-  //   auto event = sdsl::memory_monitor::event("Successor");
-  //   constructBitVectorFromIntVector<TBvMark>(prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST, t_config, n, false);
-  // }
+
+  // Construct successor on the text positions of sub-sampled Psi-run last letter
+  if (!sdsl::cache_file_exists<TBvMark>(prefix + to_string(keys[kPsi][kTail][kTextPos]), t_config)) {
+    auto event = sdsl::memory_monitor::event("Successor");
+    constructBitVectorFromIntVector<TBvMark>(prefix + to_string(keys[kPsi][kTail][kTextPos]), t_config, n, false);
+  }
 }
 
 inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate,
