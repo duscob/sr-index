@@ -37,7 +37,7 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
 
   RCSAWithBWTRun() = default;
 
-  void load(sdsl::cache_config t_config) override {
+  void load(Config t_config) override {
     TSource source(std::ref(t_config));
     loadInner(source);
   }
@@ -395,12 +395,6 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   virtual void load(Config t_config) {
     TSource source(std::ref(t_config));
     loadInner(source, t_config.keys);
-  }
-
-  // FIXME Remove this function (Use previous)
-  void load(sdsl::cache_config t_config) override {
-    TSource source(std::ref(t_config));
-    loadInner(source, createDefaultKeys<TAlphabet::int_width>());
   }
 
   void load(std::istream &in) override {

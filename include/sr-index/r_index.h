@@ -35,7 +35,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
   RIndex() = default;
 
-  void load(sdsl::cache_config t_config) override {
+  void load(Config t_config) override {
     TSource source(std::ref(t_config));
     loadInner(source);
   }

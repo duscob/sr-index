@@ -33,7 +33,7 @@ class SrCSABase : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, T
 
   std::size_t SubsampleRate() const { return subsample_rate_; }
 
-  void load(sdsl::cache_config t_config) override {
+  void load(Config t_config) override {
     TSource source(std::ref(t_config));
     this->loadInner(source);
   }
