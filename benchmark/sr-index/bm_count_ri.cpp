@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
   auto patterns = ReadPatterns(FLAGS_patterns);
 
   // Indexes
-  sdsl::cache_config config(true, FLAGS_data_dir, FLAGS_data_name);
+  const sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
 
   Factory<> factory(config);
 

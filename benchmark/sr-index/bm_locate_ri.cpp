@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   auto patterns = ReadPatterns(FLAGS_patterns);
 
   // Indexes
-  sdsl::cache_config config(true, FLAGS_data_dir, FLAGS_data_name);
+  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
   auto factory = std::make_shared<Factory<>>(config);
 
   std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
