@@ -27,7 +27,7 @@ DEFINE_double(min_time, 0, "Minimum time (seconds) for the locate query micro be
 
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   gflags::AllowCommandLineReparsing();
   gflags::ParseCommandLineFlags(&argc, &argv, false);
 
@@ -44,15 +44,15 @@ int main(int argc, char *argv[]) {
   auto factory = std::make_shared<Factory<>>(config);
 
   std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
-//      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
-      {"R-CSA-BWT-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
-      {"R-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_PSI_RUNS}, false},
-      {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
-      {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
-      {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
-      {"SR-CSA-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM}, true},
-      {"SR-CSA-Slim-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM}, true},
-      {"SR-CSA-Slim-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA}, true},
+    //      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
+    {"R-CSA-BWT-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+    {"R-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_PSI_RUNS}, false},
+    {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
+    {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
+    {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
+    {"SR-CSA-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM}, true},
+    {"SR-CSA-Slim-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM}, true},
+    {"SR-CSA-Slim-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA}, true},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};
