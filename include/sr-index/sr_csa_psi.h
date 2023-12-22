@@ -20,7 +20,8 @@ template<uint8_t t_width, typename TBvMark>
 void constructSrCSACommonsWithPsiRuns(const std::size_t t_subsample_rate, Config& t_config) {
   using namespace conf;
   const auto& keys = t_config.keys;
-  auto n = sizeIntVector<t_width>(t_config, t_config.keys[kBWT][kBase]);
+
+  auto n = sizeIntVector<t_width>(t_config, keys[kBWT][kBase]);
 
   const auto prefix = std::to_string(t_subsample_rate) + "_";
 
@@ -56,7 +57,7 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
   const auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Samples
-  sdsl::int_vector<> samples; // BWT-run starts positions in text
+  sdsl::int_vector<> samples; // Psi-run starts positions in text
   sdsl::load_from_cache(samples, keys[kPsi][kHead][kTextPos], t_config);
 
   sdsl::int_vector<> sorted_samples_idx;
@@ -65,7 +66,7 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
   // We must sub-sample the samples associated to the first and last marks in the text
   const auto req_samples_idx = getExtremes(t_config, keys[kPsi][kTail][kTextPosAsc][kLink]);
 
-  // Compute sub-sampled indices for sampled values (sorted by BWT positions)
+  // Compute sub-sampled indices for sampled values (sorted by Psi positions)
   const auto subsamples_idx = computeSortedSampling(t_subsample_rate,
                                                     // std::reverse_iterator(sorted_samples_idx.end()),
                                                     sorted_samples_idx.begin(),
