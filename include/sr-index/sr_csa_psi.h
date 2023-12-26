@@ -83,11 +83,11 @@ protected:
 
   void constructIndex(TSource& t_source) override {
     constructIndex(t_source,
-                   [this](auto& t_source) {
-                     return this->constructPhiForRange(t_source,
-                                                       constructGetSampleForRun(t_source),
-                                                       constructSplitRangeInBWTRuns(t_source),
-                                                       constructSplitRunInBWTRuns(t_source),
+                   [this](auto& tt_source) {
+                     return this->constructPhiForRange(tt_source,
+                                                       constructGetSampleForRun(tt_source),
+                                                       constructSplitRangeInBWTRuns(tt_source),
+                                                       constructSplitRunInBWTRuns(tt_source),
                                                        constructUpdateRun(),
                                                        constructIsRunEmpty());
                    });
