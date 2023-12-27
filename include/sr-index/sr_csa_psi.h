@@ -97,27 +97,31 @@ protected:
   using typename Base::RangeLF;
   template<typename TPhiRange>
   void constructIndex(TSource& t_source, const TPhiRange& t_phi_range) {
-    this->index_.reset(new RIndexBase{
-      this->constructLF(t_source),
-      this->constructComputeDataBackwardSearchStep(
-        [](const Range& tt_range, Char tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
-          const auto& run = tt_next_range.start.run;
-          return DataBackwardSearchStep{
-            tt_step,
-            RunDataExt(run.start, tt_c, run.rank, tt_range.start != run.start)
-          };
-        }),
-      this->constructComputeSAValues(
-        t_phi_range(t_source),
-        this->constructComputeToehold(t_source,
-                                      constructGetSampleForRunData(t_source),
-                                      constructPsiForRunData(t_source))),
-      this->n_,
-      [](const auto& tt_step) { return DataBackwardSearchStep{0, RunDataExt()}; },
-      this->constructGetSymbol(t_source),
-      [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
-      this->constructIsRangeEmpty()
-    });
+    this->index_.reset(
+      new RIndexBase{
+        this->constructLF(t_source),
+        this->constructComputeDataBackwardSearchStep(
+          [](const Range& tt_range, Char tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
+            const auto& run = tt_next_range.start.run;
+            return DataBackwardSearchStep{
+              tt_step,
+              RunDataExt(run.start, tt_c, run.rank, tt_range.start != run.start)
+            };
+          }
+        ),
+        this->constructComputeSAValues(
+          t_phi_range(t_source),
+          this->constructComputeToehold(t_source,
+                                        constructGetSampleForRunData(t_source),
+                                        constructPsiForRunData(t_source))
+        ),
+        this->n_,
+        [](const auto& tt_step) { return DataBackwardSearchStep{0, RunDataExt()}; },
+        this->constructGetSymbol(t_source),
+        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
+        this->constructIsRangeEmpty()
+      }
+    );
   }
 
   using typename Base::RunData;
@@ -146,7 +150,8 @@ protected:
     auto get_sample = [cref_run_cum_c, cref_bv_sample_idx, bv_sample_idx_rank, cref_samples](
       auto tt_char,
       auto tt_partial_rank,
-      bool tt_is_run_start) -> std::optional<Value> {
+      bool tt_is_run_start
+    ) -> std::optional<Value> {
       if (!tt_is_run_start) return std::nullopt;
 
       std::size_t cc = 0 < tt_char ? cref_run_cum_c.get()[tt_char - 1] : 0;
