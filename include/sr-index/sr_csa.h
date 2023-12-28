@@ -31,7 +31,9 @@ class SrCSABase : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, T
 
   SrCSABase() = default;
 
-  std::size_t SubsampleRate() const { return subsample_rate_; }
+  virtual ~SrCSABase() = default;
+
+  [[nodiscard]] std::size_t SubsampleRate() const { return subsample_rate_; }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -268,7 +270,7 @@ class SrCSASlim : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkT
     std::size_t partial_rank;
     bool is_run_start;
 
-    RunDataExt(std::size_t t_pos = 0, Char t_c = 0, std::size_t t_partial_rank = 0, bool t_is_run_start = false)
+    explicit RunDataExt(std::size_t t_pos = 0, Char t_c = 0, std::size_t t_partial_rank = 0, bool t_is_run_start = false)
         : RunData(t_pos), c{t_c}, partial_rank{t_partial_rank}, is_run_start{t_is_run_start} {}
   };
 
