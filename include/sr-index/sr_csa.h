@@ -1061,7 +1061,7 @@ void constructSrCSACommonsWithBWTRuns(std::size_t t_subsample_rate, sdsl::cache_
   }
 }
 
-void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
+inline void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   PsiCoreRLE<> psi_rle;
   sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
 
@@ -1098,7 +1098,7 @@ void constructSamplesSortedByAlphabet(sdsl::cache_config &t_config) {
   sdsl::register_cache_file(conf::KEY_BWT_RUN_CUMULATIVE_COUNT, t_config);
 }
 
-void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+inline void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto key_prefix = std::to_string(t_subsample_rate) + "_";
   const std::size_t buffer_size = 1 << 20;
 
@@ -1160,7 +1160,7 @@ void constructSubsamplingBackwardSamplesSortedByAlphabet(std::size_t t_subsample
                             t_config);
 }
 
-void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+inline void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   sdsl::int_vector<> samples_pos; // BWT-run starts positions in SA
@@ -1177,7 +1177,7 @@ void constructSubsamplingBackwardSamplesPosition(std::size_t t_subsample_rate, s
   sdsl::store_to_cache(subsamples_pos, prefix + conf::KEY_BWT_RUN_FIRST, t_config);
 }
 
-void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+inline void constructSubsamplingBackwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   sdsl::int_vector<> marks;
