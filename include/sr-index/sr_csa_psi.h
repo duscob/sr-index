@@ -283,7 +283,7 @@ protected:
 };
 
 template<uint8_t t_width, typename TBvMark>
-void constructSrCSACommonsWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
+void constructBaseSrCSAWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark,
   typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
@@ -299,7 +299,7 @@ void construct(
 
   auto subsample_rate = t_index.SubsampleRate();
 
-  constructSrCSACommonsWithPsiRuns<t_width, TBvMark>(subsample_rate, t_config);
+  constructBaseSrCSAWithPsiRuns<t_width, TBvMark>(subsample_rate, t_config);
 
   auto n = sizeIntVector<t_width>(t_config, keys[kBWT][kBase]);
 
@@ -325,7 +325,7 @@ void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(std::size_t t_s
 void constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
 template<uint8_t t_width, typename TBvMark>
-void constructSrCSACommonsWithPsiRuns(const std::size_t t_subsample_rate, Config& t_config) {
+void constructBaseSrCSAWithPsiRuns(const std::size_t t_subsample_rate, Config& t_config) {
   using namespace conf;
   const auto& keys = t_config.keys;
 

@@ -111,7 +111,7 @@ TEST_P(ConstructSRCSATests, construct) {
 
   sri::constructRCSAWithPsiRuns<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::constructSrCSACommonsWithPsiRuns<8, sdsl::sd_vector<>>(subsample_rate, config_);
+  sri::constructBaseSrCSAWithPsiRuns<8, sdsl::sd_vector<>>(subsample_rate, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
 
