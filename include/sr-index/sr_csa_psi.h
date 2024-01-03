@@ -440,7 +440,8 @@ inline void constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(const std:
 
   const auto prefix = std::to_string(t_subsample_rate) + "_";
 
-  // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks
+  // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks.
+  // Note that the submarks are sorted by its associated submark position, not by its positions in Psi
   sdsl::int_vector<> submarks = computeSubmarksForPhiForwardWithPsiRuns(prefix, t_config);
 
   const auto r_prime = submarks.size();
