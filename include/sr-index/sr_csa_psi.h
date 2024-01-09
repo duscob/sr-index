@@ -376,10 +376,10 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
 
   // Compute sub-sampled indices for sampled values (sorted by Psi positions)
   const auto subsamples_idx = computeSortedSampling(t_subsample_rate,
-                                                    // std::reverse_iterator(sorted_samples_idx.end()),
-                                                    sorted_samples_idx.begin(),
-                                                    // std::reverse_iterator(sorted_samples_idx.begin()),
-                                                    sorted_samples_idx.end(),
+                                                    std::reverse_iterator(sorted_samples_idx.end()),
+                                                    // sorted_samples_idx.begin(),
+                                                    std::reverse_iterator(sorted_samples_idx.begin()),
+                                                    // sorted_samples_idx.end(),
                                                     samples,
                                                     req_samples_idx);
   sdsl::store_to_cache(subsamples_idx, prefix + to_string(keys[kPsi][kHead][kIdx]), t_config);
