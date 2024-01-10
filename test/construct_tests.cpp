@@ -24,18 +24,18 @@ using SampleRate = std::size_t;
 
 class BaseConstructTests : public BaseConfigTests {
 public:
-  void compare(const std::string& tt_key, const sdsl::int_vector<>& tt_e_values) const {
+  void compare(const std::string& t_key, const sdsl::int_vector<>& t_e_values) const {
     sdsl::int_vector<> values;
-    load_from_cache(values, tt_key, config_);
+    load_from_cache(values, t_key, config_);
 
-    EXPECT_THAT(values, testing::ElementsAreArray(tt_e_values)) << "Key = " << tt_key;
+    EXPECT_THAT(values, testing::ElementsAreArray(t_e_values)) << "Key = " << t_key;
   }
 
-  void compare(const std::string& tt_key, const sdsl::sd_vector<>& tt_e_values) const {
+  void compare(const std::string& t_key, const sdsl::sd_vector<>& t_e_values) const {
     sdsl::sd_vector<> values;
-    load_from_cache(values, tt_key, config_, true);
+    load_from_cache(values, t_key, config_, true);
 
-    EXPECT_THAT(values, testing::ElementsAreArray(tt_e_values)) << "Key = " << tt_key;
+    EXPECT_THAT(values, testing::ElementsAreArray(t_e_values)) << "Key = " << t_key;
   }
 };
 
