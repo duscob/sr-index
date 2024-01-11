@@ -286,9 +286,9 @@ template<uint8_t t_width, typename TBvMark>
 void constructBaseSrCSAWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
 template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark,
-  typename TMarkToSampleIdx, typename TSample, typename TBvSamplePos>
+  typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx>
 void construct(
-  SrCSAWithPsiRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>& t_index,
+  SrCSAWithPsiRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>& t_index,
   const std::string& t_data_path,
   Config& t_config
 ) {
@@ -304,17 +304,10 @@ void construct(
   auto n = sizeIntVector<t_width>(t_config, keys[kBWT][kBase]);
 
   auto prefix = std::to_string(subsample_rate) + "_";
-  {
-    // Construct subsampling backward of samples (text positions of BWT-run last letter)
-    auto event = sdsl::memory_monitor::event("Subsampling");
-    auto key = prefix + conf::KEY_BWT_RUN_FIRST;
-    if (!sdsl::cache_file_exists(key, t_config)) {
-      constructSubsamplingBackwardSamplesPosition(subsample_rate, t_config);
-    }
 
-    if (!sdsl::cache_file_exists<TBvSamplePos>(key, t_config)) {
-      constructBitVectorFromIntVector<TBvSamplePos>(key, t_config, n, false);
-    }
+  if (auto key = prefix + to_string(keys[kPsi][kHead][kIdx]); !sdsl::cache_file_exists<TBvSampleIdx>(key, t_config)) {
+    auto event = sdsl::memory_monitor::event("Subsampling");
+    constructBitVectorFromIntVector<TBvSampleIdx>(key, t_config, n, false);
   }
 
   t_index.load(t_config);
