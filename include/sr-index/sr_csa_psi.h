@@ -62,10 +62,10 @@ protected:
     using namespace sri::conf;
     // key(SrIndexKey::ALPHABET) = t_keys[kAlphabet];
     // key(SrIndexKey::NAVIGATE) = t_keys[kPsi][kBase];
-    key(SrIndexKey::SAMPLES) = key_prefix_ + to_string(t_keys[kPsi][kHead][kTextPos]);
-    key(SrIndexKey::MARKS) = key_prefix_ + to_string(t_keys[kPsi][kTail][kTextPos]);
-    key(SrIndexKey::MARK_TO_SAMPLE) = key_prefix_ + to_string(t_keys[kPsi][kTail][kTextPosAsc][kLink]);
-    key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + to_string(t_keys[kPsi][kHead][kIdx]);
+    key(SrIndexKey::SAMPLES) = key_prefix_ + t_keys[kPsi][kHead][kTextPos].get<std::string>();
+    key(SrIndexKey::MARKS) = key_prefix_ + t_keys[kPsi][kTail][kTextPos].get<std::string>();
+    key(SrIndexKey::MARK_TO_SAMPLE) = key_prefix_ + t_keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>();
+    key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + t_keys[kPsi][kHead][kIdx].get<std::string>();
 
     // key(SrIndexKey::RUN_CUMULATIVE_COUNT) = conf::KEY_BWT_RUN_CUMULATIVE_COUNT;
   }
@@ -305,7 +305,10 @@ void construct(
 
   auto prefix = std::to_string(subsample_rate) + "_";
 
-  if (auto key = prefix + to_string(keys[kPsi][kHead][kIdx]); !sdsl::cache_file_exists<TBvSampleIdx>(key, t_config)) {
+  if (
+    auto key = prefix + keys[kPsi][kHead][kIdx].get<std::string>();
+    !sdsl::cache_file_exists<TBvSampleIdx>(key, t_config)
+  ) {
     auto event = sdsl::memory_monitor::event("Subsampling");
     constructBitVectorFromIntVector<TBvSampleIdx>(key, t_config, n, false);
   }
@@ -333,21 +336,24 @@ void constructBaseSrCSAWithPsiRuns(const std::size_t t_subsample_rate, Config& t
   }
 
   // Construct subsampling backward of samples (text positions of Psi-run first letter)
-  if (!cache_file_exists(prefix + to_string(keys[kPsi][kHead][kTextPos]), t_config)) {
+  if (!cache_file_exists(prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config)) {
     auto event = sdsl::memory_monitor::event("Subsampling");
     constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(t_subsample_rate, t_config);
   }
 
   // Construct subsampling backward of marks (text positions of Psi-run last letter)
-  if (!cache_file_exists(prefix + to_string(keys[kPsi][kTail][kTextPosAsc][kLink]), t_config)) {
+  if (!cache_file_exists(prefix + keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), t_config)) {
     auto event = sdsl::memory_monitor::event("Subsampling");
     constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(t_subsample_rate, t_config);
   }
 
   // Construct successor on the text positions of sub-sampled Psi-run last letter
-  if (!sdsl::cache_file_exists<TBvMark>(prefix + to_string(keys[kPsi][kTail][kTextPos]), t_config)) {
+  if (
+    auto key = prefix + keys[kPsi][kTail][kTextPos].get<std::string>();
+    !sdsl::cache_file_exists<TBvMark>(key, t_config)
+  ) {
     auto event = sdsl::memory_monitor::event("Successor");
-    constructBitVectorFromIntVector<TBvMark>(prefix + to_string(keys[kPsi][kTail][kTextPos]), t_config, n, false);
+    constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
   }
 }
 
@@ -375,7 +381,7 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
                                                     // sorted_samples_idx.end(),
                                                     samples,
                                                     req_samples_idx);
-  sdsl::store_to_cache(subsamples_idx, prefix + to_string(keys[kPsi][kHead][kIdx]), t_config);
+  sdsl::store_to_cache(subsamples_idx, prefix + keys[kPsi][kHead][kIdx].get<std::string>(), t_config);
 
   // Compute sub-samples
   sdsl::int_vector<> subsamples(subsamples_idx.size(), 0, samples.width());
@@ -384,6 +390,7 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
                  subsamples.begin(),
                  [&samples](auto tt_i) { return samples[tt_i]; });
   sdsl::store_to_cache(subsamples, prefix + to_string(keys[kPsi][kHead][kTextPos]), t_config);
+  sdsl::store_to_cache(subsamples, prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config, true);
 }
 
 inline auto computeSampleToMarkLinksForPhiForwardWithPsiRuns(const std::string& t_prefix, const Config& t_config) {
@@ -392,7 +399,7 @@ inline auto computeSampleToMarkLinksForPhiForwardWithPsiRuns(const std::string& 
 
   // Sub-sampled indices of samples
   sdsl::int_vector<> subsamples_idx;
-  sdsl::load_from_cache(subsamples_idx, t_prefix + to_string(keys[kPsi][kHead][kIdx]), t_config);
+  sdsl::load_from_cache(subsamples_idx, t_prefix + keys[kPsi][kHead][kIdx].get<std::string>(), t_config);
 
   sdsl::int_vector<> subsample_to_mark_links(subsamples_idx.size(), 0, subsamples_idx.width());
 
@@ -450,8 +457,10 @@ inline void constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(const std:
             submark_to_subsample_links.end(),
             [&submarks](const auto& tt_a, const auto& tt_b) { return submarks[tt_a] < submarks[tt_b]; });
 
-  sdsl::store_to_cache(submarks, prefix + to_string(keys[kPsi][kTail][kTextPos]), t_config);
-  sdsl::store_to_cache(submark_to_subsample_links, prefix + to_string(keys[kPsi][kTail][kTextPosAsc][kLink]), t_config);
+  sdsl::store_to_cache(submarks, prefix + keys[kPsi][kTail][kTextPos].get<std::string>(), t_config);
+  sdsl::store_to_cache(submark_to_subsample_links,
+                       prefix + keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(),
+                       t_config);
 }
 }
 
