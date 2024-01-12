@@ -389,7 +389,6 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
                  subsamples_idx.end(),
                  subsamples.begin(),
                  [&samples](auto tt_i) { return samples[tt_i]; });
-  sdsl::store_to_cache(subsamples, prefix + to_string(keys[kPsi][kHead][kTextPos]), t_config);
   sdsl::store_to_cache(subsamples, prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config, true);
 }
 
