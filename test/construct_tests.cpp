@@ -116,11 +116,11 @@ TEST_P(ConstructSRCSATests, construct) {
   const auto prefix = std::to_string(subsample_rate) + "_";
 
   compare(config_.keys[kPsi][kHead][kTextPosAsc][kIdx], std::get<2>(GetParam()));
-  compare(prefix + to_string(config_.keys[kPsi][kHead][kIdx]), std::get<3>(GetParam()));
-  compare(prefix + to_string(config_.keys[kPsi][kHead][kTextPos]), std::get<4>(GetParam()));
-  compare(prefix + to_string(config_.keys[kPsi][kTail][kTextPos]), std::get<5>(GetParam()));
-  compare(prefix + to_string(config_.keys[kPsi][kTail][kTextPosAsc][kLink]), std::get<6>(GetParam()));
-  compare(prefix + to_string(config_.keys[kPsi][kTail][kTextPos]), std::get<7>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kHead][kIdx].get<std::string>(), std::get<3>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kHead][kTextPos].get<std::string>(), std::get<4>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<5>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()));
 }
 
 INSTANTIATE_TEST_SUITE_P(
