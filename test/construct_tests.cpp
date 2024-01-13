@@ -18,22 +18,16 @@ using PsiRunHeadInd = IntVector;
 using PsiRunTail = IntVector;
 using PsiRunTailAsc = IntVector;
 using PsiRunTailAscLink = IntVector;
-using BitVector = sdsl::bit_vector;
+using BitVector = sdsl::sd_vector<>;
 using Marks = BitVector;
 using SampleRate = std::size_t;
 
 class BaseConstructTests : public BaseConfigTests {
 public:
-  void compare(const std::string& t_key, const sdsl::int_vector<>& t_e_values) const {
-    sdsl::int_vector<> values;
-    load_from_cache(values, t_key, config_);
-
-    EXPECT_THAT(values, testing::ElementsAreArray(t_e_values)) << "Key = " << t_key;
-  }
-
-  void compare(const std::string& t_key, const sdsl::sd_vector<>& t_e_values) const {
-    sdsl::sd_vector<> values;
-    load_from_cache(values, t_key, config_, true);
+  template<typename T>
+  void compare(const std::string& t_key, const T& t_e_values, bool t_add_type_hash = false) const {
+    T values;
+    load_from_cache(values, t_key, config_, t_add_type_hash);
 
     EXPECT_THAT(values, testing::ElementsAreArray(t_e_values)) << "Key = " << t_key;
   }
@@ -60,7 +54,7 @@ TEST_P(ConstructRCSATests, construct) {
   compare(config_.keys[kPsi][kTail][kTextPosAsc][kIdx], std::get<4>(GetParam()));
   compare(config_.keys[kPsi][kTail][kTextPosAsc][kLink], std::get<5>(GetParam()));
 
-  compare(config_.keys[kPsi][kTail][kTextPos], std::get<6>(GetParam()));
+  compare(config_.keys[kPsi][kTail][kTextPos], std::get<6>(GetParam()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -77,7 +71,7 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunTail{17, 16, 8, 11, 13, 12, 15, 10, 5, 14},
       PsiRunTailAsc{8, 2, 7, 3, 5, 4, 9, 6, 1, 0},
       PsiRunTailAscLink{9, 3, 8, 4, 6, 5, 0, 7, 2, 1},
-      Marks{0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1}
+      Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1})
     ),
     std::make_tuple(
       String{"abcabcababc"},
@@ -89,7 +83,7 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunTail{11, 0, 7, 1, 5, 2},
       PsiRunTailAsc{1, 3, 5, 4, 2, 0},
       PsiRunTailAscLink{2, 4, 0, 5, 3, 1},
-      Marks{1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}
+      Marks({1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1})
     )
   )
 );
@@ -120,7 +114,7 @@ TEST_P(ConstructSRCSATests, construct) {
   compare(prefix + config_.keys[kPsi][kHead][kTextPos].get<std::string>(), std::get<4>(GetParam()));
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<5>(GetParam()));
   compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()));
-  compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -135,7 +129,7 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunHead{17, 16, 8, 2, 5, 14},
       PsiRunTail{14, 17, 16, 8, 10, 5},
       PsiRunTailAscLink{5, 3, 4, 0, 2, 1},
-      Marks{0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1}
+      Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1})
     ),
     std::make_tuple(
       String{"abcabcababc"},
@@ -145,7 +139,7 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunHead{11, 6, 7, 2},
       PsiRunTail{2, 11, 0, 5},
       PsiRunTailAscLink{2, 0, 3, 1},
-      Marks{1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}
+      Marks({1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1})
     )
   )
 );
