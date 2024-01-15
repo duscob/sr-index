@@ -316,7 +316,7 @@ void construct(
   t_index.load(t_config);
 }
 
-void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
+auto constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
 void constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
@@ -357,7 +357,7 @@ void constructBaseSrCSAWithPsiRuns(const std::size_t t_subsample_rate, Config& t
   }
 }
 
-inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate,
+inline auto constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate,
                                                                         Config& t_config) {
   using namespace conf;
   const auto& keys = t_config.keys;
@@ -389,7 +389,9 @@ inline void constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
                  subsamples_idx.end(),
                  subsamples.begin(),
                  [&samples](auto tt_i) { return samples[tt_i]; });
-  sdsl::store_to_cache(subsamples, prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config, true);
+  sri::store_to_cache(subsamples, prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config, true);
+
+  return subsamples;
 }
 
 inline auto computeSampleToMarkLinksForPhiForwardWithPsiRuns(const std::string& t_prefix, const Config& t_config) {
