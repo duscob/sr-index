@@ -386,11 +386,15 @@ template<typename TStorage = GenericStorage,
     typename TSample = sdsl::int_vector<>>
 class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
  public:
+  using Alphabet = TAlphabet;
+  using BvMarks = TBvMark;
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
   explicit RCSAWithPsiRun(const TStorage &t_storage) : Base(t_storage) {}
 
   RCSAWithPsiRun() = default;
+
+  virtual ~RCSAWithPsiRun() = default;
 
   virtual void load(Config t_config) {
     TSource source(std::ref(t_config));
@@ -622,11 +626,10 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 template<uint8_t t_width, typename TBvMark>
 void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config);
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(RCSAWithPsiRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
-               const std::string &t_data_path,
-               sri::Config &t_config) {
-  constructRCSAWithPsiRuns<t_width, TBvMark>(t_data_path, t_config);
+template<typename... TArgs>
+void construct(RCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
+  using Index = RCSAWithPsiRun<TArgs...>;
+  constructRCSAWithPsiRuns<Index::Alphabet::int_width, typename Index::BvMarks>(t_data_path, t_config);
 
   t_index.load(t_config);
 }
