@@ -23,6 +23,10 @@ template<typename TStorage = GenericStorage,
   typename TRunCumulativeCount = sdsl::int_vector<>>
 class SrCSAWithPsiRun : public RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
 public:
+  using Alphabet = TAlphabet;
+  using BvMarks = TBvMark;
+  using Samples = TSample;
+  using BvSamplesIdx = TBvSampleIdx;
   using Base = RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSAWithPsiRun(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
@@ -282,43 +286,39 @@ protected:
   std::string key_prefix_;
 };
 
-template<uint8_t t_width, typename TBvMark>
+template<uint8_t t_width, typename TSamples, typename TBvMark>
 void constructBaseSrCSAWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark,
-  typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx>
-void construct(
-  SrCSAWithPsiRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>& t_index,
-  const std::string& t_data_path,
-  Config& t_config
-) {
+template<typename... TArgs>
+void construct(SrCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
+  using Index = SrCSAWithPsiRun<TArgs...>;
+  using width = typename Index::Alphabet::int_width;
   using namespace conf;
   const auto& keys = t_config.keys;
 
-  constructRCSAWithPsiRuns<t_width, TBvMark>(t_data_path, t_config);
+  constructRCSAWithPsiRuns<width, typename Index::BvMarks>(t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
 
-  constructBaseSrCSAWithPsiRuns<t_width, TSample, TBvMark>(subsample_rate, t_config);
+  constructBaseSrCSAWithPsiRuns<width, typename Index::Samples, typename Index::BvMarks>(subsample_rate, t_config);
 
-  auto n = sizeIntVector<t_width>(t_config, keys[kBWT][kBase]);
+  auto n = sizeIntVector<width>(t_config, keys[kBWT][kBase]);
 
   auto prefix = std::to_string(subsample_rate) + "_";
 
   if (
     auto key = prefix + keys[kPsi][kHead][kIdx].get<std::string>();
-    !sdsl::cache_file_exists<TBvSampleIdx>(key, t_config)
+    !sdsl::cache_file_exists<typename Index::BvSamplesIdx>(key, t_config)
   ) {
     auto event = sdsl::memory_monitor::event("Subsampling");
-    constructBitVectorFromIntVector<TBvSampleIdx>(key, t_config, n, false);
+    constructBitVectorFromIntVector<typename Index::BvSamplesIdx>(key, t_config, n, false);
   }
 
   t_index.load(t_config);
 }
 
-
 template<typename TSamples>
-void constructSubsamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate, Config& t_config);
+void constructSubsamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
 auto constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
