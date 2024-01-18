@@ -1032,7 +1032,7 @@ auto computeSampleToMarkLinksForPhiForward(const std::string &t_prefix, sdsl::ca
 
 template<uint8_t t_width, typename TBvMark>
 void constructSrCSACommonsWithBWTRuns(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
-  auto n = sizeIntVector<t_width>(t_config, sdsl::key_bwt_trait<t_width>::KEY_BWT);
+  const auto n = sdsl::int_vector_buffer<>(cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config)).size();
 
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
