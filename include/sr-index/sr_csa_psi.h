@@ -320,7 +320,8 @@ void construct(SrCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_pat
 template<typename TSamples>
 void constructSubsamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
-auto constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
+template<typename TBvMarks>
+void constructSubmarksForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate, Config& t_config);
 
 void constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
@@ -329,36 +330,40 @@ void constructBaseSrCSAWithPsiRuns(const std::size_t t_subsample_rate, Config& t
   using namespace conf;
   const auto& keys = t_config.keys;
 
-  auto n = sizeIntVector<t_width>(t_config, keys[kBWT][kBase]);
-
-  const auto prefix = std::to_string(t_subsample_rate) + "_";
-
   // Sort samples (Psi-run head) by its text positions
   if (!cache_file_exists(keys[kPsi][kHead][kTextPosAsc][kIdx], t_config)) {
     auto event = sdsl::memory_monitor::event("Subsampling");
     constructSortedIndices(keys[kPsi][kHead][kTextPos], t_config, keys[kPsi][kHead][kTextPosAsc][kIdx]);
   }
 
+  const auto prefix = std::to_string(t_subsample_rate) + "_";
+
   // Construct subsampling backward of samples (text positions of Psi-run first letter)
   if (!sdsl::cache_file_exists<TSamples>(prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config)) {
-    auto event = sdsl::memory_monitor::event("Subsampling");
+    auto event = sdsl::memory_monitor::event("Subsamples");
     constructSubsamplesForPhiForwardWithPsiRuns<TSamples>(t_subsample_rate, t_config);
   }
 
   // Construct subsampling backward of marks (text positions of Psi-run last letter)
-  if (!cache_file_exists(prefix + keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), t_config)) {
-    auto event = sdsl::memory_monitor::event("Subsampling");
-    constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(t_subsample_rate, t_config);
+  if (!sdsl::cache_file_exists<TBvMark>(prefix + keys[kPsi][kTail][kTextPos].get<std::string>(), t_config)) {
+    auto event = sdsl::memory_monitor::event("Submarks");
+    constructSubmarksForPhiForwardWithPsiRuns<TBvMark>(t_subsample_rate, t_config);
   }
 
-  // Construct successor on the text positions of sub-sampled Psi-run last letter
-  if (
-    auto key = prefix + keys[kPsi][kTail][kTextPos].get<std::string>();
-    !sdsl::cache_file_exists<TBvMark>(key, t_config)
-  ) {
-    auto event = sdsl::memory_monitor::event("Successor");
-    constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
-  }
+  // // Construct subsampling backward of marks (text positions of Psi-run last letter)
+  // if (!cache_file_exists(prefix + keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), t_config)) {
+  //   auto event = sdsl::memory_monitor::event("Subsampling");
+  //   constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(t_subsample_rate, t_config);
+  // }
+
+  // // Construct successor on the text positions of sub-sampled Psi-run last letter
+  // if (
+  //   auto key = prefix + keys[kPsi][kTail][kTextPos].get<std::string>();
+  //   !sdsl::cache_file_exists<TBvMark>(key, t_config)
+  // ) {
+  //   auto event = sdsl::memory_monitor::event("Successor");
+  //   constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
+  // }
 }
 
 inline auto constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate,
@@ -414,7 +419,7 @@ void constructSubsamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_r
 
   if (!std::is_same_v<TSamples, sdsl::int_vector<>>) {
     auto subsamples = construct<TSamples>(subsamples_iv);
-    sdsl::store_to_cache(subsamples, key, t_config, true);
+    sri::store_to_cache(subsamples, key, t_config, true);
   }
 }
 
@@ -456,6 +461,28 @@ inline auto computeSubmarksForPhiForwardWithPsiRuns(const std::string& t_prefix,
                  [&marks](auto tt_i) { return marks[tt_i]; });
 
   return submarks;
+}
+
+template<typename TBvMarks>
+void constructSubmarksForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate, Config& t_config) {
+  using namespace conf;
+  const auto& keys = t_config.keys;
+  const auto prefix = std::to_string(t_subsample_rate) + "_";
+  const auto key = prefix + keys[kPsi][kTail][kTextPos].get<std::string>();
+
+  // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks.
+  // Note that the submarks are sorted by its associated submark position, not by its positions in Psi
+  sdsl::int_vector<> submarks_iv;
+  if (!sdsl::cache_file_exists<sdsl::int_vector<>>(key, t_config)) {
+    submarks_iv = computeSubmarksForPhiForwardWithPsiRuns(prefix, t_config);
+    sri::store_to_cache(submarks_iv, key, t_config, true);
+  } else {
+    sdsl::load_from_cache(submarks_iv, key, t_config, true);
+  }
+
+  // Construct successor on the text positions of sub-sampled Psi-run last letter
+  const auto n = sdsl::int_vector_buffer<>(cache_file_name(keys[kBWT][kBase], t_config)).size();
+  constructBitVectorFromIntVector<TBvMarks>(submarks_iv, key, t_config, n, false);
 }
 
 inline void constructSubsamplingBackwardMarksForPhiForwardWithPsiRuns(const std::size_t t_subsample_rate,
