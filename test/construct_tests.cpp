@@ -105,7 +105,7 @@ TEST_P(ConstructSRCSATests, construct) {
 
   sri::constructRCSAWithPsiRuns<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::constructBaseSrCSAWithPsiRuns<8, sdsl::int_vector<>, sdsl::sd_vector<>>(subsample_rate, config_);
+  sri::constructBaseSrCSAWithPsiRuns<sdsl::int_vector<>, sdsl::sd_vector<>, sdsl::int_vector<>>(subsample_rate, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
 
@@ -113,7 +113,7 @@ TEST_P(ConstructSRCSATests, construct) {
   compare(prefix + config_.keys[kPsi][kHead][kIdx].get<std::string>(), std::get<3>(GetParam()));
   compare(prefix + config_.keys[kPsi][kHead][kTextPos].get<std::string>(), std::get<4>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<5>(GetParam()), true);
-  compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()));
+  compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()), true);
 }
 
