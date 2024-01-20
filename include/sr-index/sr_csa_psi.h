@@ -30,13 +30,17 @@ public:
   using BvSamplesIdx = TBvSampleIdx;
   using Base = RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrCSAWithPsiRun(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSAWithPsiRun(const TStorage& t_storage, const std::size_t t_sr)
+    : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  explicit SrCSAWithPsiRun(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSAWithPsiRun(const std::size_t t_sr)
+    : Base(), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
   SrCSAWithPsiRun() = default;
 
-  virtual ~SrCSAWithPsiRun() = default;
+  ~SrCSAWithPsiRun() override = default;
+
+  [[nodiscard]] std::size_t SubsampleRate() const { return subsample_rate_; }
 
   using typename Base::size_type;
 
