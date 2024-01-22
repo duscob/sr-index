@@ -114,7 +114,7 @@ protected:
             const auto& run = tt_next_range.start.run;
             return DataBackwardSearchStep{
               tt_step,
-              RunDataExt(run.start, tt_c, run.rank, tt_range.start != run.start)
+              RunDataExt{tt_c, run.rank, tt_range.start != run.start, run.start}
             };
           }
         ),
@@ -125,7 +125,7 @@ protected:
                                         constructPsiForRunData(t_source))
         ),
         this->n_,
-        [](const auto& tt_step) { return DataBackwardSearchStep{0, RunDataExt()}; },
+        [](const auto& tt_step) { return DataBackwardSearchStep{0, RunDataExt{}}; },
         this->constructGetSymbol(t_source),
         [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
         this->constructIsRangeEmpty()
@@ -136,15 +136,8 @@ protected:
   using typename Base::RunData;
   using typename Base::Char;
   struct RunDataExt : RunData {
-    Char c;
-    std::size_t partial_rank;
-    bool is_run_start;
-
-    explicit RunDataExt(std::size_t t_pos = 0,
-                        Char t_c = 0,
-                        std::size_t t_partial_rank = 0,
-                        bool t_is_run_start = false)
-      : RunData(t_pos), c{t_c}, partial_rank{t_partial_rank}, is_run_start{t_is_run_start} {}
+    bool is_run_start = false; // If current position is the start of a run
+    std::size_t pos = 0; // Position for next LF step
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunDataExt>;
@@ -239,7 +232,7 @@ protected:
     auto psi_select = [cref_psi_core](Char tt_c, auto tt_rnk) {
       RunDataExt run_data;
       auto report = [&run_data, &tt_c](auto tt_pos, auto tt_run_start, auto tt_run_end, auto tt_run_rank) {
-        run_data = RunDataExt{tt_pos, tt_c, tt_run_rank, tt_pos == tt_run_start};
+        run_data = RunDataExt{tt_c, tt_run_rank, tt_pos == tt_run_start, tt_pos};
       };
       cref_psi_core.get().select(tt_c, tt_rnk, report);
       return run_data;
