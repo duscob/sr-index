@@ -552,7 +552,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 
   struct RunData {
     Char c; // Character for LF step in the range
-    std::size_t rank; // First run rank
+    std::size_t partial_rank; // Rank of first run item (total rank for symbol c and partial rank for all symbols)
 
 //    explicit RunData(std::size_t t_pos) : pos{t_pos} {}
 //    virtual ~RunData() = default;
@@ -597,7 +597,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData &tt_run_data) {
       auto n_prev_runs = cref_psi_core.get().rankCharRun(tt_run_data.c);
-      return cref_samples.get()[n_prev_runs + tt_run_data.rank] + 1;
+      return cref_samples.get()[n_prev_runs + tt_run_data.partial_rank] + 1;
     };
 
     return buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
