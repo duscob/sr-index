@@ -118,12 +118,7 @@ protected:
             };
           }
         ),
-        this->constructComputeSAValues(
-          t_phi_range(t_source),
-          this->constructComputeToehold(t_source,
-                                        constructGetSampleForRunData(t_source),
-                                        constructPsiForRunData(t_source))
-        ),
+        this->constructComputeSAValues(t_phi_range(t_source), this->constructComputeToehold(t_source)),
         this->n_,
         [](const auto& tt_step) { return DataBackwardSearchStep{0, RunDataExt{}}; },
         this->constructGetSymbol(t_source),
@@ -141,6 +136,14 @@ protected:
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunDataExt>;
+
+  auto constructComputeToehold(TSource& t_source) {
+    auto get_sample = constructGetSampleForRunData(t_source);
+    auto psi = constructPsiForRunData(t_source);
+
+    auto compute_sa_value_run_data = buildComputeSAValueForward(get_sample, psi, this->n_);
+    return ComputeToehold(compute_sa_value_run_data, this->n_);
+  }
 
   using typename Base::Value;
   auto constructGetSample(TSource& t_source) {
@@ -224,7 +227,36 @@ protected:
   }
 
   auto constructSplitRunInBWTRuns(TSource& t_source) {
-    return Base::constructSplitRunInBWTRuns(t_source, constructCreateRun());
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto create_run = constructCreateRun();
+
+    return [cref_psi_core, cref_alphabet, create_run](const auto& tt_run) -> auto {
+      const auto& first = tt_run.start;
+      const auto& last = tt_run.end;
+      const auto& cumulative = cref_alphabet.get().C;
+      auto c = computeCForSAIndex(cumulative, first);
+
+      auto cum_c = cumulative[c];
+      auto cum_next_c = cumulative[c + 1];
+      auto first_rank = first - cum_c + 1;
+      auto last_rank = std::min(last, cum_next_c) - cum_c + 1;
+      std::vector<decltype(create_run(0u, 0u, (Char) 0u, 0u, false))> runs;
+      auto report = [&runs, &create_run](auto tt_first, auto tt_last, auto tt_c, auto tt_n_run, auto tt_is_first) {
+        runs.emplace_back(create_run(tt_first, tt_last, tt_c, tt_n_run, tt_is_first));
+      };
+      cref_psi_core.get().computeForwardRuns(c, first_rank, last_rank, report);
+
+      while (cum_next_c < last) {
+        ++c;
+        cum_c = cum_next_c;
+        cum_next_c = cumulative[c + 1];
+        last_rank = std::min(last, cum_next_c) - cum_c + 1;
+        cref_psi_core.get().computeForwardRuns(c, 1, last_rank, report);
+      }
+
+      return runs;
+    };
   }
 
   auto constructPsiForRunData(TSource& t_source) {
