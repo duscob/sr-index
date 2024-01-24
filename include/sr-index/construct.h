@@ -295,12 +295,25 @@ void constructBitVectorFromIntVector(TValues &t_values,
   sri::store_to_cache(bv_select, t_key, t_config, true);
 }
 
-template<typename TBitVector, typename TBVRank = typename TBitVector::rank_1_type, typename TBVSelect = typename TBitVector::select_1_type>
-void constructBitVectorFromIntVector(
-    const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size, bool t_init_value) {
-  sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
+template<typename TBitVector,
+  typename TBVRank = typename TBitVector::rank_1_type,
+  typename TBVSelect = typename TBitVector::select_1_type>
+void constructBitVectorFromIntVector(const std::string& t_key,
+                                     sdsl::cache_config& t_config,
+                                     std::size_t t_bv_size,
+                                     bool t_init_value,
+                                     bool add_type_hash = false) {
+  const auto filename = add_type_hash
+                          ? sdsl::cache_file_name<sdsl::int_vector<>>(t_key, t_config)
+                          : sdsl::cache_file_name(t_key, t_config);
+  sdsl::int_vector_buffer<> int_buf(filename);
   constructBitVectorFromIntVector<TBitVector, sdsl::int_vector_buffer<>, TBVRank, TBVSelect>(
-      int_buf, t_key, t_config, t_bv_size, t_init_value);
+    int_buf,
+    t_key,
+    t_config,
+    t_bv_size,
+    t_init_value
+  );
 }
 
 void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {
