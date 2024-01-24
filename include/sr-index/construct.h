@@ -109,10 +109,12 @@ void constructPsiRuns(Config &t_config) {
       psi_run_text_pos_partial[bwt_rle[bwt_run_pos[i]]].emplace_back(bwt_run_text_pos[i]);
     }
 
-    auto psi_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_psi_run_text_pos, t_config),
-                                                      std::ios::out,
-                                                      1 << 20,
-                                                      bwt_run_text_pos.width());
+    auto psi_run_text_pos = sdsl::int_vector_buffer<>(
+      sdsl::cache_file_name<sdsl::int_vector<>>(key_psi_run_text_pos, t_config),
+      std::ios::out,
+      1 << 20,
+      bwt_run_text_pos.width()
+    );
 
     for (const auto &symbol_text_pos : psi_run_text_pos_partial) {
       for (const auto &text_pos : symbol_text_pos) {
