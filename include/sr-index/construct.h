@@ -211,11 +211,11 @@ void constructMarkToSampleLinksForPhiForwardWithBWTRuns(sdsl::cache_config &t_co
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
 }
 
-void constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
+inline auto constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
   using namespace sri::conf;
 
   sdsl::int_vector<> marks; // Text position of the Psi run tails
-  sdsl::load_from_cache(marks, t_config.keys[kPsi][kTail][kTextPos], t_config);
+  sdsl::load_from_cache(marks, t_config.keys[kPsi][kTail][kTextPos], t_config, true);
 
   auto get_link = [r = marks.size()](const auto &tt_mark_idx) {
     return (tt_mark_idx + 1) % r;
@@ -223,8 +223,10 @@ void constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
 
   auto [sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
 
-  sdsl::store_to_cache(sorted_marks_idx, t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config);
-  sdsl::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config);
+  // sdsl::store_to_cache(sorted_marks_idx, t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config);
+  sri::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+
+  return mark_to_sample_links;
 }
 
 void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
