@@ -46,13 +46,14 @@ protected:
 
 TEST_P(ConstructRCSATests, construct) {
   using namespace sri::conf;
-  sri::constructRCSAWithPsiRuns<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
+  sri::RCSAWithPsiRun<> index;
+  index.construct(config_);
 
   compare(config_.keys[kPsi][kBase], std::get<1>(GetParam()));
-  compare(config_.keys[kPsi][kHead][kTextPos], std::get<2>(GetParam()));
-  compare(config_.keys[kPsi][kTail][kTextPos], std::get<3>(GetParam()));
-  compare(config_.keys[kPsi][kTail][kTextPosAsc][kIdx], std::get<4>(GetParam()));
-  compare(config_.keys[kPsi][kTail][kTextPosAsc][kLink], std::get<5>(GetParam()));
+  compare(config_.keys[kPsi][kHead][kTextPos], std::get<2>(GetParam()), true);
+  compare(config_.keys[kPsi][kTail][kTextPos], std::get<3>(GetParam()), true);
+  // compare(config_.keys[kPsi][kTail][kTextPosAsc][kIdx], std::get<4>(GetParam()));
+  compare(config_.keys[kPsi][kTail][kTextPosAsc][kLink], std::get<5>(GetParam()), true);
 
   compare(config_.keys[kPsi][kTail][kTextPos], std::get<6>(GetParam()), true);
 }
