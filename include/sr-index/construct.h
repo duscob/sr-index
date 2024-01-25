@@ -304,8 +304,8 @@ void constructBitVectorFromIntVector(const std::string& t_key,
                                      sdsl::cache_config& t_config,
                                      std::size_t t_bv_size,
                                      bool t_init_value,
-                                     bool add_type_hash = false) {
-  const auto filename = add_type_hash
+                                     bool t_add_type_hash = false) {
+  const auto filename = t_add_type_hash
                           ? sdsl::cache_file_name<sdsl::int_vector<>>(t_key, t_config)
                           : sdsl::cache_file_name(t_key, t_config);
   sdsl::int_vector_buffer<> int_buf(filename);
@@ -318,9 +318,12 @@ void constructBitVectorFromIntVector(const std::string& t_key,
   );
 }
 
-void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {
+inline void constructSortedIndices(const std::string& t_key,
+                                   sdsl::cache_config& t_config,
+                                   const std::string& t_out_key,
+                                   bool t_add_type_hash = false) {
   sdsl::int_vector<> values;
-  sdsl::load_from_cache(values, t_key, t_config);
+  sdsl::load_from_cache(values, t_key, t_config, t_add_type_hash);
 
   auto values_idx = sortIndices(values);
 
