@@ -387,7 +387,9 @@ template<typename TStorage = GenericStorage,
 class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Alphabet = TAlphabet;
+  using Samples = TSample;
   using BvMarks = TBvMark;
+  using MarksToSamples = TMarkToSampleIdx;
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
   explicit RCSAWithPsiRun(const TStorage &t_storage) : Base(t_storage) {}
@@ -395,59 +397,6 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   RCSAWithPsiRun() = default;
 
   virtual ~RCSAWithPsiRun() = default;
-
-  virtual void construct(Config& t_config) {
-    using namespace sri::conf;
-    constexpr auto width = Alphabet::int_width;
-
-    constructIndexBaseItems<width>(t_config.data_path, t_config);
-
-    // Construct Psi
-    if (!cache_file_exists(t_config.keys[kPsi][kBase], t_config)) {
-      auto event = sdsl::memory_monitor::event("Psi");
-      constructPsi<width>(t_config);
-    }
-
-    // Construct Psi Runs
-    if (!sdsl::cache_file_exists<sdsl::int_vector<>>(t_config.keys[kPsi][kHead][kTextPos], t_config)) {
-      auto event = sdsl::memory_monitor::event("Psi Runs");
-      constructPsiRuns<width>(t_config);
-    }
-
-    // Construct Samples for the template type
-    if (!std::is_same_v<TSample, sdsl::int_vector<>>) {
-      auto event = sdsl::memory_monitor::event("Samples");
-      sdsl::int_vector<> samples_iv;
-      sdsl::load_from_cache(samples_iv, t_config.keys[kPsi][kHead][kTextPos], t_config, true);
-
-      auto samples = sri::construct<TSample>(samples_iv);
-      sri::store_to_cache(samples, t_config.keys[kPsi][kHead][kTextPos], t_config, true);
-    }
-
-    // Construct Successor on the text positions of Psi run last item
-    if (!sdsl::cache_file_exists<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config)) {
-      auto event = sdsl::memory_monitor::event("Successor");
-      const auto n = sdsl::int_vector_buffer<>(cache_file_name(t_config.keys[kBWT][kBase], t_config)).size();
-      constructBitVectorFromIntVector<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config, n, false, true);
-    }
-
-    // Construct Links from Mark to Sample
-    if (!sdsl::cache_file_exists<TMarkToSampleIdx>(t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config)) {
-      auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-
-      sdsl::int_vector<> mark_to_sample_links;
-      if (!sdsl::cache_file_exists<sdsl::int_vector<>>(t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config)) {
-        mark_to_sample_links = constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
-      } else {
-        sdsl::load_from_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
-      }
-
-      if (!std::is_same_v<TMarkToSampleIdx, sdsl::int_vector<>>) {
-        auto values = sri::construct<TMarkToSampleIdx>(mark_to_sample_links);
-        sri::store_to_cache(values, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
-      }
-    }
-  }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -607,9 +556,6 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   struct RunData {
     Char c; // Character for LF step in the range
     std::size_t partial_rank; // Rank of first run item (total rank for symbol c and partial rank for all symbols)
-
-//    explicit RunData(std::size_t t_pos) : pos{t_pos} {}
-//    virtual ~RunData() = default;
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
@@ -682,7 +628,58 @@ void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_con
 
 template<typename... TArgs>
 void construct(RCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
-  t_index.construct(t_config);
+  using Index = RCSAWithPsiRun<TArgs...>;
+  using namespace sri::conf;
+  constexpr auto width = Index::Alphabet::int_width;
+  const auto& keys = t_config.keys;
+
+  constructIndexBaseItems<width>(t_config.data_path, t_config);
+
+  // Construct Psi
+  if (!cache_file_exists(keys[kPsi][kBase], t_config)) {
+    auto event = sdsl::memory_monitor::event("Psi");
+    constructPsi<width>(t_config);
+  }
+
+  // Construct Psi Runs
+  if (!sdsl::cache_file_exists<sdsl::int_vector<>>(keys[kPsi][kHead][kTextPos], t_config)) {
+    auto event = sdsl::memory_monitor::event("Psi Runs");
+    constructPsiRuns<width>(t_config);
+  }
+
+  // Construct Samples for the template type
+  if (!std::is_same_v<typename Index::Samples, sdsl::int_vector<>>) {
+    auto event = sdsl::memory_monitor::event("Samples");
+    sdsl::int_vector<> samples_iv;
+    sdsl::load_from_cache(samples_iv, keys[kPsi][kHead][kTextPos], t_config, true);
+
+    auto samples = sri::construct<typename Index::Samples>(samples_iv);
+    sri::store_to_cache(samples, keys[kPsi][kHead][kTextPos], t_config, true);
+  }
+
+  // Construct Successor on the text positions of Psi run last item
+  if (!sdsl::cache_file_exists<typename Index::BvMarks>(keys[kPsi][kTail][kTextPos], t_config)) {
+    auto event = sdsl::memory_monitor::event("Successor");
+    const auto n = sdsl::int_vector_buffer<>(cache_file_name(keys[kBWT][kBase], t_config)).size();
+    constructBitVectorFromIntVector<typename Index::BvMarks>(keys[kPsi][kTail][kTextPos], t_config, n, false, true);
+  }
+
+  // Construct Links from Mark to Sample
+  if (!sdsl::cache_file_exists<typename Index::MarksToSamples>(keys[kPsi][kTail][kTextPosAsc][kLink], t_config)) {
+    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
+
+    sdsl::int_vector<> mark_to_sample_links;
+    if (!sdsl::cache_file_exists<sdsl::int_vector<>>(keys[kPsi][kTail][kTextPosAsc][kLink], t_config)) {
+      mark_to_sample_links = constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
+    } else {
+      sdsl::load_from_cache(mark_to_sample_links, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+    }
+
+    if (!std::is_same_v<typename Index::MarksToSamples, sdsl::int_vector<>>) {
+      auto values = sri::construct<typename Index::MarksToSamples>(mark_to_sample_links);
+      sri::store_to_cache(values, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+    }
+  }
 
   t_index.load(t_config);
 }
