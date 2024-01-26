@@ -47,7 +47,7 @@ protected:
 TEST_P(ConstructRCSATests, construct) {
   using namespace sri::conf;
   sri::RCSAWithPsiRun<> index;
-  sri::construct(index, config_.file_map[key_tmp_input_], config_);
+  sri::constructItems(index, config_);
 
   compare(config_.keys[kPsi][kBase], std::get<1>(GetParam()));
   compare(config_.keys[kPsi][kHead][kTextPos], std::get<2>(GetParam()), true);
