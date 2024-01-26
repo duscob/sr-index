@@ -627,7 +627,17 @@ template<uint8_t t_width, typename TBvMark>
 void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config);
 
 template<typename... TArgs>
+void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config);
+
+template<typename... TArgs>
 void construct(RCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
+  constructItems(t_index, t_config);
+
+  t_index.load(t_config);
+}
+
+template<typename... TArgs>
+void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
   using Index = RCSAWithPsiRun<TArgs...>;
   using namespace sri::conf;
   constexpr auto width = Index::Alphabet::int_width;
@@ -680,8 +690,6 @@ void construct(RCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path
       sri::store_to_cache(values, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
     }
   }
-
-  t_index.load(t_config);
 }
 
 template<uint8_t t_width, typename TBvMark>
