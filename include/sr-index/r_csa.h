@@ -623,9 +623,6 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 
 };
 
-template<uint8_t t_width, typename TBvMark>
-void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config);
-
 template<typename... TArgs>
 void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config);
 
@@ -689,42 +686,6 @@ void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
       auto values = sri::construct<typename Index::MarksToSamples>(mark_to_sample_links);
       sri::store_to_cache(values, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
     }
-  }
-}
-
-template<uint8_t t_width, typename TBvMark>
-void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config) {
-  using namespace sri::conf;
-  constructIndexBaseItems<t_width>(t_data_path, t_config);
-
-  // Construct Psi
-  if (!cache_file_exists(t_config.keys[kPsi][kBase], t_config)) {
-    auto event = sdsl::memory_monitor::event("Psi");
-    constructPsi<t_width>(t_config);
-  }
-
-  // Construct Psi Runs
-  if (!cache_file_exists(t_config.keys[kPsi][kHead][kTextPos], t_config)) {
-    auto event = sdsl::memory_monitor::event("Psi Runs");
-    constructPsiRuns<t_width>(t_config);
-  }
-
-  // Construct Links from Mark to Sample
-  if (!cache_file_exists(t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config)) {
-    auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
-  }
-
-  std::size_t n;
-  {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(t_config.keys[kBWT][kBase], t_config));
-    n = bwt_buf.size();
-  }
-
-  // Construct Successor on the text positions of BWT run last letter
-  if (!sdsl::cache_file_exists<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config)) {
-    auto event = sdsl::memory_monitor::event("Successor");
-    constructBitVectorFromIntVector<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config, n, false, true);
   }
 }
 
