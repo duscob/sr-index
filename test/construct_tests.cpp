@@ -22,6 +22,7 @@ using BitVector = sdsl::sd_vector<>;
 using Marks = BitVector;
 using SampleRate = std::size_t;
 using SampleIdxs = BitVector;
+using CumulativeRuns = IntVector;
 
 class BaseConstructTests : public BaseConfigTests {
 public:
@@ -93,7 +94,7 @@ INSTANTIATE_TEST_SUITE_P(
 class ConstructSRCSATests : public BaseConstructTests,
                             public testing::WithParamInterface<std::tuple<
                               String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead, PsiRunTail,
-                              PsiRunTailAscLink, Marks, SampleIdxs
+                              PsiRunTailAscLink, Marks, SampleIdxs, CumulativeRuns
                             >> {
 protected:
   void SetUp() override {
@@ -118,6 +119,7 @@ TEST_P(ConstructSRCSATests, construct) {
   compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kHead][kIdx].get<std::string>(), std::get<8>(GetParam()), true);
+  compare(config_.keys[kPsi][kCumulativeRuns].get<std::string>(), std::get<9>(GetParam()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -133,7 +135,8 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunTail{14, 17, 16, 8, 10, 5},
       PsiRunTailAscLink{5, 3, 4, 0, 2, 1},
       Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1}),
-      SampleIdxs({1, 1, 1, 1, 0, 0, 0, 0, 1, 1})
+      SampleIdxs({1, 1, 1, 1, 0, 0, 0, 0, 1, 1}),
+      CumulativeRuns{1, 5, 6, 7, 8, 10}
     ),
     std::make_tuple(
       String{"abcabcababc"},
@@ -144,7 +147,8 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunTail{2, 11, 0, 5},
       PsiRunTailAscLink{2, 0, 3, 1},
       Marks({1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}),
-      SampleIdxs({1, 1, 1, 0, 0, 1})
+      SampleIdxs({1, 1, 1, 0, 0, 1}),
+      CumulativeRuns{1, 2, 4, 6}
     )
   )
 );

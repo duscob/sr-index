@@ -33,6 +33,7 @@ constexpr std::string_view kTextPos = "textPos";
 constexpr std::string_view kTextPosAsc = "textPosAsc";
 constexpr std::string_view kIdx = "idx";
 constexpr std::string_view kLink = "link";
+constexpr std::string_view kCumulativeRuns = "cumulativeRuns";
 }
 
 template<uint8_t t_width>
@@ -60,6 +61,7 @@ auto createDefaultKeys() {
     {
       kPsi, {
         {kBase, sdsl::conf::KEY_PSI},
+        {kCumulativeRuns, "psi_run_cumulative_count"},
         {
           kHead, {
             {kPos, "psi_run_first"},
@@ -107,8 +109,7 @@ struct Config : public sdsl::cache_config {
     : cache_config(t_delete_files, t_output_dir, t_data_path.filename()),
       data_path(t_data_path),
       sa_algo(t_sa_algo),
-      keys(std::move(t_keys)) {
-  }
+      keys(std::move(t_keys)) {}
 };
 
 inline SAAlgo toSAAlgo(const std::string& t_str) {

@@ -440,6 +440,8 @@ class PsiCoreRLE {
 
   inline auto sigma() const { return partial_psi_.size(); }
 
+  auto countRuns(TChar t_c) { return partial_psi_[t_c].first.size() / 2; }
+
   typedef std::size_t size_type;
 
   //! Serialize method

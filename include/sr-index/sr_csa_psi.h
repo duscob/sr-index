@@ -20,7 +20,7 @@ template<typename TStorage = GenericStorage,
   typename TMarkToSampleIdx = sdsl::int_vector<>,
   typename TSample = sdsl::int_vector<>,
   typename TBvSampleIdx = sdsl::sd_vector<>,
-  typename TRunCumulativeCount = sdsl::int_vector<>>
+  typename TCumulativeRun = sdsl::int_vector<>>
 class SrCSAWithPsiRun : public RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
 public:
   using Alphabet = TAlphabet;
@@ -28,6 +28,7 @@ public:
   using BvMarks = TBvMark;
   using MarksToSamples = TMarkToSampleIdx;
   using BvSamplesIdx = TBvSampleIdx;
+  using CumulativeRuns = TCumulativeRun;
   using Base = RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
   SrCSAWithPsiRun(const TStorage& t_storage, const std::size_t t_sr)
@@ -147,7 +148,7 @@ protected:
 
   using typename Base::Value;
   auto constructGetSample(TSource& t_source) {
-    auto cref_run_cum_c = this->template loadItem<TRunCumulativeCount>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
+    auto cref_run_cum_c = this->template loadItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
     auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
@@ -335,6 +336,9 @@ void constructSubmarksForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Con
 template<typename TMarksToSamples>
 void constructSubmarkLinksForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
 
+template<typename TRunCumulativeCount>
+void constructCumulativeCountsWithPsiRuns(Config& t_config);
+
 template<typename... TArgs>
 void constructItems(SrCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
   using Index = SrCSAWithPsiRun<TArgs...>;
@@ -370,9 +374,9 @@ void constructItems(SrCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
 
   // Construct subsampling backward of mark links (text positions of Psi-run first letter indices from last letter)
   if (!sdsl::cache_file_exists<typename Index::MarksToSamples>(
-      prefix + keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(),
-      t_config)
-  ) {
+    prefix + keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(),
+    t_config
+  )) {
     auto event = sdsl::memory_monitor::event("SubmarksToSubsamples");
     constructSubmarkLinksForPhiForwardWithPsiRuns<typename Index::MarksToSamples>(subsample_rate, t_config);
   }
@@ -387,6 +391,13 @@ void constructItems(SrCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
         sdsl::int_vector_buffer<>(sdsl::cache_file_name<sdsl::int_vector<>>(keys[kPsi][kHead][kTextPos], t_config))
         .size();
     constructBitVectorFromIntVector<typename Index::BvSamplesIdx>(key, t_config, r, false, true);
+  }
+
+  // Construct cumulative counts of Psi (or BWT) runs
+  if (!sdsl::cache_file_exists<typename Index::CumulativeRuns>(keys[kPsi][kCumulativeRuns].get<std::string>(),
+                                                               t_config)) {
+    auto event = sdsl::memory_monitor::event("CumulativeRuns");
+    constructCumulativeCountsWithPsiRuns<typename Index::CumulativeRuns>(t_config);
   }
 }
 
@@ -556,6 +567,30 @@ void constructSubmarkLinksForPhiForwardWithPsiRuns(const std::size_t t_subsample
     auto submark_to_subsample_links = construct<TMarksToSamples>(submark_to_subsample_links_iv);
     sri::store_to_cache(submark_to_subsample_links, key, t_config, true);
   }
+}
+
+template<typename TRunCumulativeCounts>
+void constructCumulativeCountsWithPsiRuns(Config& t_config) {
+  using namespace conf;
+  const auto& keys = t_config.keys;
+
+  PsiCoreRLE<> psi_rle;
+  sdsl::load_from_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
+
+  const auto sigma = psi_rle.sigma();
+  const auto r =
+      sdsl::int_vector_buffer<>(sdsl::cache_file_name<sdsl::int_vector<>>(keys[kPsi][kHead][kTextPos], t_config))
+      .size();
+  const auto log_r = sdsl::bits::hi(r) + 1;
+  auto cumulative_counts_iv = sdsl::int_vector<>(sigma, 0, log_r);
+  std::size_t n_runs = 0;
+  for (std::size_t i = 0; i < sigma; ++i) {
+    n_runs += psi_rle.countRuns(i);
+    cumulative_counts_iv[i] = n_runs;
+  }
+
+  auto cumulative_counts = construct<TRunCumulativeCounts>(cumulative_counts_iv);
+  sri::store_to_cache(cumulative_counts, keys[kPsi][kCumulativeRuns], t_config, true);
 }
 }
 
