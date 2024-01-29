@@ -51,8 +51,11 @@ inline auto KeySortedByAlphabet(const std::string& t_key) {
   return t_key + "_sorted_alphabet";
 }
 
-inline auto getExtremes(const sdsl::cache_config& t_config, const std::string& t_key) {
-  sdsl::int_vector_buffer<> buffer(cache_file_name(t_key, t_config));
+inline auto getExtremes(const sdsl::cache_config& t_config, const std::string& t_key, bool t_add_type_hash = false) {
+  const auto filename = t_add_type_hash
+                          ? sdsl::cache_file_name<sdsl::int_vector<>>(t_key, t_config)
+                          : sdsl::cache_file_name(t_key, t_config);
+  sdsl::int_vector_buffer<> buffer(filename);
   return std::array<std::size_t, 2>{buffer[0], buffer[buffer.size() - 1]};
 }
 
