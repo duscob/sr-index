@@ -21,6 +21,7 @@ using PsiRunTailAscLink = IntVector;
 using BitVector = sdsl::sd_vector<>;
 using Marks = BitVector;
 using SampleRate = std::size_t;
+using SampleIdxs = BitVector;
 
 class BaseConstructTests : public BaseConfigTests {
 public:
@@ -92,7 +93,7 @@ INSTANTIATE_TEST_SUITE_P(
 class ConstructSRCSATests : public BaseConstructTests,
                             public testing::WithParamInterface<std::tuple<
                               String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead, PsiRunTail,
-                              PsiRunTailAscLink, Marks
+                              PsiRunTailAscLink, Marks, SampleIdxs
                             >> {
 protected:
   void SetUp() override {
@@ -104,9 +105,9 @@ protected:
 TEST_P(ConstructSRCSATests, construct) {
   using namespace sri::conf;
 
-  sri::constructRCSAWithPsiRuns<8, sdsl::sd_vector<>>(config_.file_map[key_tmp_input_], config_);
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::constructBaseSrCSAWithPsiRuns<sdsl::int_vector<>, sdsl::sd_vector<>, sdsl::int_vector<>>(subsample_rate, config_);
+  sri::SrCSAWithPsiRun<> index(subsample_rate);
+  sri::constructItems(index, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
 
@@ -116,6 +117,7 @@ TEST_P(ConstructSRCSATests, construct) {
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<5>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()), true);
+  compare(prefix + config_.keys[kPsi][kHead][kIdx].get<std::string>(), std::get<8>(GetParam()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -130,7 +132,8 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunHead{17, 16, 8, 2, 5, 14},
       PsiRunTail{14, 17, 16, 8, 10, 5},
       PsiRunTailAscLink{5, 3, 4, 0, 2, 1},
-      Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1})
+      Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1}),
+      SampleIdxs({1, 1, 1, 1, 0, 0, 0, 0, 1, 1})
     ),
     std::make_tuple(
       String{"abcabcababc"},
@@ -140,7 +143,8 @@ INSTANTIATE_TEST_SUITE_P(
       PsiRunHead{11, 6, 7, 2},
       PsiRunTail{2, 11, 0, 5},
       PsiRunTailAscLink{2, 0, 3, 1},
-      Marks({1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1})
+      Marks({1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}),
+      SampleIdxs({1, 1, 1, 0, 0, 1})
     )
   )
 );
