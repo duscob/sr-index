@@ -133,7 +133,7 @@ class LocateTypedTests : public BaseConfigTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSAWithBWTRun<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSAWithBWTRun<>, sri::RCSAWithPsiRun<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
@@ -167,7 +167,8 @@ using SRIndexes = ::testing::Types<sri::SrIndex<>,
                                    sri::SrCSAValidArea<sri::SrCSA<>>,
                                    sri::SrCSASlim<>,
                                    sri::SrCSAValidMark<sri::SrCSASlim<>>,
-                                   sri::SrCSAValidArea<sri::SrCSASlim<>>>;
+                                   sri::SrCSAValidArea<sri::SrCSASlim<>>,
+                                   sri::SrCSAWithPsiRun<>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {
