@@ -13,6 +13,7 @@
 #include "sr-index/construct.h"
 #include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_psi.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
@@ -116,6 +117,10 @@ auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sri::Config t_config,
   BM_ConstructSrIndex<sri::SrCSASlim<>>(t_state, t_config, t_data_path);
 };
 
+auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<sri::SrCSAWithPsiRun<>>(t_state, t_config, t_data_path);
+};
+
 auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   BM_ConstructSrIndex<sri::SrCSAValidMark<sri::SrCSA<>>>(t_state, t_config, t_data_path);
 };
@@ -147,6 +152,10 @@ int main(int argc, char **argv) {
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
   benchmark::RegisterBenchmark("SR-CSA-Slim", BM_ConstructSrCSASlim, config, data_path)
+      ->RangeMultiplier(2)
+      ->Range(FLAGS_min_s, FLAGS_max_s);
+
+  benchmark::RegisterBenchmark("SR-CSA-Psi-Runs", BM_ConstructSrCSAWithPsiRuns, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
