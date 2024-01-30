@@ -119,7 +119,7 @@ TEST_P(ConstructSRCSATests, construct) {
   compare(prefix + config_.keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>(), std::get<6>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kTail][kTextPos].get<std::string>(), std::get<7>(GetParam()), true);
   compare(prefix + config_.keys[kPsi][kHead][kIdx].get<std::string>(), std::get<8>(GetParam()), true);
-  compare(config_.keys[kPsi][kCumulativeRuns].get<std::string>(), std::get<9>(GetParam()), true);
+  compare(config_.keys[kPsi][kCumRun].get<std::string>(), std::get<9>(GetParam()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
