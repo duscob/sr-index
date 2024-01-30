@@ -789,10 +789,7 @@ void construct(
   // Construct subsampling indices backward of samples sorted by alphabet
   if (!sdsl::cache_file_exists<TBVSampleIdx>(KeySortedByAlphabet(prefix_key + conf::KEY_BWT_RUN_FIRST_IDX), t_config)) {
     auto event = sdsl::memory_monitor::event("Subsampling");
-    std::size_t r; {
-      sdsl::int_vector_buffer<> bwt(sdsl::cache_file_name(conf::KEY_BWT_RUN_FIRST, t_config));
-      r = bwt.size();
-    }
+    const auto r = sdsl::int_vector_buffer<>(sdsl::cache_file_name(conf::KEY_BWT_RUN_FIRST, t_config)).size();
 
     constructBitVectorFromIntVector<TBVSampleIdx>(KeySortedByAlphabet(prefix_key + conf::KEY_BWT_RUN_FIRST_IDX),
                                                   t_config,
