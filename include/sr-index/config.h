@@ -33,7 +33,7 @@ constexpr std::string_view kTextPos = "textPos";
 constexpr std::string_view kTextPosAsc = "textPosAsc";
 constexpr std::string_view kIdx = "idx";
 constexpr std::string_view kLink = "link";
-constexpr std::string_view kCumulativeRuns = "cumulativeRuns";
+constexpr std::string_view kCumRun = "cumulativeRuns";
 }
 
 template<uint8_t t_width>
@@ -61,7 +61,7 @@ auto createDefaultKeys() {
     {
       kPsi, {
         {kBase, sdsl::conf::KEY_PSI},
-        {kCumulativeRuns, "psi_run_cumulative_count"},
+        {kCumRun, "psi_run_cumulative_count"},
         {
           kHead, {
             {kPos, "psi_run_first"},

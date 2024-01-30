@@ -56,8 +56,8 @@ public:
     written_bytes +=
         this->template serializeRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
 
-    // written_bytes +=
-    //   this->template serializeItem<TRunCumulativeCount>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
+    written_bytes +=
+      this->template serializeItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
 
     return written_bytes;
   }
@@ -67,8 +67,8 @@ protected:
   void setupKeyNames(const JSON& t_keys) override {
     if (!this->keys_.empty()) return;
 
-    Base::setupKeyNames();
-    this->keys_.resize(6);
+    Base::setupKeyNames(t_keys);
+    this->keys_.resize(7);
     using namespace sri::conf;
     // key(SrIndexKey::ALPHABET) = t_keys[kAlphabet];
     // key(SrIndexKey::NAVIGATE) = t_keys[kPsi][kBase];
@@ -77,7 +77,7 @@ protected:
     key(SrIndexKey::MARK_TO_SAMPLE) = key_prefix_ + t_keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>();
     key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + t_keys[kPsi][kHead][kIdx].get<std::string>();
 
-    // key(SrIndexKey::RUN_CUMULATIVE_COUNT) = conf::KEY_BWT_RUN_CUMULATIVE_COUNT;
+    key(SrIndexKey::RUN_CUMULATIVE_COUNT) = t_keys[kPsi][kCumRun].get<std::string>();
   }
 
   using typename Base::TSource;
@@ -88,7 +88,7 @@ protected:
     this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
 
-    // this->template loadItem<TRunCumulativeCount>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
+    this->template loadItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source, true);
   }
 
   void constructIndex(TSource& t_source) override {
@@ -148,7 +148,7 @@ protected:
 
   using typename Base::Value;
   auto constructGetSample(TSource& t_source) {
-    auto cref_run_cum_c = this->template loadItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source);
+    auto cref_run_cum_c = this->template loadItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source, true);
     auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
@@ -394,8 +394,7 @@ void constructItems(SrCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
   }
 
   // Construct cumulative counts of Psi (or BWT) runs
-  if (!sdsl::cache_file_exists<typename Index::CumulativeRuns>(keys[kPsi][kCumulativeRuns].get<std::string>(),
-                                                               t_config)) {
+  if (!sdsl::cache_file_exists<typename Index::CumulativeRuns>(keys[kPsi][kCumRun].get<std::string>(), t_config)) {
     auto event = sdsl::memory_monitor::event("CumulativeRuns");
     constructCumulativeCountsWithPsiRuns<typename Index::CumulativeRuns>(t_config);
   }
@@ -590,7 +589,7 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
   }
 
   auto cumulative_counts = construct<TRunCumulativeCounts>(cumulative_counts_iv);
-  sri::store_to_cache(cumulative_counts, keys[kPsi][kCumulativeRuns], t_config, true);
+  sri::store_to_cache(cumulative_counts, keys[kPsi][kCumRun], t_config, true);
 }
 }
 
