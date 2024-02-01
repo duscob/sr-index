@@ -12,6 +12,8 @@
 
 #include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_psi.h"
+#include "config.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
 
@@ -27,7 +29,8 @@ class Factory {
     SR_CSA_SLIM,
     SR_CSA_SLIM_VM,
     SR_CSA_SLIM_VA,
-    R_CSA_PSI_RUNS
+    R_CSA_PSI_RUNS,
+    SR_CSA_PSI_RUNS
   };
 
   struct Config {
@@ -39,7 +42,7 @@ class Factory {
     }
   };
 
-  explicit Factory(sdsl::cache_config t_config) : config_{std::move(t_config)} {
+  explicit Factory(sri::Config t_config) : config_{std::move(t_config)} {
     sdsl::int_vector_buffer<t_width> buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, config_));
     n_ = buf.size();
   }
@@ -125,6 +128,14 @@ class Factory {
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;
       }
+
+      case IndexEnum::SR_CSA_PSI_RUNS: {
+        auto idx = std::make_shared<sri::SrCSAWithPsiRun<ExternalGenericStorage>>(std::ref(storage_),
+          t_config.sampling_size);
+        idx->load(config_);
+        index = {idx, sdsl::size_in_bytes(*idx)};
+        break;
+      }
     }
 
     if (index.idx) {
@@ -135,7 +146,7 @@ class Factory {
   }
 
  private:
-  sdsl::cache_config config_;
+  sri::Config config_;
 
   std::size_t n_ = 0;
 

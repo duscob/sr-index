@@ -440,6 +440,8 @@ class PsiCoreRLE {
 
   inline auto sigma() const { return partial_psi_.size(); }
 
+  auto countRuns(TChar t_c) { return partial_psi_[t_c].first.size() / 2; }
+
   typedef std::size_t size_type;
 
   //! Serialize method
@@ -655,13 +657,13 @@ class PsiCoreBV {
 
   //! Rank operation over partial psi function for symbol c
   //! \param t_c Symbol c
-  //! \param t_value Psi value (or SA position) query
+  //! \param t_i Psi value (or SA position) query
   //! \return Rank for symbol c before position given, i.e., number of symbols c with psi value less than t_value
   auto rank(TChar t_c, std::size_t t_i) const { return rank_partial_psi_[t_c](t_i); }
 
   //! Find if the given psi value corresponds to the given symbol (appears in the range of the symbol)
   //! \param t_c Symbol c
-  //! \param t_value Psi value (or SA position) query
+  //! \param t_i Psi value (or SA position) query
   //! \return If exists a symbol t_c with the psi value t_value
   auto exist(TChar t_c, std::size_t t_i) const { return partial_psi_[t_c][t_i]; }
 

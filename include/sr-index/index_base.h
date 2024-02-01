@@ -13,6 +13,8 @@
 
 #include <sdsl/io.hpp>
 
+#include "config.h"
+
 namespace sri {
 
 class LocateIndex {
@@ -69,7 +71,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
 
   auto sizeSequence() const { return n_; }
 
-  virtual void load(sdsl::cache_config t_config) = 0;
+  virtual void load(Config t_config) = 0;
 
   typedef std::size_t size_type;
   virtual void load(std::istream &in) = 0;
@@ -90,7 +92,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
     return keys_[toInt(t_key_enum)];
   }
 
-  using TSource = std::variant<std::reference_wrapper<sdsl::cache_config>, std::reference_wrapper<std::istream>>;
+  using TSource = std::variant<std::reference_wrapper<Config>, std::reference_wrapper<std::istream>>;
 
   template<typename TItem>
   auto loadRawItem(const std::string &t_key, TSource &t_source, bool t_add_type_hash = false) {

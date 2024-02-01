@@ -33,7 +33,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
 
   std::size_t SubsampleRate() const { return subsample_rate_; }
 
-  void load(sdsl::cache_config t_config) override {
+  void load(Config t_config) override {
     TSource source(std::ref(t_config));
     this->loadInner(source);
   }

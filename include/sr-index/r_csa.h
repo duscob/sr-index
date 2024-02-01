@@ -37,7 +37,7 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
 
   RCSAWithBWTRun() = default;
 
-  void load(sdsl::cache_config t_config) override {
+  void load(Config t_config) override {
     TSource source(std::ref(t_config));
     loadInner(source);
   }
@@ -386,21 +386,21 @@ template<typename TStorage = GenericStorage,
     typename TSample = sdsl::int_vector<>>
 class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
  public:
+  using Alphabet = TAlphabet;
+  using Samples = TSample;
+  using BvMarks = TBvMark;
+  using MarksToSamples = TMarkToSampleIdx;
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
   explicit RCSAWithPsiRun(const TStorage &t_storage) : Base(t_storage) {}
 
   RCSAWithPsiRun() = default;
 
-  virtual void load(Config t_config) {
+  virtual ~RCSAWithPsiRun() = default;
+
+  void load(Config t_config) override {
     TSource source(std::ref(t_config));
     loadInner(source, t_config.keys);
-  }
-
-  // FIXME Remove this function (Use previous)
-  void load(sdsl::cache_config t_config) override {
-    TSource source(std::ref(t_config));
-    loadInner(source, createDefaultKeys<TAlphabet::int_width>());
   }
 
   void load(std::istream &in) override {
@@ -457,29 +457,30 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 
     this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
 
-    this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source, true);
 
     this->template loadItem<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
     this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
 
-    this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source, true);
   }
 
-  virtual void constructIndex(TSource &t_source) {
+  virtual void constructIndex(TSource& t_source) {
     this->index_.reset(new RIndexBase{
-        constructLF(t_source),
-        constructComputeDataBackwardSearchStep(
-            [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
-              const auto &[start, end] = tt_next_range;
-              return DataBackwardSearchStep{tt_step, RunData{tt_c, start.run.rank}};
-            }),
-        constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
-        this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData{0, 0}}; },
-        constructGetSymbol(t_source),
-        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
-        constructIsRangeEmpty()
+      constructLF(t_source),
+      constructComputeDataBackwardSearchStep(
+        [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
+          const auto& [start, end] = tt_next_range;
+          return DataBackwardSearchStep{tt_step, RunData{tt_c, start.run.rank}};
+        }
+      ),
+      constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
+      this->n_,
+      [](const auto& tt_step) { return DataBackwardSearchStep{0, RunData{0, 0}}; },
+      constructGetSymbol(t_source),
+      [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
+      constructIsRangeEmpty()
     });
   }
 
@@ -554,10 +555,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 
   struct RunData {
     Char c; // Character for LF step in the range
-    std::size_t rank; // First run rank
-
-//    explicit RunData(std::size_t t_pos) : pos{t_pos} {}
-//    virtual ~RunData() = default;
+    std::size_t partial_rank; // Rank of first run item (total rank for symbol c and partial rank for all symbols)
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
@@ -599,7 +597,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
     auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData &tt_run_data) {
       auto n_prev_runs = cref_psi_core.get().rankCharRun(tt_run_data.c);
-      return cref_samples.get()[n_prev_runs + tt_run_data.rank] + 1;
+      return cref_samples.get()[n_prev_runs + tt_run_data.partial_rank] + 1;
     };
 
     return buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
@@ -625,51 +623,69 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 
 };
 
-template<uint8_t t_width, typename TBvMark>
-void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config);
+template<typename... TArgs>
+void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config);
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(RCSAWithPsiRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
-               const std::string &t_data_path,
-               sri::Config &t_config) {
-  constructRCSAWithPsiRuns<t_width, TBvMark>(t_data_path, t_config);
+template<typename... TArgs>
+void construct(RCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
+  constructItems(t_index, t_config);
 
   t_index.load(t_config);
 }
 
-template<uint8_t t_width, typename TBvMark>
-void constructRCSAWithPsiRuns(const std::string &t_data_path, sri::Config &t_config) {
+template<typename... TArgs>
+void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
+  using Index = RCSAWithPsiRun<TArgs...>;
   using namespace sri::conf;
-  constructIndexBaseItems<t_width>(t_data_path, t_config);
+  constexpr auto width = Index::Alphabet::int_width;
+  const auto& keys = t_config.keys;
+
+  constructIndexBaseItems<width>(t_config.data_path, t_config);
 
   // Construct Psi
-  if (!cache_file_exists(t_config.keys[kPsi][kBase], t_config)) {
+  if (!cache_file_exists(keys[kPsi][kBase], t_config)) {
     auto event = sdsl::memory_monitor::event("Psi");
-    constructPsi<t_width>(t_config);
+    constructPsi<width>(t_config);
   }
 
   // Construct Psi Runs
-  if (!cache_file_exists(t_config.keys[kPsi][kHead][kTextPos], t_config)) {
+  if (!sdsl::cache_file_exists<sdsl::int_vector<>>(keys[kPsi][kHead][kTextPos], t_config)) {
     auto event = sdsl::memory_monitor::event("Psi Runs");
-    constructPsiRuns<t_width>(t_config);
+    constructPsiRuns<width>(t_config);
+  }
+
+  // Construct Samples for the template type
+  if (!std::is_same_v<typename Index::Samples, sdsl::int_vector<>>) {
+    auto event = sdsl::memory_monitor::event("Samples");
+    sdsl::int_vector<> samples_iv;
+    sdsl::load_from_cache(samples_iv, keys[kPsi][kHead][kTextPos], t_config, true);
+
+    auto samples = sri::construct<typename Index::Samples>(samples_iv);
+    sri::store_to_cache(samples, keys[kPsi][kHead][kTextPos], t_config, true);
+  }
+
+  // Construct Successor on the text positions of Psi run last item
+  if (!sdsl::cache_file_exists<typename Index::BvMarks>(keys[kPsi][kTail][kTextPos], t_config)) {
+    auto event = sdsl::memory_monitor::event("Successor");
+    const auto n = sdsl::int_vector_buffer<>(cache_file_name(keys[kBWT][kBase], t_config)).size();
+    constructBitVectorFromIntVector<typename Index::BvMarks>(keys[kPsi][kTail][kTextPos], t_config, n, false, true);
   }
 
   // Construct Links from Mark to Sample
-  if (!cache_file_exists(t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config)) {
+  if (!sdsl::cache_file_exists<typename Index::MarksToSamples>(keys[kPsi][kTail][kTextPosAsc][kLink], t_config)) {
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
-    constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
-  }
 
-  std::size_t n;
-  {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(t_config.keys[kBWT][kBase], t_config));
-    n = bwt_buf.size();
-  }
+    sdsl::int_vector<> mark_to_sample_links;
+    if (!sdsl::cache_file_exists<sdsl::int_vector<>>(keys[kPsi][kTail][kTextPosAsc][kLink], t_config)) {
+      mark_to_sample_links = constructMarkToSampleLinksForPhiForwardWithPsiRuns(t_config);
+    } else {
+      sdsl::load_from_cache(mark_to_sample_links, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+    }
 
-  // Construct Successor on the text positions of BWT run last letter
-  if (!sdsl::cache_file_exists<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config)) {
-    auto event = sdsl::memory_monitor::event("Successor");
-    constructBitVectorFromIntVector<TBvMark>(t_config.keys[kPsi][kTail][kTextPos], t_config, n, false);
+    if (!std::is_same_v<typename Index::MarksToSamples, sdsl::int_vector<>>) {
+      auto values = sri::construct<typename Index::MarksToSamples>(mark_to_sample_links);
+      sri::store_to_cache(values, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+    }
   }
 }
 

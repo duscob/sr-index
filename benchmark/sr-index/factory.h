@@ -12,6 +12,7 @@
 
 #include "sr-index/r_index.h"
 #include "sr-index/sr_index.h"
+#include "config.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
 
@@ -34,7 +35,7 @@ class Factory {
     }
   };
 
-  explicit Factory(sdsl::cache_config t_config) : config_{std::move(t_config)} {
+  explicit Factory(sri::Config t_config) : config_{std::move(t_config)} {
     sdsl::int_vector_buffer<t_width> buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, config_));
     n_ = buf.size();
   }
@@ -93,7 +94,7 @@ class Factory {
   }
 
  private:
-  sdsl::cache_config config_;
+  sri::Config config_;
 
   std::size_t n_ = 0;
 

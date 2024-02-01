@@ -8,6 +8,7 @@
 
 #include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_psi.h"
 #include "sr-index/r_index.h"
 #include "sr-index/sr_index.h"
 #include "sr-index/config.h"
@@ -97,7 +98,8 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrCSASlim<>>(),
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSASlim<>>>(),
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>(),
-            createIndexBuilder<sri::RCSAWithPsiRun<>>()
+            createIndexBuilder<sri::RCSAWithPsiRun<>>(),
+            createSrIndexBuilder<sri::SrCSAWithPsiRun<>>()
         ),
         testing::Values(
             std::make_tuple(String{"abcabcababc"},
@@ -131,7 +133,7 @@ class LocateTypedTests : public BaseConfigTests {
 template<typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSAWithBWTRun<>>;
+using RIndexes = ::testing::Types<sri::RIndex<>, sri::RCSAWithBWTRun<>, sri::RCSAWithPsiRun<>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
@@ -165,7 +167,8 @@ using SRIndexes = ::testing::Types<sri::SrIndex<>,
                                    sri::SrCSAValidArea<sri::SrCSA<>>,
                                    sri::SrCSASlim<>,
                                    sri::SrCSAValidMark<sri::SrCSASlim<>>,
-                                   sri::SrCSAValidArea<sri::SrCSASlim<>>>;
+                                   sri::SrCSAValidArea<sri::SrCSASlim<>>,
+                                   sri::SrCSAWithPsiRun<>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {

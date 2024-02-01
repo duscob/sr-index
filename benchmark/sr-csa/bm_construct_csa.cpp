@@ -13,6 +13,7 @@
 #include "sr-index/construct.h"
 #include "sr-index/r_csa.h"
 #include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_psi.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
@@ -37,7 +38,7 @@ static void BM_WarmUp(benchmark::State &_state) {
 BENCHMARK(BM_WarmUp);
 
 template <typename TIndex>
-void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path, bool t_bwt) {
+void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path) {
   TIndex index;
 
   for (auto _ : t_state) {
@@ -46,13 +47,15 @@ void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std
     sdsl::memory_monitor::stop();
   }
 
+  auto bm_name = t_state.name();
+  std::string idx_name = bm_name.substr(bm_name.find('/') + 1);
   {
-    std::ofstream ofs(std::string("construction-r-csa-") + (t_bwt ? "bwt" : "psi") + ".html");
+    std::ofstream ofs("construction-" + idx_name + ".html");
     sdsl::memory_monitor::write_memory_log<sdsl::HTML_FORMAT>(ofs);
     ofs.close();
   }
   {
-    std::ofstream ofs(std::string("construction-r-csa-") + (t_bwt ? "bwt" : "psi") + ".json");
+    std::ofstream ofs("construction-" + idx_name + ".json");
     sdsl::memory_monitor::write_memory_log<sdsl::JSON_FORMAT>(ofs);
     ofs.close();
   }
@@ -69,11 +72,11 @@ void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std
 }
 
 auto BM_ConstructRCSAWithBWTRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructRCSA<sri::RCSAWithBWTRun<>>(t_state, t_config, t_data_path, true);
+  BM_ConstructRCSA<sri::RCSAWithBWTRun<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructRCSAWithPsiRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructRCSA<sri::RCSAWithPsiRun<>>(t_state, t_config, t_data_path, false);
+  BM_ConstructRCSA<sri::RCSAWithPsiRun<>>(t_state, t_config, t_data_path);
 };
 
 template<typename TSrIndex>
@@ -88,13 +91,15 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sri::Config t_config, const 
     sdsl::memory_monitor::stop();
   }
 
+  auto bm_name = t_state.name();
+  std::string idx_name = bm_name.substr(bm_name.find('/') + 1);
   {
-    std::ofstream ofs("construction-sr-csa-" + std::to_string(subsample_rate) + ".html");
+    std::ofstream ofs("construction-" + idx_name + "-" + std::to_string(subsample_rate) + ".html");
     sdsl::memory_monitor::write_memory_log<sdsl::HTML_FORMAT>(ofs);
     ofs.close();
   }
   {
-    std::ofstream ofs("construction-sr-csa-" + std::to_string(subsample_rate) + ".json");
+    std::ofstream ofs("construction-" + idx_name + "-" + std::to_string(subsample_rate) + ".json");
     sdsl::memory_monitor::write_memory_log<sdsl::JSON_FORMAT>(ofs);
     ofs.close();
   }
@@ -114,6 +119,10 @@ auto BM_ConstructSrCSA = [](benchmark::State &t_state, sri::Config t_config, con
 
 auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
   BM_ConstructSrIndex<sri::SrCSASlim<>>(t_state, t_config, t_data_path);
+};
+
+auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<sri::SrCSAWithPsiRun<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
@@ -147,6 +156,10 @@ int main(int argc, char **argv) {
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
   benchmark::RegisterBenchmark("SR-CSA-Slim", BM_ConstructSrCSASlim, config, data_path)
+      ->RangeMultiplier(2)
+      ->Range(FLAGS_min_s, FLAGS_max_s);
+
+  benchmark::RegisterBenchmark("SR-CSA-Psi-Runs", BM_ConstructSrCSAWithPsiRuns, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 

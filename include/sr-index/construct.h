@@ -25,6 +25,11 @@
 
 namespace sri {
 
+template<typename T>
+auto construct(const sdsl::int_vector<> &t_iv) {
+  return T(t_iv);
+}
+
 template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_config) {
   switch (t_config.sa_algo) {
@@ -42,8 +47,16 @@ void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_conf
   }
 }
 
-auto KeySortedByAlphabet(const std::string &t_key) {
+inline auto KeySortedByAlphabet(const std::string& t_key) {
   return t_key + "_sorted_alphabet";
+}
+
+inline auto getExtremes(const sdsl::cache_config& t_config, const std::string& t_key, bool t_add_type_hash = false) {
+  const auto filename = t_add_type_hash
+                          ? sdsl::cache_file_name<sdsl::int_vector<>>(t_key, t_config)
+                          : sdsl::cache_file_name(t_key, t_config);
+  sdsl::int_vector_buffer<> buffer(filename);
+  return std::array<std::size_t, 2>{buffer[0], buffer[buffer.size() - 1]};
 }
 
 template<uint8_t t_width>
@@ -99,10 +112,12 @@ void constructPsiRuns(Config &t_config) {
       psi_run_text_pos_partial[bwt_rle[bwt_run_pos[i]]].emplace_back(bwt_run_text_pos[i]);
     }
 
-    auto psi_run_text_pos = sdsl::int_vector_buffer<>(cache_file_name(key_psi_run_text_pos, t_config),
-                                                      std::ios::out,
-                                                      1 << 20,
-                                                      bwt_run_text_pos.width());
+    auto psi_run_text_pos = sdsl::int_vector_buffer<>(
+      sdsl::cache_file_name<sdsl::int_vector<>>(key_psi_run_text_pos, t_config),
+      std::ios::out,
+      1 << 20,
+      bwt_run_text_pos.width()
+    );
 
     for (const auto &symbol_text_pos : psi_run_text_pos_partial) {
       for (const auto &text_pos : symbol_text_pos) {
@@ -199,11 +214,11 @@ void constructMarkToSampleLinksForPhiForwardWithBWTRuns(sdsl::cache_config &t_co
   sdsl::store_to_cache(mark_to_sample_links, conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX, t_config);
 }
 
-void constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
+inline auto constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
   using namespace sri::conf;
 
   sdsl::int_vector<> marks; // Text position of the Psi run tails
-  sdsl::load_from_cache(marks, t_config.keys[kPsi][kTail][kTextPos], t_config);
+  sdsl::load_from_cache(marks, t_config.keys[kPsi][kTail][kTextPos], t_config, true);
 
   auto get_link = [r = marks.size()](const auto &tt_mark_idx) {
     return (tt_mark_idx + 1) % r;
@@ -211,8 +226,10 @@ void constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config) {
 
   auto [sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
 
-  sdsl::store_to_cache(sorted_marks_idx, t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config);
-  sdsl::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config);
+  // sdsl::store_to_cache(sorted_marks_idx, t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config);
+  sri::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+
+  return mark_to_sample_links;
 }
 
 void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
@@ -283,17 +300,33 @@ void constructBitVectorFromIntVector(TValues &t_values,
   sri::store_to_cache(bv_select, t_key, t_config, true);
 }
 
-template<typename TBitVector, typename TBVRank = typename TBitVector::rank_1_type, typename TBVSelect = typename TBitVector::select_1_type>
-void constructBitVectorFromIntVector(
-    const std::string &t_key, sdsl::cache_config &t_config, std::size_t t_bv_size, bool t_init_value) {
-  sdsl::int_vector_buffer<> int_buf(sdsl::cache_file_name(t_key, t_config));
+template<typename TBitVector,
+  typename TBVRank = typename TBitVector::rank_1_type,
+  typename TBVSelect = typename TBitVector::select_1_type>
+void constructBitVectorFromIntVector(const std::string& t_key,
+                                     sdsl::cache_config& t_config,
+                                     std::size_t t_bv_size,
+                                     bool t_init_value,
+                                     bool t_add_type_hash = false) {
+  const auto filename = t_add_type_hash
+                          ? sdsl::cache_file_name<sdsl::int_vector<>>(t_key, t_config)
+                          : sdsl::cache_file_name(t_key, t_config);
+  sdsl::int_vector_buffer<> int_buf(filename);
   constructBitVectorFromIntVector<TBitVector, sdsl::int_vector_buffer<>, TBVRank, TBVSelect>(
-      int_buf, t_key, t_config, t_bv_size, t_init_value);
+    int_buf,
+    t_key,
+    t_config,
+    t_bv_size,
+    t_init_value
+  );
 }
 
-void constructSortedIndices(const std::string &t_key, sdsl::cache_config &t_config, const std::string &t_out_key) {
+inline void constructSortedIndices(const std::string& t_key,
+                                   sdsl::cache_config& t_config,
+                                   const std::string& t_out_key,
+                                   bool t_add_type_hash = false) {
   sdsl::int_vector<> values;
-  sdsl::load_from_cache(values, t_key, t_config);
+  sdsl::load_from_cache(values, t_key, t_config, t_add_type_hash);
 
   auto values_idx = sortIndices(values);
 
