@@ -48,6 +48,7 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -272,6 +273,7 @@ class CSARaw : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE> {
   CSARaw() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -406,6 +408,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 

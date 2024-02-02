@@ -47,6 +47,7 @@ class SrCSABase : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, T
   }
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -175,6 +176,7 @@ class SrCSASlim : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkT
   SrCSASlim() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -391,6 +393,7 @@ class SrCSA : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSam
   SrCSA() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
 
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -571,6 +574,7 @@ class SrCSAValidMark : public TSrCSA {
   SrCSAValidMark() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -671,6 +675,7 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
   SrCSAValidArea() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 

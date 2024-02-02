@@ -45,6 +45,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   }
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -267,6 +268,7 @@ class SrIndexValidMark : public SrIndex<
   SrIndexValidMark() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -370,6 +372,7 @@ class SrIndexValidArea : public SrIndexValidMark<
   SrIndexValidArea() = default;
 
   using typename Base::size_type;
+  using typename Base::SrIndexKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
