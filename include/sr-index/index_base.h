@@ -47,7 +47,8 @@ enum class SrIndexKey : unsigned char {
   SAMPLES_IDX,
   RUN_CUMULATIVE_COUNT,
   VALID_MARKS,
-  VALID_AREAS
+  VALID_AREAS,
+  NUM_ITEMS
 };
 
 auto toInt(SrIndexKey t_k) {
@@ -199,7 +200,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
 
   std::size_t n_ = 0;
   TStorage storage_;
-  std::vector<std::string> keys_;
+  std::array<std::string, static_cast<u_int8_t>(SrIndexKey::NUM_ITEMS)> keys_;
 
   std::shared_ptr<LocateIndex> index_ = nullptr;
 };

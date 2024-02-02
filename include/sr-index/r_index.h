@@ -78,9 +78,6 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
   using Base::key;
   virtual void setupKeyNames() {
-    if (!this->keys_.empty()) return;
-
-    this->keys_.resize(5);
     key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
     key(SrIndexKey::NAVIGATE) = conf::KEY_BWT_RLE;
     key(SrIndexKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;

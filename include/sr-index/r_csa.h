@@ -80,9 +80,6 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
 
   using Base::key;
   virtual void setupKeyNames() {
-    if (!this->keys_.empty()) return;
-
-    this->keys_.resize(5);
     key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
     key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
     key(SrIndexKey::SAMPLES) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
@@ -441,10 +438,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
 
   using Base::key;
   virtual void setupKeyNames(const JSON &t_keys) {
-    if (!this->keys_.empty()) return;
-
     using namespace sri::conf;
-    this->keys_.resize(5);
     key(SrIndexKey::ALPHABET) = t_keys[kAlphabet];
     key(SrIndexKey::NAVIGATE) = t_keys[kPsi][kBase];
     key(SrIndexKey::SAMPLES) = t_keys[kPsi][kHead][kTextPos];

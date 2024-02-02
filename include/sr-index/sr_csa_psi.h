@@ -65,10 +65,7 @@ public:
 protected:
   using Base::key;
   void setupKeyNames(const JSON& t_keys) override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames(t_keys);
-    this->keys_.resize(7);
     using namespace sri::conf;
     // key(SrIndexKey::ALPHABET) = t_keys[kAlphabet];
     // key(SrIndexKey::NAVIGATE) = t_keys[kPsi][kBase];

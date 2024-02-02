@@ -65,10 +65,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_BWT_RLE;
     key(SrIndexKey::SAMPLES) = key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS;
@@ -286,10 +283,7 @@ class SrIndexValidMark : public SrIndex<
   using Base::key;
 
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(8);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
@@ -393,10 +387,7 @@ class SrIndexValidArea : public SrIndexValidMark<
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(9);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;

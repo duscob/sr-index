@@ -62,10 +62,7 @@ class SrCSABase : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, T
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
     key(SrIndexKey::SAMPLES) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
@@ -201,10 +198,7 @@ class SrCSASlim : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkT
   using Base::key;
 
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(7);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
     key(SrIndexKey::SAMPLES) = KeySortedByAlphabet(this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS);
@@ -418,10 +412,7 @@ class SrCSA : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSam
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-//    this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
@@ -596,10 +587,7 @@ class SrCSAValidMark : public TSrCSA {
   using Base::key;
 
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(8);
 //    constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
@@ -700,10 +688,7 @@ class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(9);
 //    constexpr uint8_t t_width = SrCSAValidMark<TSrCSA>::AlphabetWidth;
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
