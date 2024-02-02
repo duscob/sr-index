@@ -68,7 +68,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   virtual size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const = 0;
 
  protected:
-  enum class SrIndexKey : unsigned char {
+  enum class ItemKey : unsigned char {
     ALPHABET = 0,
     NAVIGATE,
     MARKS,
@@ -81,11 +81,11 @@ class IndexBaseWithExternalStorage : public LocateIndex {
     NUM_ITEMS
   };
 
-  auto &key(const SrIndexKey &t_key_enum) {
+  auto &key(const ItemKey &t_key_enum) {
     return keys_[static_cast<unsigned char>(t_key_enum)];
   }
 
-  const auto &key(const SrIndexKey &t_key_enum) const {
+  const auto &key(const ItemKey &t_key_enum) const {
     return keys_[static_cast<unsigned char>(t_key_enum)];
   }
 
@@ -196,7 +196,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
 
   std::size_t n_ = 0;
   TStorage storage_;
-  std::array<std::string, static_cast<u_int8_t>(SrIndexKey::NUM_ITEMS)> keys_;
+  std::array<std::string, static_cast<u_int8_t>(ItemKey::NUM_ITEMS)> keys_;
 
   std::shared_ptr<LocateIndex> index_ = nullptr;
 };

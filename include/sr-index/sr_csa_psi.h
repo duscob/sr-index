@@ -44,7 +44,7 @@ public:
   [[nodiscard]] std::size_t SubsampleRate() const { return subsample_rate_; }
 
   using typename Base::size_type;
-  using typename Base::SrIndexKey;
+  using typename Base::ItemKey;
 
   size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
@@ -52,13 +52,14 @@ public:
     size_type written_bytes = 0;
     written_bytes += Base::serialize(out, v, name);
 
+    written_bytes += this->template serializeItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), out, child, "samples_idx");
     written_bytes +=
-        this->template serializeItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
-    written_bytes +=
-        this->template serializeRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+        this->template serializeRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), out, child, "samples_idx_rank");
 
-    written_bytes +=
-      this->template serializeItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), out, child, "run_cumulative_count");
+    written_bytes += this->template serializeItem<TCumulativeRun>(key(ItemKey::RUN_CUMULATIVE_COUNT),
+                                                                  out,
+                                                                  child,
+                                                                  "run_cumulative_count");
 
     return written_bytes;
   }
@@ -70,12 +71,12 @@ protected:
     using namespace sri::conf;
     // key(SrIndexKey::ALPHABET) = t_keys[kAlphabet];
     // key(SrIndexKey::NAVIGATE) = t_keys[kPsi][kBase];
-    key(SrIndexKey::SAMPLES) = key_prefix_ + t_keys[kPsi][kHead][kTextPos].get<std::string>();
-    key(SrIndexKey::MARKS) = key_prefix_ + t_keys[kPsi][kTail][kTextPos].get<std::string>();
-    key(SrIndexKey::MARK_TO_SAMPLE) = key_prefix_ + t_keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>();
-    key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + t_keys[kPsi][kHead][kIdx].get<std::string>();
+    key(ItemKey::SAMPLES) = key_prefix_ + t_keys[kPsi][kHead][kTextPos].get<std::string>();
+    key(ItemKey::MARKS) = key_prefix_ + t_keys[kPsi][kTail][kTextPos].get<std::string>();
+    key(ItemKey::MARK_TO_SAMPLE) = key_prefix_ + t_keys[kPsi][kTail][kTextPosAsc][kLink].get<std::string>();
+    key(ItemKey::SAMPLES_IDX) = key_prefix_ + t_keys[kPsi][kHead][kIdx].get<std::string>();
 
-    key(SrIndexKey::RUN_CUMULATIVE_COUNT) = t_keys[kPsi][kCumRun].get<std::string>();
+    key(ItemKey::RUN_CUMULATIVE_COUNT) = t_keys[kPsi][kCumRun].get<std::string>();
   }
 
   using typename Base::TSource;
@@ -83,10 +84,10 @@ protected:
   void loadAllItems(TSource& t_source) override {
     Base::loadAllItems(t_source);
 
-    this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
-    this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    this->template loadItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
+    this->template loadBVRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
 
-    this->template loadItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source, true);
+    this->template loadItem<TCumulativeRun>(key(ItemKey::RUN_CUMULATIVE_COUNT), t_source, true);
   }
 
   void constructIndex(TSource& t_source) override {
@@ -146,10 +147,10 @@ protected:
 
   using typename Base::Value;
   auto constructGetSample(TSource& t_source) {
-    auto cref_run_cum_c = this->template loadItem<TCumulativeRun>(key(SrIndexKey::RUN_CUMULATIVE_COUNT), t_source, true);
-    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
-    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_run_cum_c = this->template loadItem<TCumulativeRun>(key(ItemKey::RUN_CUMULATIVE_COUNT), t_source, true);
+    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
+    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
+    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
 
     auto get_sample = [cref_run_cum_c, cref_bv_sample_idx, bv_sample_idx_rank, cref_samples](
       auto tt_char,
@@ -216,7 +217,7 @@ protected:
   }
 
   auto constructSplitRangeInBWTRuns(TSource& t_source) {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     auto create_run = constructCreateRun();
 
     return [cref_psi_core, create_run](const auto& tt_range) -> auto {
@@ -226,8 +227,8 @@ protected:
   }
 
   auto constructSplitRunInBWTRuns(TSource& t_source) {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto create_run = constructCreateRun();
 
     return [cref_psi_core, cref_alphabet, create_run](const auto& tt_run) -> auto {
@@ -259,7 +260,7 @@ protected:
   }
 
   auto constructPsiForRunData(TSource& t_source) {
-    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(SrIndexKey::NAVIGATE), t_source, true);
+    auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     auto psi_select = [cref_psi_core](Char tt_c, auto tt_rnk) {
       RunDataExt run_data;
       auto report = [&run_data, &tt_c](auto tt_pos, auto tt_run_start, auto tt_run_end, auto tt_run_rank) {
@@ -269,7 +270,7 @@ protected:
       return run_data;
     };
 
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto get_c = [cref_alphabet](auto tt_index) { return computeCForSAIndex(cref_alphabet.get().C, tt_index); };
     auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
 
@@ -286,14 +287,14 @@ protected:
                             const TSplitRunInBWTRuns& t_split_run,
                             const TUpdateRun& t_update_run,
                             const TIsRunEmpty& t_is_run_empty) {
-    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
     auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
 
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
     auto get_mark_to_sample_idx = RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, false);
 
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
     SampleValidatorDefault sample_validator_default;
 
