@@ -5,8 +5,6 @@
 #ifndef SRI_SR_CSA_PSI_H_
 #define SRI_SR_CSA_PSI_H_
 
-#include <cstdint>
-
 #include "r_csa.h"
 #include "config.h"
 #include "construct.h"
@@ -91,15 +89,7 @@ protected:
   }
 
   void constructIndex(TSource& t_source) override {
-    constructIndex(t_source,
-                   [this](auto& tt_source) {
-                     return this->constructPhiForRange(tt_source,
-                                                       constructGetSampleForRun(tt_source),
-                                                       constructSplitRangeInBWTRuns(tt_source),
-                                                       constructSplitRunInBWTRuns(tt_source),
-                                                       constructUpdateRun(),
-                                                       constructIsRunEmpty());
-                   });
+    constructIndex(t_source, [this](auto& tt_source) { return this->constructPhiForRange(tt_source); });
   }
 
   using typename Base::Range;
@@ -200,6 +190,24 @@ protected:
     return [](const Run& tt_run) { return !(tt_run.start < tt_run.end); };
   }
 
+  auto constructPhi(TSource& t_source) {
+    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
+
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
+    auto get_mark_to_sample_idx = RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, false);
+
+    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
+    auto get_sample = RandomAccessForCRefContainer(cref_samples);
+    SampleValidatorDefault sample_validator_default;
+
+    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
+    auto phi_simple = [phi](const auto& tt_prev_value) { return phi(tt_prev_value).first; };
+
+    return phi_simple;
+  }
+
   auto constructGetSampleForRun(TSource& t_source) {
     auto get_sample = constructGetSample(t_source);
 
@@ -241,7 +249,7 @@ protected:
       auto cum_next_c = cumulative[c + 1];
       auto first_rank = first - cum_c + 1;
       auto last_rank = std::min(last, cum_next_c) - cum_c + 1;
-      std::vector<decltype(create_run(0u, 0u, (Char) 0u, 0u, false))> runs;
+      std::vector<decltype(create_run(0u, 0u, Char(0u), 0u, false))> runs;
       auto report = [&runs, &create_run](auto tt_first, auto tt_last, auto tt_c, auto tt_n_run, auto tt_is_first) {
         runs.emplace_back(create_run(tt_first, tt_last, tt_c, tt_n_run, tt_is_first));
       };
@@ -279,37 +287,16 @@ protected:
     return [psi](const RunDataExt& tt_run_data) { return psi(tt_run_data.pos); };
   }
 
-  template<typename TGetSampleRun, typename TSplitRangeInBWTRuns, typename TSplitRunInBWTRuns, typename TUpdateRun,
-    typename TIsRunEmpty>
-  auto constructPhiForRange(TSource& t_source,
-                            const TGetSampleRun& t_get_sample,
-                            const TSplitRangeInBWTRuns& t_split_range,
-                            const TSplitRunInBWTRuns& t_split_run,
-                            const TUpdateRun& t_update_run,
-                            const TIsRunEmpty& t_is_run_empty) {
-    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
-    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
-    auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
-
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
-    auto get_mark_to_sample_idx = RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, false);
-
-    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
-    auto get_sample = RandomAccessForCRefContainer(cref_samples);
-    SampleValidatorDefault sample_validator_default;
-
-    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
-    auto phi_simple = [phi](const auto& tt_prev_value) { return phi(tt_prev_value).first; };
-
-    return PhiForwardForRange(phi_simple,
-                              t_get_sample,
-                              t_split_range,
-                              t_split_run,
+  auto constructPhiForRange(TSource& t_source) {
+    return PhiForwardForRange(constructPhi(t_source),
+                              constructGetSampleForRun(t_source),
+                              constructSplitRangeInBWTRuns(t_source),
+                              constructSplitRunInBWTRuns(t_source),
                               subsample_rate_,
                               this->n_,
                               this->constructIsRangeEmpty(),
-                              t_update_run,
-                              t_is_run_empty);
+                              constructUpdateRun(),
+                              constructIsRunEmpty());
   }
 
   std::size_t subsample_rate_ = 1;
