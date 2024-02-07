@@ -98,6 +98,10 @@ auto createDefaultKeys() {
   return keys;
 }
 
+inline auto str(const nlohmann::basic_json<>& t_json) {
+  return t_json.get<std::string>();
+}
+
 struct Config : public sdsl::cache_config {
   std::filesystem::path data_path;
   SAAlgo sa_algo = SDSL_LIBDIVSUFSORT;
