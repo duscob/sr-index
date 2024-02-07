@@ -77,7 +77,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa_psi.h
-        )
+)
 
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
