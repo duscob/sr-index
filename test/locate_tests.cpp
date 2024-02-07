@@ -99,7 +99,8 @@ INSTANTIATE_TEST_SUITE_P(
             createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSASlim<>>>(),
             createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>(),
             createIndexBuilder<sri::RCSAWithPsiRun<>>(),
-            createSrIndexBuilder<sri::SrCSAWithPsiRun<>>()
+            createSrIndexBuilder<sri::SrCSAWithPsiRun<>>(),
+            createSrIndexBuilder<sri::SRCSAValidMark<>>()
         ),
         testing::Values(
             std::make_tuple(String{"abcabcababc"},
@@ -168,7 +169,8 @@ using SRIndexes = ::testing::Types<sri::SrIndex<>,
                                    sri::SrCSASlim<>,
                                    sri::SrCSAValidMark<sri::SrCSASlim<>>,
                                    sri::SrCSAValidArea<sri::SrCSASlim<>>,
-                                   sri::SrCSAWithPsiRun<>>;
+                                   sri::SrCSAWithPsiRun<>,
+                                   sri::SRCSAValidMark<>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {
