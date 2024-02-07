@@ -30,7 +30,8 @@ class Factory {
     SR_CSA_SLIM_VM,
     SR_CSA_SLIM_VA,
     R_CSA_PSI_RUNS,
-    SR_CSA_PSI_RUNS
+    SR_CSA_PSI_RUNS,
+    SR_CSA_PSI_RUNS_VM
   };
 
   struct Config {
@@ -132,6 +133,14 @@ class Factory {
       case IndexEnum::SR_CSA_PSI_RUNS: {
         auto idx = std::make_shared<sri::SrCSAWithPsiRun<ExternalGenericStorage>>(std::ref(storage_),
           t_config.sampling_size);
+        idx->load(config_);
+        index = {idx, sdsl::size_in_bytes(*idx)};
+        break;
+      }
+
+      case IndexEnum::SR_CSA_PSI_RUNS_VM: {
+        auto idx = std::make_shared<sri::SRCSAValidMark<sri::SrCSAWithPsiRun<ExternalGenericStorage>>>(
+            std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;

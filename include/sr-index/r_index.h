@@ -46,22 +46,23 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   using typename Base::size_type;
+  using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
-    written_bytes += this->template serializeItem<TAlphabet>(key(SrIndexKey::ALPHABET), out, child, "alphabet");
+    written_bytes += this->template serializeItem<TAlphabet>(key(ItemKey::ALPHABET), out, child, "alphabet");
 
-    written_bytes += this->template serializeItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), out, child, "bwt");
+    written_bytes += this->template serializeItem<TBwtRLE>(key(ItemKey::NAVIGATE), out, child, "bwt");
 
-    written_bytes += this->template serializeItem<TSample>(key(SrIndexKey::SAMPLES), out, child, "samples");
+    written_bytes += this->template serializeItem<TSample>(key(ItemKey::SAMPLES), out, child, "samples");
 
-    written_bytes += this->template serializeItem<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(key(SrIndexKey::MARKS), out, child, "marks_select");
+    written_bytes += this->template serializeItem<TBvMark>(key(ItemKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(ItemKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(ItemKey::MARKS), out, child, "marks_select");
 
-    written_bytes += this->template serializeItem<TMarkToSampleIdx>(
-        key(SrIndexKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
 
     return written_bytes;
   }
@@ -78,28 +79,25 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
 
   using Base::key;
   virtual void setupKeyNames() {
-    if (!this->keys_.empty()) return;
-
-    this->keys_.resize(5);
-    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
-    key(SrIndexKey::NAVIGATE) = conf::KEY_BWT_RLE;
-    key(SrIndexKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(SrIndexKey::MARKS) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
-    key(SrIndexKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
+    key(ItemKey::ALPHABET) = conf::KEY_ALPHABET;
+    key(ItemKey::NAVIGATE) = conf::KEY_BWT_RLE;
+    key(ItemKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(ItemKey::MARKS) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(ItemKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   }
 
   virtual void loadAllItems(TSource &t_source) {
-    this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+    this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
 
-    this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
 
-    this->template loadItem<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    this->template loadItem<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
 
-    this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
   }
 
   virtual void constructIndex(TSource &t_source) {
@@ -156,11 +154,11 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   auto constructLF(TSource &t_source) {
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     this->n_ = cumulative[cref_alphabet.get().sigma];
 
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
     auto bwt_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
       DataLF data;
       auto report = [&data](const auto &tt_rank, const auto &tt_run_rank, const auto &tt_is_cover) {
@@ -212,9 +210,9 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   auto constructComputeToehold(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
 
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
     auto get_sa_value_for_run_data = [cref_bwt_rle, cref_samples](const RunData &tt_run_data) {
       auto run = cref_bwt_rle.get().selectOnRuns(tt_run_data.last_run_rnk, tt_run_data.c);
       return cref_samples.get()[run] + 1;
@@ -224,7 +222,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   auto constructGetMarkToSampleIdx(TSource &t_source, bool t_default_validity) {
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
     return RandomAccessForTwoContainersDefault(cref_mark_to_sample_idx, t_default_validity);
   }
 
@@ -237,11 +235,11 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   auto constructPhi(TSource &t_source,
                     const TGetMarkToSampleIdx &t_get_mark_to_sample_idx,
                     const TSampleValidator &t_sample_validator) {
-    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
-    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(SrIndexKey::MARKS), t_source, true);
+    auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
     auto predecessor = CircularPredecessor(bv_mark_rank, bv_mark_select, this->n_);
 
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
+    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
 
     return buildPhiBackward(predecessor, t_get_mark_to_sample_idx, get_sample, t_sample_validator, this->n_);
@@ -273,7 +271,7 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   auto constructGetSymbol(TSource &t_source) {
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
     auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[(uint8_t) tt_c]; };
     return get_symbol;

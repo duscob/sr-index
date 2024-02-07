@@ -45,6 +45,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   }
 
   using typename Base::size_type;
+  using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
@@ -54,9 +55,9 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
     written_bytes += Base::serialize(out, v, name);
 
     written_bytes += this->template serializeItem<TBvSampleIdx>(
-        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx");
+        key(ItemKey::SAMPLES_IDX), out, child, "samples_idx");
     written_bytes += this->template serializeRank<TBvSampleIdx>(
-        key(SrIndexKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+        key(ItemKey::SAMPLES_IDX), out, child, "samples_idx_rank");
 
     return written_bytes;
   }
@@ -65,16 +66,13 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(6);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_BWT_RLE;
-    key(SrIndexKey::SAMPLES) = key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(SrIndexKey::MARKS) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST;
-    key(SrIndexKey::MARK_TO_SAMPLE) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
-    key(SrIndexKey::SAMPLES_IDX) = key_prefix_ + conf::KEY_BWT_RUN_LAST_IDX;
+    key(ItemKey::SAMPLES) = key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(ItemKey::MARKS) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST;
+    key(ItemKey::MARK_TO_SAMPLE) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
+    key(ItemKey::SAMPLES_IDX) = key_prefix_ + conf::KEY_BWT_RUN_LAST_IDX;
   }
 
   using typename Base::TSource;
@@ -83,8 +81,8 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   void loadAllItems(TSource &t_source) override {
     Base::loadAllItems(t_source);
 
-    this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
-    this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    this->template loadItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
+    this->template loadBVRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
   }
 
   void constructIndex(TSource &t_source) override {
@@ -127,9 +125,9 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   }
 
   auto constructGetSample(TSource &t_source) {
-    auto cref_samples = this->template loadItem<TSample>(key(SrIndexKey::SAMPLES), t_source);
-    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
-    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(SrIndexKey::SAMPLES_IDX), t_source, true);
+    auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
+    auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
+    auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
 
     return [cref_samples, cref_bv_sample_idx, bv_sample_idx_rank](auto tt_run_rnk) {
       return cref_bv_sample_idx.get()[tt_run_rnk]
@@ -139,14 +137,14 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   }
 
   auto constructComputeToehold(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
 
     auto get_sample = constructGetSample(t_source);
     auto get_sample_run_data = [get_sample](const RunDataExt &tt_run_data) {
       return tt_run_data.is_run_end ? get_sample(tt_run_data.last_run_rnk) : std::nullopt;
     };
 
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto lf_run_data = [cref_bwt_rle, cref_alphabet](RunDataExt &tt_run_data) {
       auto report = [&tt_run_data, cref_alphabet](
           auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_run_start, auto tt_run_end, auto tt_symbol_run_rnk) {
@@ -183,7 +181,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   };
 
   auto constructSplitInBWTRuns(TSource &t_source) {
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
     return [cref_bwt_rle](auto tt_first, auto tt_last) {
       std::vector<Run> runs;
       auto report = [&runs, tt_last](auto tt_rnk, auto tt_c, auto tt_start, auto tt_end) {
@@ -197,11 +195,11 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   }
 
   auto constructLFForPhi(TSource &t_source) {
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(SrIndexKey::ALPHABET), t_source);
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     this->n_ = cumulative[cref_alphabet.get().sigma];
 
-    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(SrIndexKey::NAVIGATE), t_source);
+    auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
     auto bwt_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
       return cref_bwt_rle.get().rank(tt_pos, tt_c);
     };
@@ -270,13 +268,13 @@ class SrIndexValidMark : public SrIndex<
   SrIndexValidMark() = default;
 
   using typename Base::size_type;
+  using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = Base::serialize(out, v, name);
 
-    written_bytes += this->template serializeItem<TBvValidMark>(
-        key(SrIndexKey::VALID_MARKS), out, child, "valid_marks");
+    written_bytes += this->template serializeItem<TBvValidMark>(key(ItemKey::VALID_MARKS), out, child, "valid_marks");
 
     return written_bytes;
   }
@@ -286,17 +284,14 @@ class SrIndexValidMark : public SrIndex<
   using Base::key;
 
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(8);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
 //    key(SrIndexKey::MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
 //    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
 //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_IDX;
-    key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
+    key(ItemKey::VALID_MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
   }
 
   using typename Base::TSource;
@@ -304,7 +299,7 @@ class SrIndexValidMark : public SrIndex<
   void loadAllItems(TSource &t_source) override {
     Base::loadAllItems(t_source);
 
-    this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
   }
 
   void constructIndex(TSource &t_source) override {
@@ -318,8 +313,8 @@ class SrIndexValidMark : public SrIndex<
   using Base::constructIndex;
 
   auto constructGetMarkToSampleIdx(TSource &t_source) {
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
-    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
     return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
   }
 
@@ -376,15 +371,16 @@ class SrIndexValidArea : public SrIndexValidMark<
   SrIndexValidArea() = default;
 
   using typename Base::size_type;
+  using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = Base::serialize(out, v, name);
 
     written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
-        key(SrIndexKey::VALID_MARKS), out, child, "valid_marks_rank");
+        key(ItemKey::VALID_MARKS), out, child, "valid_marks_rank");
 
-    written_bytes += this->template serializeItem<TValidArea>(key(SrIndexKey::VALID_AREAS), out, child, "valid_areas");
+    written_bytes += this->template serializeItem<TValidArea>(key(ItemKey::VALID_AREAS), out, child, "valid_areas");
 
     return written_bytes;
   }
@@ -393,10 +389,7 @@ class SrIndexValidArea : public SrIndexValidMark<
 
   using Base::key;
   void setupKeyNames() override {
-    if (!this->keys_.empty()) return;
-
     Base::setupKeyNames();
-    this->keys_.resize(9);
 //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
 //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
 //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
@@ -404,7 +397,7 @@ class SrIndexValidArea : public SrIndexValidMark<
 //    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
 //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_IDX;
 //    key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
-    key(SrIndexKey::VALID_AREAS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA;
+    key(ItemKey::VALID_AREAS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA;
   }
 
   using typename Base::TSource;
@@ -413,8 +406,8 @@ class SrIndexValidArea : public SrIndexValidMark<
     Base::loadAllItems(t_source);
 
     this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
-        key(SrIndexKey::VALID_MARKS), t_source, true);
-    this->template loadItem<TValidArea>(key(SrIndexKey::VALID_AREAS), t_source);
+        key(ItemKey::VALID_MARKS), t_source, true);
+    this->template loadItem<TValidArea>(key(ItemKey::VALID_AREAS), t_source);
   }
 
   void constructIndex(TSource &t_source) override {
@@ -428,15 +421,15 @@ class SrIndexValidArea : public SrIndexValidMark<
   }
 
   auto constructGetMarkToSampleIdx(TSource &t_source) {
-    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(SrIndexKey::MARK_TO_SAMPLE), t_source);
-    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(SrIndexKey::VALID_MARKS), t_source, true);
+    auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
     return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
   }
 
   auto constructValidateSample(TSource &t_source) {
     auto bv_valid_mark_rank = this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
-        key(SrIndexKey::VALID_MARKS), t_source, true);
-    auto cref_valid_area = this->template loadItem<TValidArea>(key(SrIndexKey::VALID_AREAS), t_source);
+        key(ItemKey::VALID_MARKS), t_source, true);
+    auto cref_valid_area = this->template loadItem<TValidArea>(key(ItemKey::VALID_AREAS), t_source);
     auto get_valid_area = RandomAccessForCRefContainer(cref_valid_area);
 
     return SampleValidator(bv_valid_mark_rank, get_valid_area);

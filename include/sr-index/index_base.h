@@ -38,21 +38,6 @@ const TItem *set(GenericStorage &t_storage, const std::string &t_key, TItem &&t_
   return std::any_cast<TItem>(&it->second);
 }
 
-enum class SrIndexKey : unsigned char {
-  ALPHABET = 0,
-  NAVIGATE,
-  MARKS,
-  SAMPLES,
-  MARK_TO_SAMPLE,
-  SAMPLES_IDX,
-  RUN_CUMULATIVE_COUNT,
-  VALID_MARKS,
-  VALID_AREAS
-};
-
-auto toInt(SrIndexKey t_k) {
-  return static_cast<unsigned char>(t_k);
-}
 
 template<typename TStorage = GenericStorage>
 class IndexBaseWithExternalStorage : public LocateIndex {
@@ -83,13 +68,25 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   virtual size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const = 0;
 
  protected:
+  enum class ItemKey : unsigned char {
+    ALPHABET = 0,
+    NAVIGATE,
+    MARKS,
+    SAMPLES,
+    MARK_TO_SAMPLE,
+    SAMPLES_IDX,
+    RUN_CUMULATIVE_COUNT,
+    VALID_MARKS,
+    VALID_AREAS,
+    NUM_ITEMS
+  };
 
-  auto &key(const SrIndexKey &t_key_enum) {
-    return keys_[toInt(t_key_enum)];
+  auto &key(const ItemKey &t_key_enum) {
+    return keys_[static_cast<unsigned char>(t_key_enum)];
   }
 
-  const auto &key(const SrIndexKey &t_key_enum) const {
-    return keys_[toInt(t_key_enum)];
+  const auto &key(const ItemKey &t_key_enum) const {
+    return keys_[static_cast<unsigned char>(t_key_enum)];
   }
 
   using TSource = std::variant<std::reference_wrapper<Config>, std::reference_wrapper<std::istream>>;
@@ -199,7 +196,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
 
   std::size_t n_ = 0;
   TStorage storage_;
-  std::vector<std::string> keys_;
+  std::array<std::string, static_cast<u_int8_t>(ItemKey::NUM_ITEMS)> keys_;
 
   std::shared_ptr<LocateIndex> index_ = nullptr;
 };

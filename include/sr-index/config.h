@@ -34,6 +34,8 @@ constexpr std::string_view kTextPosAsc = "textPosAsc";
 constexpr std::string_view kIdx = "idx";
 constexpr std::string_view kLink = "link";
 constexpr std::string_view kCumRun = "cumulativeRuns";
+constexpr std::string_view kValidMark = "validMark";
+constexpr std::string_view kValidArea = "validArea";
 }
 
 template<uint8_t t_width>
@@ -83,6 +85,8 @@ auto createDefaultKeys() {
               kTextPosAsc, {
                 {kIdx, "psi_run_last_text_pos_asc_idx"},
                 {kLink, "psi_run_last_text_pos_asc_link"},
+                {kValidMark, "psi_run_last_text_pos_asc_valid_mark"},
+                {kValidArea, "psi_run_last_text_pos_asc_valid_area"},
               }
             },
           }
@@ -92,6 +96,10 @@ auto createDefaultKeys() {
   };
 
   return keys;
+}
+
+inline auto str(const nlohmann::basic_json<>& t_json) {
+  return t_json.get<std::string>();
 }
 
 struct Config : public sdsl::cache_config {

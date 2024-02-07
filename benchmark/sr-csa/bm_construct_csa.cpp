@@ -133,6 +133,10 @@ auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sri::Config t_co
   BM_ConstructSrIndex<sri::SrCSAValidArea<sri::SrCSA<>>>(t_state, t_config, t_data_path);
 };
 
+auto BM_ConstructSRCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+  BM_ConstructSrIndex<sri::SRCSAValidMark<>>(t_state, t_config, t_data_path);
+};
+
 int main(int argc, char **argv) {
   gflags::SetUsageMessage("This program calculates the sr-csa items for the given text.");
   gflags::AllowCommandLineReparsing();
@@ -164,6 +168,10 @@ int main(int argc, char **argv) {
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
   benchmark::RegisterBenchmark("SR-CSA-VM", BM_ConstructSrCSAValidMark, config, data_path)
+      ->RangeMultiplier(2)
+      ->Range(FLAGS_min_s, FLAGS_max_s);
+
+  benchmark::RegisterBenchmark("SR-CSA-Psi-Runs-VM", BM_ConstructSRCSAValidMark, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
