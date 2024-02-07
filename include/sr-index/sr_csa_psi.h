@@ -663,6 +663,13 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
 template<typename... TArgs>
 void constructItems(SRCSAValidMark<TArgs...>& t_index, Config& t_config);
 
+template<typename... TArgs>
+void construct(SRCSAValidMark<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
+  constructItems(t_index, t_config);
+
+  t_index.load(t_config);
+}
+
 inline void constructSubmarksValidity(std::size_t t_subsample_rate, Config& t_config);
 
 template<typename... TArgs>
