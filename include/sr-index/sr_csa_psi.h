@@ -659,6 +659,86 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
   auto cumulative_counts = construct<TRunCumulativeCounts>(cumulative_counts_iv);
   sri::store_to_cache(cumulative_counts, keys[kPsi][kCumRun], t_config, true);
 }
+
+template<typename... TArgs>
+void constructItems(SRCSAValidMark<TArgs...>& t_index, Config& t_config);
+
+inline void constructSubmarksValidity(std::size_t t_subsample_rate, Config& t_config);
+
+template<typename... TArgs>
+void constructItems(SRCSAValidMark<TArgs...>& t_index, Config& t_config) {
+  using Index = SRCSAValidMark<TArgs...>;
+  using namespace conf;
+  const auto& keys = t_config.keys;
+
+  constructItems(dynamic_cast<typename Index::Base &>(t_index), t_config);
+
+  auto subsample_rate = t_index.SubsampleRate();
+  auto prefix = std::to_string(subsample_rate) + "_";
+
+  // Construct subsampling validity marks and areas
+  if (
+    auto key = prefix + keys[kPsi][kTail][kTextPosAsc][kValidMark].get<std::string>();
+    !sdsl::cache_file_exists<typename Index::BvValidMarks>(key, t_config)
+  ) {
+    auto event = sdsl::memory_monitor::event("Subsampling Validity");
+    if (!sdsl::cache_file_exists<sdsl::int_vector<>>(key, t_config)) {
+      constructSubmarksValidity(subsample_rate, t_config);
+    }
+
+    std::size_t r_prime =
+        sdsl::int_vector_buffer<>(sdsl::cache_file_name<sdsl::int_vector<>>(prefix + str(keys[kPsi][kTail][kTextPos]),
+                                                                            t_config))
+        .size();
+    constructBitVectorFromIntVector<typename Index::BvValidMarks,
+                                    typename Index::BvValidMarks::rank_0_type,
+                                    typename Index::BvValidMarks::select_0_type>(key, t_config, r_prime, true, true);
+  }
+}
+
+inline void constructSubmarksValidity(const std::size_t t_subsample_rate, Config& t_config) {
+  using namespace conf;
+  const auto& keys = t_config.keys;
+
+  auto prefix = std::to_string(t_subsample_rate) + "_";
+
+  sdsl::int_vector<> marks;
+  sdsl::load_from_cache(marks, keys[kPsi][kTail][kTextPos], t_config, true);
+  std::sort(marks.begin(), marks.end());
+  auto it_marks = marks.end();
+  auto get_next_mark = [&it_marks]() { return *(--it_marks); };
+
+  sdsl::int_vector<> submarks;
+  sdsl::load_from_cache(submarks, prefix + keys[kPsi][kTail][kTextPos].get<std::string>(), t_config, true);
+  std::sort(submarks.begin(), submarks.end());
+  auto it_submarks = submarks.end();
+  auto get_next_submark = [&it_submarks]() { return *(--it_submarks); };
+
+  auto r_prime = submarks.size();
+  std::vector<std::pair<std::size_t, std::size_t>> validity;
+  validity.reserve(r_prime / 4);
+  std::size_t max_valid_area = 0;
+  auto report = [r_prime, &validity, &max_valid_area](auto tt_i, auto tt_submark, auto tt_next_mark) {
+    auto valid_area = tt_submark - tt_next_mark;
+    validity.emplace_back(r_prime - tt_i - 1, valid_area);
+
+    if (max_valid_area < valid_area) max_valid_area = valid_area;
+  };
+
+  computeSubmarksValidity(r_prime, get_next_mark, get_next_submark, report);
+
+  sdsl::int_vector<> valid_marks(validity.size(), sdsl::bits::hi(r_prime) + 1);
+  sdsl::int_vector<> valid_areas(validity.size(), 0, sdsl::bits::hi(max_valid_area) + 1);
+
+  std::size_t i = 0;
+  for (auto it = validity.rbegin(); it != validity.rend(); ++it, ++i) {
+    valid_marks[i] = it->first;
+    valid_areas[i] = it->second;
+  }
+
+  sri::store_to_cache(valid_marks, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidMark]), t_config, true);
+  sri::store_to_cache(valid_areas, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]), t_config, true);
+}
 }
 
 #endif //SRI_SR_CSA_PSI_H_
