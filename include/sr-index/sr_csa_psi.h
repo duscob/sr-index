@@ -216,12 +216,10 @@ protected:
     };
   }
 
-  auto constructCreateRun() {
-    auto create_run = [](auto tt_first, auto tt_last, auto tt_c, auto tt_partial_rank, auto tt_is_first) {
+  auto constructCreateRun() const {
+    return [](auto tt_first, auto tt_last, auto tt_c, auto tt_partial_rank, auto tt_is_first) {
       return Run{tt_first, tt_last, tt_c, tt_partial_rank, tt_is_first};
     };
-
-    return create_run;
   }
 
   auto constructSplitRangeInBWTRuns(TSource& t_source) {
@@ -301,6 +299,90 @@ protected:
 
   std::size_t subsample_rate_ = 1;
   std::string key_prefix_;
+};
+
+template<typename TSrCSA = SrCSAWithPsiRun<>, typename TBvValidMark = sdsl::bit_vector>
+class SRCSAValidMark : public TSrCSA {
+public:
+  using Base = TSrCSA;
+  using BvValidMarks = TBvValidMark;
+
+  template<typename TStorage>
+  SRCSAValidMark(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+
+  explicit SRCSAValidMark(std::size_t t_sr) : Base(t_sr) {}
+
+  SRCSAValidMark() = default;
+
+  using typename Base::size_type;
+  using typename Base::ItemKey;
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = Base::serialize(out, v, name);
+
+    written_bytes += this->template serializeItem<TBvValidMark>(key(ItemKey::VALID_MARKS), out, child, "valid_marks");
+
+    return written_bytes;
+  }
+
+protected:
+  using Base::key;
+
+  void setupKeyNames(const JSON& t_keys) override {
+    using namespace conf;
+
+    Base::setupKeyNames(t_keys);
+    key(ItemKey::VALID_MARKS) = this->key_prefix_ + str(t_keys[kPsi][kTail][kTextPosAsc][kValidMark]);
+  }
+
+  using typename Base::TSource;
+
+  void loadAllItems(TSource& t_source) override {
+    Base::loadAllItems(t_source);
+
+    this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
+  }
+
+  void constructIndex(TSource& t_source) override {
+    Base::constructIndex(t_source,
+                         [this](auto& tt_source) {
+                           return PhiForwardForRangeWithValidity(
+                             constructPhi(tt_source, []() { return SampleValidatorDefault(); }),
+                             Base::constructGetSampleForRun(tt_source),
+                             Base::constructSplitRangeInBWTRuns(tt_source),
+                             Base::constructSplitRunInBWTRuns(tt_source),
+                             this->subsample_rate_,
+                             this->n_,
+                             this->constructIsRangeEmpty(),
+                             Base::constructUpdateRun(),
+                             Base::constructIsRunEmpty()
+                           );
+                         });
+  }
+
+  using Base::constructIndex;
+
+  using typename Base::BvMark;
+  using typename Base::MarkToSampleIdx;
+  using typename Base::Sample;
+  template<typename TConstructValidateSample>
+  auto constructPhi(TSource& t_source, const TConstructValidateSample& t_construct_validate_sample) {
+    auto bv_mark_rank = this->template loadBVRank<BvMark>(key(ItemKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<BvMark>(key(ItemKey::MARKS), t_source, true);
+    auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
+
+    auto cref_mark_to_sample_idx = this->template loadItem<MarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
+    auto get_mark_to_sample_idx = RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
+
+    auto cref_samples = this->template loadItem<Sample>(key(ItemKey::SAMPLES), t_source);
+    auto get_sample = RandomAccessForCRefContainer(cref_samples);
+
+    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_construct_validate_sample(), this->n_);
+
+    return phi;
+  }
 };
 
 template<typename... TArgs>
