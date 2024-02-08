@@ -347,16 +347,9 @@ protected:
   void constructIndex(TSource& t_source) override {
     Base::constructIndex(t_source,
                          [this](auto& tt_source) {
-                           return PhiForwardForRangeWithValidity(
-                             constructPhi(tt_source, []() { return SampleValidatorDefault(); }),
-                             Base::constructGetSampleForRun(tt_source),
-                             Base::constructSplitRangeInBWTRuns(tt_source),
-                             Base::constructSplitRunInBWTRuns(tt_source),
-                             this->subsample_rate_,
-                             this->n_,
-                             this->constructIsRangeEmpty(),
-                             Base::constructUpdateRun(),
-                             Base::constructIsRunEmpty()
+                           return this->constructPhiRange(
+                             tt_source,
+                             constructPhi(tt_source, []() { return SampleValidatorDefault(); })
                            );
                          });
   }
@@ -382,6 +375,21 @@ protected:
     auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_construct_validate_sample(), this->n_);
 
     return phi;
+  }
+
+  template<typename TPhi>
+  auto constructPhiRange(TSource& t_source, const TPhi& t_phi) {
+    return PhiForwardForRangeWithValidity(
+      t_phi,
+      Base::constructGetSampleForRun(t_source),
+      Base::constructSplitRangeInBWTRuns(t_source),
+      Base::constructSplitRunInBWTRuns(t_source),
+      this->subsample_rate_,
+      this->n_,
+      this->constructIsRangeEmpty(),
+      Base::constructUpdateRun(),
+      Base::constructIsRunEmpty()
+    );
   }
 };
 
