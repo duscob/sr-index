@@ -328,6 +328,7 @@ public:
 
 protected:
   using Base::key;
+  using typename Base::TSource;
 
   void setupKeyNames(const JSON& t_keys) override {
     using namespace conf;
@@ -336,64 +337,127 @@ protected:
     key(ItemKey::VALID_MARKS) = this->key_prefix_ + str(t_keys[kPsi][kTail][kTextPosAsc][kValidMark]);
   }
 
-  using typename Base::TSource;
-
   void loadAllItems(TSource& t_source) override {
     Base::loadAllItems(t_source);
 
     this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
   }
 
+  using Base::constructIndex;
   void constructIndex(TSource& t_source) override {
     Base::constructIndex(t_source,
                          [this](auto& tt_source) {
-                           return PhiForwardForRangeWithValidity(
-                             constructPhi(tt_source, []() { return SampleValidatorDefault(); }),
-                             Base::constructGetSampleForRun(tt_source),
-                             Base::constructSplitRangeInBWTRuns(tt_source),
-                             Base::constructSplitRunInBWTRuns(tt_source),
-                             this->subsample_rate_,
-                             this->n_,
-                             this->constructIsRangeEmpty(),
-                             Base::constructUpdateRun(),
-                             Base::constructIsRunEmpty()
+                           return this->constructPhiRange(tt_source, constructPhi(tt_source, SampleValidatorDefault()));
+                         });
+  }
+
+  template<typename TValidateSample>
+  auto constructPhi(TSource& t_source, const TValidateSample& t_validate_sample) {
+    auto bv_mark_rank = this->template loadBVRank<typename Base::BvMarks>(key(ItemKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<typename Base::BvMarks>(key(ItemKey::MARKS), t_source, true);
+    auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
+
+    auto cref_mark_to_sample_idx =
+        this->template loadItem<typename Base::MarksToSamples>(key(ItemKey::MARK_TO_SAMPLE), t_source, true);
+    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
+    auto get_mark_to_sample_idx = RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
+
+    auto cref_samples = this->template loadItem<typename Base::Samples>(key(ItemKey::SAMPLES), t_source);
+    auto get_sample = RandomAccessForCRefContainer(cref_samples);
+
+    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_validate_sample, this->n_);
+
+    return phi;
+  }
+
+  template<typename TPhi>
+  auto constructPhiRange(TSource& t_source, const TPhi& t_phi) {
+    return PhiForwardForRangeWithValidity(
+      t_phi,
+      Base::constructGetSampleForRun(t_source),
+      Base::constructSplitRangeInBWTRuns(t_source),
+      Base::constructSplitRunInBWTRuns(t_source),
+      this->subsample_rate_,
+      this->n_,
+      this->constructIsRangeEmpty(),
+      Base::constructUpdateRun(),
+      Base::constructIsRunEmpty()
+    );
+  }
+};
+
+template<typename TSrCSA = SrCSAWithPsiRun<>,
+  typename TBvValidMark = sdsl::bit_vector,
+  typename TValidArea = sdsl::int_vector<>>
+class SRCSAValidArea : public SRCSAValidMark<TSrCSA, TBvValidMark> {
+public:
+  using Base = SRCSAValidMark<TSrCSA, TBvValidMark>;
+  using ValidAreas = TValidArea;
+
+  template<typename TStorage>
+  SRCSAValidArea(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+
+  explicit SRCSAValidArea(std::size_t t_sr) : Base(t_sr) {}
+
+  SRCSAValidArea() = default;
+
+  using typename Base::size_type;
+  using typename Base::ItemKey;
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = Base::serialize(out, v, name);
+
+    written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
+      key(ItemKey::VALID_MARKS),
+      out,
+      child,
+      "valid_marks_rank");
+
+    written_bytes += this->template serializeItem<TValidArea>(key(ItemKey::VALID_AREAS), out, child, "valid_areas");
+
+    return written_bytes;
+  }
+
+protected:
+  using Base::key;
+  void setupKeyNames(const JSON& t_keys) override {
+    using namespace conf;
+
+    Base::setupKeyNames(t_keys);
+    key(ItemKey::VALID_AREAS) = this->key_prefix_ + str(t_keys[kPsi][kTail][kTextPosAsc][kValidArea]);
+  }
+
+  using typename Base::TSource;
+  using BvValidMarksRank0 = typename TBvValidMark::rank_0_type;
+
+  void loadAllItems(TSource& t_source) override {
+    Base::loadAllItems(t_source);
+
+    this->template loadBVRank<TBvValidMark, BvValidMarksRank0>(key(ItemKey::VALID_MARKS), t_source, true);
+
+    this->template loadItem<TValidArea>(key(ItemKey::VALID_AREAS), t_source, true);
+  }
+
+  void constructIndex(TSource& t_source) override {
+    Base::constructIndex(t_source,
+                         [this](auto& tt_source) {
+                           return this->constructPhiRange(
+                             tt_source,
+                             this->constructPhi(tt_source, constructValidateSample(tt_source))
                            );
                          });
   }
 
-  using Base::constructIndex;
+  auto constructValidateSample(TSource& t_source) {
+    auto bv_valid_mark_rank =
+        this->template loadBVRank<TBvValidMark, BvValidMarksRank0>(key(ItemKey::VALID_MARKS), t_source, true);
+    auto cref_valid_area = this->template loadItem<TValidArea>(key(ItemKey::VALID_AREAS), t_source, true);
+    auto get_valid_area = RandomAccessForCRefContainer(cref_valid_area);
 
-  using typename Base::BvMarks;
-  using typename Base::MarksToSamples;
-  using typename Base::Samples;
-  template<typename TConstructValidateSample>
-  auto constructPhi(TSource& t_source, const TConstructValidateSample& t_construct_validate_sample) {
-    auto bv_mark_rank = this->template loadBVRank<BvMarks>(key(ItemKey::MARKS), t_source, true);
-    auto bv_mark_select = this->template loadBVSelect<BvMarks>(key(ItemKey::MARKS), t_source, true);
-    auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
-
-    auto cref_mark_to_sample_idx = this->template loadItem<MarksToSamples>(key(ItemKey::MARK_TO_SAMPLE), t_source);
-    auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
-    auto get_mark_to_sample_idx = RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
-
-    auto cref_samples = this->template loadItem<Samples>(key(ItemKey::SAMPLES), t_source);
-    auto get_sample = RandomAccessForCRefContainer(cref_samples);
-
-    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_construct_validate_sample(), this->n_);
-
-    return phi;
+    return SampleValidator(bv_valid_mark_rank, get_valid_area);
   }
 };
-
-template<typename... TArgs>
-void constructItems(SrCSAWithPsiRun<TArgs...>& t_index, Config& t_config);
-
-template<typename... TArgs>
-void construct(SrCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
-  constructItems(t_index, t_config);
-
-  t_index.load(t_config);
-}
 
 template<typename TSamples>
 void constructSubsamplesForPhiForwardWithPsiRuns(std::size_t t_subsample_rate, Config& t_config);
@@ -660,16 +724,6 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
   sri::store_to_cache(cumulative_counts, keys[kPsi][kCumRun], t_config, true);
 }
 
-template<typename... TArgs>
-void constructItems(SRCSAValidMark<TArgs...>& t_index, Config& t_config);
-
-template<typename... TArgs>
-void construct(SRCSAValidMark<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
-  constructItems(t_index, t_config);
-
-  t_index.load(t_config);
-}
-
 inline void constructSubmarksValidity(std::size_t t_subsample_rate, Config& t_config);
 
 template<typename... TArgs>
@@ -745,6 +799,32 @@ inline void constructSubmarksValidity(const std::size_t t_subsample_rate, Config
 
   sri::store_to_cache(valid_marks, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidMark]), t_config, true);
   sri::store_to_cache(valid_areas, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]), t_config, true);
+}
+
+template<typename... TArgs>
+void constructItems(SRCSAValidArea<TArgs...>& t_index, Config& t_config) {
+  using Index = SRCSAValidArea<TArgs...>;
+  using namespace conf;
+  const auto& keys = t_config.keys;
+
+  constructItems(dynamic_cast<typename Index::Base &>(t_index), t_config);
+
+  auto subsample_rate = t_index.SubsampleRate();
+  auto prefix = std::to_string(subsample_rate) + "_";
+
+  // Construct subsampling validity marks and areas
+  if (
+    auto key = prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]);
+    !sdsl::cache_file_exists<typename Index::ValidAreas>(key, t_config)
+  ) {
+    auto event = sdsl::memory_monitor::event("Subsampling Validity");
+
+    sdsl::int_vector<> valid_areas_iv;
+    sdsl::load_from_cache(valid_areas_iv, key, t_config, true);
+
+    auto valid_areas = construct<typename Index::ValidAreas>(valid_areas_iv);
+    sri::store_to_cache(valid_areas, key, t_config, true);
+  }
 }
 }
 
