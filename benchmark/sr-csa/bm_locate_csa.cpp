@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
     {"SR-CSA-Slim-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA}, true},
     {"SR-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_PSI_RUNS}, true},
     {"SR-CSA-PSI-RUNS-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_PSI_RUNS_VM}, true},
+    {"SR-CSA-PSI-RUNS-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_PSI_RUNS_VA}, true},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};
