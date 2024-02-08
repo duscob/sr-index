@@ -724,16 +724,6 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
   sri::store_to_cache(cumulative_counts, keys[kPsi][kCumRun], t_config, true);
 }
 
-template<typename... TArgs>
-void constructItems(SRCSAValidMark<TArgs...>& t_index, Config& t_config);
-
-template<typename... TArgs>
-void construct(SRCSAValidMark<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
-  constructItems(t_index, t_config);
-
-  t_index.load(t_config);
-}
-
 inline void constructSubmarksValidity(std::size_t t_subsample_rate, Config& t_config);
 
 template<typename... TArgs>
@@ -809,6 +799,32 @@ inline void constructSubmarksValidity(const std::size_t t_subsample_rate, Config
 
   sri::store_to_cache(valid_marks, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidMark]), t_config, true);
   sri::store_to_cache(valid_areas, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]), t_config, true);
+}
+
+template<typename... TArgs>
+void constructItems(SRCSAValidArea<TArgs...>& t_index, Config& t_config) {
+  using Index = SRCSAValidArea<TArgs...>;
+  using namespace conf;
+  const auto& keys = t_config.keys;
+
+  constructItems(dynamic_cast<typename Index::Base &>(t_index), t_config);
+
+  auto subsample_rate = t_index.SubsampleRate();
+  auto prefix = std::to_string(subsample_rate) + "_";
+
+  // Construct subsampling validity marks and areas
+  if (
+    auto key = prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]);
+    !sdsl::cache_file_exists<typename Index::ValidAreas>(key, t_config)
+  ) {
+    auto event = sdsl::memory_monitor::event("Subsampling Validity");
+
+    sdsl::int_vector<> valid_areas_iv;
+    sdsl::load_from_cache(valid_areas_iv, key, t_config, true);
+
+    auto valid_areas = construct<typename Index::ValidAreas>(valid_areas_iv);
+    sri::store_to_cache(valid_areas, key, t_config, true);
+  }
 }
 }
 
