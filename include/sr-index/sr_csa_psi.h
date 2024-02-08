@@ -328,6 +328,7 @@ public:
 
 protected:
   using Base::key;
+  using typename Base::TSource;
 
   void setupKeyNames(const JSON& t_keys) override {
     using namespace conf;
@@ -336,43 +337,35 @@ protected:
     key(ItemKey::VALID_MARKS) = this->key_prefix_ + str(t_keys[kPsi][kTail][kTextPosAsc][kValidMark]);
   }
 
-  using typename Base::TSource;
-
   void loadAllItems(TSource& t_source) override {
     Base::loadAllItems(t_source);
 
     this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
   }
 
+  using Base::constructIndex;
   void constructIndex(TSource& t_source) override {
     Base::constructIndex(t_source,
                          [this](auto& tt_source) {
-                           return this->constructPhiRange(
-                             tt_source,
-                             constructPhi(tt_source, []() { return SampleValidatorDefault(); })
-                           );
+                           return this->constructPhiRange(tt_source, constructPhi(tt_source, SampleValidatorDefault()));
                          });
   }
 
-  using Base::constructIndex;
-
-  using typename Base::BvMarks;
-  using typename Base::MarksToSamples;
-  using typename Base::Samples;
-  template<typename TConstructValidateSample>
-  auto constructPhi(TSource& t_source, const TConstructValidateSample& t_construct_validate_sample) {
-    auto bv_mark_rank = this->template loadBVRank<BvMarks>(key(ItemKey::MARKS), t_source, true);
-    auto bv_mark_select = this->template loadBVSelect<BvMarks>(key(ItemKey::MARKS), t_source, true);
+  template<typename TValidateSample>
+  auto constructPhi(TSource& t_source, const TValidateSample& t_validate_sample) {
+    auto bv_mark_rank = this->template loadBVRank<typename Base::BvMarks>(key(ItemKey::MARKS), t_source, true);
+    auto bv_mark_select = this->template loadBVSelect<typename Base::BvMarks>(key(ItemKey::MARKS), t_source, true);
     auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
 
-    auto cref_mark_to_sample_idx = this->template loadItem<MarksToSamples>(key(ItemKey::MARK_TO_SAMPLE), t_source);
+    auto cref_mark_to_sample_idx =
+        this->template loadItem<typename Base::MarksToSamples>(key(ItemKey::MARK_TO_SAMPLE), t_source, true);
     auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
     auto get_mark_to_sample_idx = RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
 
-    auto cref_samples = this->template loadItem<Samples>(key(ItemKey::SAMPLES), t_source);
+    auto cref_samples = this->template loadItem<typename Base::Samples>(key(ItemKey::SAMPLES), t_source);
     auto get_sample = RandomAccessForCRefContainer(cref_samples);
 
-    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_construct_validate_sample(), this->n_);
+    auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, t_validate_sample, this->n_);
 
     return phi;
   }
