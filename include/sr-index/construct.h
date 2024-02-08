@@ -30,6 +30,13 @@ auto construct(const sdsl::int_vector<> &t_iv) {
   return T(t_iv);
 }
 
+template<typename TIndex>
+void construct(TIndex& t_index, const std::string& t_data_path, Config& t_config) {
+  constructItems(t_index, t_config);
+
+  t_index.load(t_config);
+}
+
 template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_config) {
   switch (t_config.sa_algo) {
