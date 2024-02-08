@@ -23,7 +23,6 @@ using Marks = BitVector;
 using SampleRate = std::size_t;
 using SampleIdxs = BitVector;
 using CumulativeRuns = IntVector;
-using ValidMarks = sdsl::bit_vector;
 
 class BaseConstructTests : public BaseConfigTests {
 public:
@@ -37,9 +36,9 @@ public:
 };
 
 class RCSATests : public BaseConstructTests,
-                           public testing::WithParamInterface<std::tuple<
-                             String, Psi, PsiRunHead, PsiRunTail, PsiRunTailAsc, PsiRunTailAscLink, Marks
-                           >> {
+                  public testing::WithParamInterface<std::tuple<
+                    String, Psi, PsiRunHead, PsiRunTail, PsiRunTailAsc, PsiRunTailAscLink, Marks
+                  >> {
 protected:
   void SetUp() override {
     const auto& data = std::get<0>(GetParam());
@@ -93,10 +92,10 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 class SRCSATests : public BaseConstructTests,
-                            public testing::WithParamInterface<std::tuple<
-                              String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead, PsiRunTail,
-                              PsiRunTailAscLink, Marks, SampleIdxs, CumulativeRuns
-                            >> {
+                   public testing::WithParamInterface<std::tuple<
+                     String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead, PsiRunTail,
+                     PsiRunTailAscLink, Marks, SampleIdxs, CumulativeRuns
+                   >> {
 protected:
   void SetUp() override {
     const auto& data = std::get<0>(GetParam());
@@ -154,8 +153,10 @@ INSTANTIATE_TEST_SUITE_P(
   )
 );
 
-class SRCSAValidMarkTests : public BaseConstructTests,
-                                     public testing::WithParamInterface<std::tuple<String, SampleRate, ValidMarks>> {
+using ValidMarks = sdsl::bit_vector;
+using ValidAreas = IntVector;
+class SRCSAValidAreaTests : public BaseConstructTests,
+                            public testing::WithParamInterface<std::tuple<String, SampleRate, ValidMarks, ValidAreas>> {
 protected:
   void SetUp() override {
     const auto& data = std::get<0>(GetParam());
@@ -163,31 +164,34 @@ protected:
   }
 };
 
-TEST_P(SRCSAValidMarkTests, construct) {
+TEST_P(SRCSAValidAreaTests, construct) {
   using namespace sri::conf;
 
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::SRCSAValidMark<> index(subsample_rate);
+  sri::SRCSAValidArea<> index(subsample_rate);
   sri::constructItems(index, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
 
   compare(prefix + sri::str(config_.keys[kPsi][kTail][kTextPosAsc][kValidMark]), std::get<2>(GetParam()), true);
+  compare(prefix + sri::str(config_.keys[kPsi][kTail][kTextPosAsc][kValidArea]), std::get<3>(GetParam()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
   Basic,
-  SRCSAValidMarkTests,
+  SRCSAValidAreaTests,
   testing::Values(
     std::make_tuple(
       String{"alabaralaalabarda"},
       4,
-      ValidMarks({1, 1, 1, 0, 0, 1})
+      ValidMarks({1, 1, 1, 0, 0, 1}),
+      ValidAreas{1, 1}
     ),
     std::make_tuple(
       String{"abcabcababc"},
       4,
-      ValidMarks({1, 0, 1, 0})
+      ValidMarks({1, 0, 1, 0}),
+      ValidAreas{1, 4}
     )
   )
 );
