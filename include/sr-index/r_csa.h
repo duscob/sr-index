@@ -254,7 +254,7 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
   auto constructGetSymbol(TSource &t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[(uint8_t) tt_c]; };
+    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[static_cast<uint8_t>(tt_c)]; };
     return get_symbol;
   }
 
@@ -614,21 +614,11 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   auto constructGetSymbol(TSource &t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[(uint8_t) tt_c]; };
+    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[static_cast<uint8_t>(tt_c)]; };
     return get_symbol;
   }
 
 };
-
-template<typename... TArgs>
-void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config);
-
-template<typename... TArgs>
-void construct(RCSAWithPsiRun<TArgs...>& t_index, const std::string& t_data_path, Config& t_config) {
-  constructItems(t_index, t_config);
-
-  t_index.load(t_config);
-}
 
 template<typename... TArgs>
 void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
