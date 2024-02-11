@@ -1,20 +1,17 @@
-# Adapted from https://github.com/Crascit/DownloadProject/blob/master/CMakeLists.txt
-#
-# CAVEAT: use DownloadProject.cmake
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-if (CMAKE_VERSION VERSION_LESS 3.2)
-    set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
-else ()
-    set(UPDATE_DISCONNECTED_IF_AVAILABLE "UPDATE_DISCONNECTED 1")
-endif ()
+set(ExternalProjectName BigBWT)
 
-include(DownloadProject)
-download_project(PROJ BigBWT
+include(ExternalProject)
+ExternalProject_Add(
+        ${ExternalProjectName}
         GIT_REPOSITORY https://github.com/duscob/Big-BWT.git
         GIT_TAG master
-        ${UPDATE_DISCONNECTED_IF_AVAILABLE})
+        UPDATE_DISCONNECTED ON
+        CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+        INSTALL_COMMAND ""
+)
 
-add_subdirectory(${BigBWT_SOURCE_DIR} ${BigBWT_BINARY_DIR})
-
-include_directories("${BigBWT_SOURCE_DIR}")
+ExternalProject_Get_property(${ExternalProjectName} BINARY_DIR)
+set(${ExternalProjectName}_BINARY_DIR ${BINARY_DIR})
+ExternalProject_Get_property(${ExternalProjectName} SOURCE_DIR)
+include_directories(${${ExternalProjectName}_SOURCE_DIR})
