@@ -6,7 +6,7 @@ import subprocess
 def main():
     # Parsing args
     parser = argparse.ArgumentParser(
-        description="Run benchmarks for indexes construction",
+        description="Plot marks density",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     script_dir = Path(__file__).resolve().parent
