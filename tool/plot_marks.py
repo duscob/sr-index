@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import subprocess
+import struct
 
 
 def main():
@@ -42,7 +43,8 @@ def process_collection(collection_path, output_path, bm_cmd_path):
     output_path = output_path / collection_name
     output_path.mkdir(parents=True, exist_ok=True)
 
-    if not (collection_path / "sri" / "bwt_run_first_text_pos_data.sdsl.vec.bin").exists():
+    data_path = collection_path / "sri" / "bwt_run_first_text_pos_data.sdsl.vec.bin"
+    if not data_path.exists():
         print(f"{esc('38;5;69')}Create file for marks vector{esc(0)}")
 
         cmd = str(bm_cmd_path / "int_vector_to_vector")
@@ -51,6 +53,15 @@ def process_collection(collection_path, output_path, bm_cmd_path):
         cmd += " 2>int_vector_to_vector-error.txt"
 
         subprocess.run(cmd, shell=True, cwd=collection_path / "sri")
+
+def read_data(data_path):
+    values = []
+    with open(data_path, 'rb') as fin:
+        for chunk in iter(lambda: fin.read(8), b''):
+            values.append(struct.unpack('Q', chunk)[0])
+
+    return values
+
 
 
 if __name__ == "__main__":
