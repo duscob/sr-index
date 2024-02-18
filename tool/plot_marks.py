@@ -3,6 +3,9 @@ from pathlib import Path
 import subprocess
 import struct
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 def main():
     # Parsing args
@@ -61,6 +64,35 @@ def read_data(data_path):
             values.append(struct.unpack('Q', chunk)[0])
 
     return values
+
+
+def plot_marks_density(values, collection_name, output_path):
+    plot_path = output_path / f"{collection_name}-marks-density"
+
+    for bw_adjust in [0.25, 0.5, 0.75, 1]:
+        sns.kdeplot(values, fill=True, bw_adjust=bw_adjust)
+        plt.savefig(f"{plot_path}-kde-{bw_adjust}.png")
+        plt.clf()
+
+    sns.distplot(a=values, bins=int(len(values) / 100), hist=True, kde=True, rug=False)
+    plt.savefig(f"{plot_path}-dist.png")
+    plt.clf()
+
+    sns.displot(values, binwidth=1000)
+    plt.savefig(f"{plot_path}-dis.png")
+    plt.clf()
+
+    for binwidth in [0.01, 0.1]:
+        for stat in ['count', 'frequency', 'density']:
+            sns.histplot(values, binwidth=binwidth, stat=stat, kde=True)
+            plt.savefig(f"{plot_path}-hist-{stat}-{binwidth}.png")
+            plt.clf()
+
+    sns.violinplot(values)
+    plt.savefig(f"{plot_path}-violin.png")
+    plt.clf()
+
+    # plt.show()
 
 
 
