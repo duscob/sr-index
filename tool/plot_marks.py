@@ -23,22 +23,23 @@ def main():
     parser.add_argument("collection", help="Collection path")
     args = parser.parse_args()
 
+    data = {}
     collection_path = Path(args.collection)
     if args.group:
         # Processing collections group
         for child in collection_path.iterdir():
             if child.is_dir():
-                process_collection(child, args.output_path, args.cmd_path)
+                process_collection(child, args.output_path, args.cmd_path, data)
     else:
         # Processing single collection
-        process_collection(collection_path, args.output_path, args.cmd_path)
+        process_collection(collection_path, args.output_path, args.cmd_path, data)
 
 
 def esc(code):
     return f'\033[{code}m'
 
 
-def process_collection(collection_path, output_path, bm_cmd_path):
+def process_collection(collection_path, output_path, bm_cmd_path, data):
     collection_path = Path(collection_path).resolve()
     output_path = Path(output_path).resolve()
     bm_cmd_path = Path(bm_cmd_path).resolve()
