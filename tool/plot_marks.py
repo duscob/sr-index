@@ -34,6 +34,8 @@ def main():
         # Processing single collection
         process_collection(collection_path, args.output_path, args.cmd_path, data)
 
+    plot_marks_densities(data, args.output_path)
+
 
 def esc(code):
     return f'\033[{code}m'
@@ -107,6 +109,51 @@ def plot_marks_density(values, collection_name, output_path):
 
     # plt.show()
 
+
+def plot_marks_densities(data, output_path):
+    output_path = Path(output_path).resolve()
+    plot_path = output_path / f"marks-densities"
+
+    sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
+
+    # Create the data
+    collections = list(data)
+    collections.sort(reverse=True, key=lambda c: data[c][len(data[c]) - 1] / len(data[c]))
+    df = pd.DataFrame(dict(collection=collections))
+
+    # Initialize the FacetGrid object
+    pal = sns.cubehelix_palette(len(df.index), rot=-.25, light=.7)
+    g = sns.FacetGrid(df, row="collection", hue="collection", aspect=10, height=2, palette=pal)
+
+    # Draw the densities in a few steps
+    bw_adjust = 0.25
+
+    def plot_data(collection, color, label):
+        sns.kdeplot(data[label], bw_adjust=bw_adjust, clip_on=False, fill=True, alpha=1, linewidth=1.5, color=color)
+        sns.kdeplot(data[label], clip_on=False, color="w", lw=2, bw_adjust=bw_adjust)
+
+    g.map(plot_data, "collection")
+
+    # Passing color=None to refline() uses the hue mapping
+    g.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
+
+    # Define and use a simple function to label the plot in axes coordinates
+    def set_label(x, color, label):
+        ax = plt.gca()
+        # ax.text(0, .2, label, fontweight="bold", color=color, ha="left", va="center", transform=ax.transAxes)
+        ax.text(0, .2, label, fontweight="bold", color='black', ha="left", va="center", transform=ax.transAxes)
+
+    g.map(set_label, "collection")
+
+    # Set the subplots to overlap
+    g.figure.subplots_adjust(hspace=-.25)
+
+    # Remove axes details that don't play well with overlap
+    g.set_titles("")
+    g.set(yticks=[], ylabel="", xlabel="")
+    g.despine(bottom=True, left=True)
+
+    plt.savefig(f"{plot_path}-kde-{bw_adjust}.png")
 
 
 if __name__ == "__main__":
