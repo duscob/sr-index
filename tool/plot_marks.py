@@ -3,6 +3,9 @@ from pathlib import Path
 import subprocess
 import struct
 
+import numpy as np
+import pandas as pd
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -56,6 +59,15 @@ def process_collection(collection_path, output_path, bm_cmd_path):
         cmd += " 2>int_vector_to_vector-error.txt"
 
         subprocess.run(cmd, shell=True, cwd=collection_path / "sri")
+
+    values = np.array(read_data(data_path)).astype(np.float64)
+    values.sort()
+    values *= 100.0 / values[len(values) - 1]
+
+    data[collection_name] = values
+
+    # plot_marks_density(values, collection_name, output_path)
+
 
 def read_data(data_path):
     values = []
