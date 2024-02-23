@@ -122,7 +122,8 @@ def plot_marks_densities(data, output_path):
     df = pd.DataFrame(dict(collection=collections))
 
     # Initialize the FacetGrid object
-    pal = sns.cubehelix_palette(len(df.index), rot=-.25, light=.7)
+    # pal = sns.cubehelix_palette(len(df.index), rot=-.25, light=.7)
+    pal = sns.color_palette("crest", len(df.index))
     g = sns.FacetGrid(df, row="collection", hue="collection", aspect=10, height=2, palette=pal)
 
     # Draw the densities in a few steps
