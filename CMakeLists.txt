@@ -113,6 +113,14 @@ endif ()
 
 
 if (SR-INDEX_ENABLE_TOOLS)
+    list(APPEND tool_LIBS sr-index ${LIBS})
+
+    find_library(GFLAGS_LIB gflags REQUIRED)
+    list(APPEND tool_LIBS ${GFLAGS_LIB})
+    find_package(Threads)
+    list(APPEND tool_LIBS ${CMAKE_THREAD_LIBS_INIT})
+
+    cxx_executable_with_flags(int_vector_to_vector "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/int_vector_to_vector.cpp)
 endif ()
 
 
