@@ -63,9 +63,10 @@ def process_collection(collection_path, output_path, bm_cmd_path, data):
 
         subprocess.run(cmd, shell=True, cwd=collection_path / "sri")
 
-    values = np.array(read_data(data_path)).astype(np.float64)
+    values = read_data(data_path)
+    # values = np.array(read_data(data_path)).astype(np.float64)
     values.sort()
-    values *= 100.0 / values[len(values) - 1]
+    # values *= 100.0 / values[len(values) - 1]
 
     data[collection_name] = values
 
@@ -124,7 +125,8 @@ def plot_marks_densities(data, output_path):
     # Initialize the FacetGrid object
     # pal = sns.cubehelix_palette(len(df.index), rot=-.25, light=.7)
     pal = sns.color_palette("crest", len(df.index))
-    g = sns.FacetGrid(df, row="collection", hue="collection", aspect=10, height=2, palette=pal)
+    g = sns.FacetGrid(df, row="collection", hue="collection", sharex=False, sharey=False, height=1.75, aspect=10,
+                      palette=pal)
 
     # Draw the densities in a few steps
     bw_adjust = 0.25
@@ -142,7 +144,8 @@ def plot_marks_densities(data, output_path):
     def set_label(x, color, label):
         ax = plt.gca()
         # ax.text(0, .2, label, fontweight="bold", color=color, ha="left", va="center", transform=ax.transAxes)
-        ax.text(0, .2, label, fontweight="bold", color='black', ha="left", va="center", transform=ax.transAxes)
+        ax.text(0, .2, label.upper(), fontsize="x-large", fontweight="bold", color='black', ha="left", va="center",
+                transform=ax.transAxes)
 
     g.map(set_label, "collection")
 
@@ -151,10 +154,11 @@ def plot_marks_densities(data, output_path):
 
     # Remove axes details that don't play well with overlap
     g.set_titles("")
-    g.set(yticks=[], ylabel="", xlabel="")
+    g.set(yticks=[], xticks=[], ylabel="", xlabel="")
     g.despine(bottom=True, left=True)
 
     plt.savefig(f"{plot_path}-kde-{bw_adjust}.png")
+    plt.savefig(f"{plot_path}-kde-{bw_adjust}.svg")
 
 
 if __name__ == "__main__":
