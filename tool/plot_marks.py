@@ -50,7 +50,7 @@ def process_collection(collection_path, output_path, bm_cmd_path, data):
     collection_name = collection_path.name
     print(f"{esc('38;5;120')}Collection '{collection_name}'{esc(0)}")
     output_path = output_path / collection_name
-    output_path.mkdir(parents=True, exist_ok=True)
+    # output_path.mkdir(parents=True, exist_ok=True)
 
     data_path = collection_path / "sri" / "bwt_run_first_text_pos_data.sdsl.vec.bin"
     if not data_path.exists():
@@ -83,6 +83,7 @@ def read_data(data_path):
 
 
 def plot_marks_density(values, collection_name, output_path):
+    output_path.mkdir(parents=True, exist_ok=True)
     plot_path = output_path / f"{collection_name}-marks-density"
 
     for bw_adjust in [0.25, 0.5, 0.75, 1]:
