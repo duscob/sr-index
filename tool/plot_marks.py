@@ -23,7 +23,7 @@ def main():
     parser.add_argument("collection", help="Collection path")
     args = parser.parse_args()
 
-    data = {}
+    data = {"inter": {}, "intra": {}}
     collection_path = Path(args.collection)
     if args.group:
         # Processing collections group
@@ -34,7 +34,10 @@ def main():
         # Processing single collection
         process_collection(collection_path, args.output_path, args.cmd_path, data)
 
-    plot_marks_densities(data, args.output_path)
+    plot_marks_densities_grid(data["inter"], args.output_path)
+
+    for key, value in data["intra"].items():
+        plot_marks_densities(key, value, args.output_path)
 
 
 def esc(code):
@@ -52,25 +55,36 @@ def process_collection(collection_path, output_path, bm_cmd_path, data):
     output_path = output_path / collection_name
     # output_path.mkdir(parents=True, exist_ok=True)
 
-    data_path = collection_path / "sri" / "bwt_run_first_text_pos_data.sdsl.vec.bin"
+    data["inter"][collection_name] = process_data(bm_cmd_path, collection_path, "bwt_run_first_text_pos")
+    data["intra"][collection_name] = {}
+    data["intra"][collection_name]["0"] = data["inter"][collection_name]
+
+    for sampling_factor in ["4", "8", "16", "32", "64"]:
+        data["intra"][collection_name][sampling_factor] = process_data(
+            bm_cmd_path, collection_path, f"{sampling_factor}_bwt_run_first_text_pos")
+
+    # plot_marks_density(values, collection_name, output_path)
+
+
+def process_data(bm_cmd_path, collection_path, data_key):
+    # data_path = collection_path / "sri" / "bwt_run_first_text_pos_data.sdsl.vec.bin"
+    data_path = collection_path / "sri" / f"{data_key}_data.sdsl.vec.bin"
     if not data_path.exists():
-        print(f"{esc('38;5;69')}Create file for marks vector{esc(0)}")
+        print(f"{esc('38;5;69')}Create file for marks vector ({data_path}) {esc(0)}")
 
         cmd = str(bm_cmd_path / "int_vector_to_vector")
         cmd += " --data=./data"
-        cmd += " --key=bwt_run_first_text_pos"
+        cmd += f" --key={data_key}"
         cmd += " 2>int_vector_to_vector-error.txt"
 
         subprocess.run(cmd, shell=True, cwd=collection_path / "sri")
-
     values = read_data(data_path)
     # values = np.array(read_data(data_path)).astype(np.float64)
     values.sort()
     # values *= 100.0 / values[len(values) - 1]
 
-    data[collection_name] = values
-
-    # plot_marks_density(values, collection_name, output_path)
+    # data["inter"][collection_name] = values
+    return values
 
 
 def read_data(data_path):
@@ -112,7 +126,7 @@ def plot_marks_density(values, collection_name, output_path):
     # plt.show()
 
 
-def plot_marks_densities(data, output_path):
+def plot_marks_densities_grid(data, output_path):
     output_path = Path(output_path).resolve()
     plot_path = output_path / f"marks-densities"
 
@@ -135,6 +149,12 @@ def plot_marks_densities(data, output_path):
     def plot_data(collection, color, label):
         sns.kdeplot(data[label], bw_adjust=bw_adjust, clip_on=False, fill=True, alpha=1, linewidth=1.5, color=color)
         sns.kdeplot(data[label], clip_on=False, color="w", lw=2, bw_adjust=bw_adjust)
+        # sns.histplot(data[label], clip_on=False, stat="frequency", bins=int(len(data[label]) / 1000), facecolor=color,
+        #              kde=True, kde_kws={"bw_adjust": bw_adjust}, color="red")
+        # sns.displot(data[label], kde=True, color='red',
+        #             line_kws={'lw': 3}, facecolor=color, edgecolor='black')
+        # print(len(data[label]))
+        # sns.displot(data[label], kind="kde", fill=True)
 
     g.map(plot_data, "collection")
 
@@ -159,7 +179,36 @@ def plot_marks_densities(data, output_path):
     g.despine(bottom=True, left=True)
 
     plt.savefig(f"{plot_path}-kde-{bw_adjust}.png")
-    plt.savefig(f"{plot_path}-kde-{bw_adjust}.svg")
+    # plt.savefig(f"{plot_path}-kde-{bw_adjust}.svg")
+    plt.clf()
+
+
+def plot_marks_densities(name, data, output_path):
+    output_path = Path(output_path).resolve()
+    plot_path = output_path / f"marks-densities"
+
+    sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
+
+    # Create the data
+    collections = list(data)
+    collections.sort(reverse=True, key=lambda c: data[c][len(data[c]) - 1] / len(data[c]))
+    df = pd.DataFrame(dict(collection=collections))
+
+    pal = sns.color_palette("crest", len(df.index))
+    # pal = sns.color_palette("crest", len(df.index))
+
+    bw_adjust = 0.25
+
+    (sns
+     .displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=5, palette="crest", legend=False)
+     .set(title=f"{name}")
+     )
+    # sns.kdeplot(data, bw_adjust=bw_adjust, clip_on=False, fill=True, alpha=0.5, linewidth=0.5, aspect=4, legend=False).set_title(name)
+
+    plt.tight_layout()
+    plt.savefig(f"{plot_path}-kde-{bw_adjust}-{name}.png")
+    # plt.savefig(f"{plot_path}-kde-all-{bw_adjust}.svg")
+    plt.clf()
 
 
 if __name__ == "__main__":
