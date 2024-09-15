@@ -200,7 +200,7 @@ def plot_marks_densities(name, data, output_path):
     bw_adjust = 0.25
 
     (sns
-     .displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=5, palette="crest", legend=False)
+     .displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=4, palette="crest", legend=False)
      .set(title=f"{name}")
      )
     # sns.kdeplot(data, bw_adjust=bw_adjust, clip_on=False, fill=True, alpha=0.5, linewidth=0.5, aspect=4, legend=False).set_title(name)
