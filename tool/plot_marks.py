@@ -38,6 +38,7 @@ def main():
 
     for key, value in data["intra"].items():
         plot_marks_densities(key, value, args.output_path)
+        plot_marks_frequencies(key, value, args.output_path)
 
 
 def esc(code):
@@ -187,7 +188,14 @@ def plot_marks_densities(name, data, output_path):
     output_path = Path(output_path).resolve()
     plot_path = output_path / f"marks-densities"
 
-    sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
+    style = {
+        "axes.facecolor": (0, 0, 0, 0),
+        "axes.titlesize": "xx-large",
+        "axes.labelsize": "x-large",
+        "xtick.labelsize": "large",
+        "ytick.labelsize": "large"
+    }
+    sns.set_theme(style="white", rc=style)
 
     # Create the data
     collections = list(data)
@@ -199,15 +207,54 @@ def plot_marks_densities(name, data, output_path):
 
     bw_adjust = 0.25
 
-    (sns
-     .displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=4, palette="crest", legend=False)
-     .set(title=f"{name}")
-     )
+    fig = sns.displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=4, palette="crest", legend=False)
+
     # sns.kdeplot(data, bw_adjust=bw_adjust, clip_on=False, fill=True, alpha=0.5, linewidth=0.5, aspect=4, legend=False).set_title(name)
 
-    plt.tight_layout()
+    fig.set(title=f"{name}")
+    # fig.set(xlim=0)
+
+    plt.tight_layout(pad=0.5)
     plt.savefig(f"{plot_path}-kde-{bw_adjust}-{name}.png")
-    # plt.savefig(f"{plot_path}-kde-all-{bw_adjust}.svg")
+    # plt.savefig(f"{plot_path}-kde-{bw_adjust}-{name}.svg")
+    plt.clf()
+
+
+def plot_marks_frequencies(name, data, output_path):
+    output_path = Path(output_path).resolve()
+    plot_path = output_path / f"marks-densities"
+
+    style = {
+        "axes.facecolor": (0, 0, 0, 0),
+        "axes.titlesize": "xx-large",
+        "axes.labelsize": "x-large",
+        "xtick.labelsize": "large",
+        "ytick.labelsize": "large"
+    }
+    sns.set_theme(style="white", rc=style)
+
+    # Create the data
+    collections = list(data)
+    collections.sort(reverse=True, key=lambda c: data[c][len(data[c]) - 1] / len(data[c]))
+    # df = pd.DataFrame(dict(collection=collections))
+    #
+    # pal = sns.color_palette("crest", len(df.index))
+
+    # bw_adjust = 0.25
+    # (sns
+    #  .displot(data, stat="frequency", kind="hist", kde=True, kde_kws={"bw_adjust":bw_adjust}, clip_on=False, fill=True, aspect=4, palette="crest", legend=False)
+    #  .set(title=f"{name}")
+    #  )
+    fig = sns.displot(data, stat="frequency", kind="hist", element="poly", clip_on=False, fill=True, aspect=4,
+                     palette="crest", legend=False)
+
+    fig.set(title=f"{name}")
+    fig.set(xlim=0)
+
+    plt.tight_layout(pad=0.5)
+
+    plt.savefig(f"{plot_path}-freq-{name}.png")
+    # plt.savefig(f"{plot_path}-freq-{name}.svg")
     plt.clf()
 
 
