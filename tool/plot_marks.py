@@ -207,7 +207,8 @@ def plot_marks_densities(name, data, output_path):
 
     bw_adjust = 0.25
 
-    fig = sns.displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=4, palette="crest", legend=False)
+    fig = sns.displot(data, kind="kde", bw_adjust=bw_adjust, clip_on=False, fill=True, aspect=4, palette="crest",
+                      legend=False)
 
     # sns.kdeplot(data, bw_adjust=bw_adjust, clip_on=False, fill=True, alpha=0.5, linewidth=0.5, aspect=4, legend=False).set_title(name)
 
@@ -246,7 +247,7 @@ def plot_marks_frequencies(name, data, output_path):
     #  .set(title=f"{name}")
     #  )
     fig = sns.displot(data, stat="frequency", kind="hist", element="poly", clip_on=False, fill=True, aspect=4,
-                     palette="crest", legend=False)
+                      palette="crest", legend=False)
 
     fig.set(title=f"{name}")
     fig.set(xlim=0)
@@ -256,6 +257,30 @@ def plot_marks_frequencies(name, data, output_path):
     plt.savefig(f"{plot_path}-freq-{name}.png")
     # plt.savefig(f"{plot_path}-freq-{name}.svg")
     plt.clf()
+
+    ranges = [(0, data["0"][len(data["0"]) - 1] / 4),
+              (data["0"][len(data["0"]) - 1] / 4, data["0"][len(data["0"]) - 1] / 2),
+              (data["0"][len(data["0"]) - 1] / 2, data["0"][len(data["0"]) - 1] * 3 / 4),
+              (data["0"][len(data["0"]) - 1] * 3 / 4, data["0"][len(data["0"]) - 1])
+              ]
+    i = 1
+    for l, h in ranges:
+        # data_filtered = {}
+        # for key, value in data.items():
+        #     data_filtered[key] = [v for v in value if l <= v <= h]
+
+        sns.set_theme(style="white", font_scale=2.5, rc=style)
+        fig = sns.displot(data, stat="frequency", kind="hist", element="poly", clip_on=False, fill=True,
+                          height=40, aspect=0.67, palette="crest", legend=False)
+
+        fig.set(title=f"{name}")
+        fig.set(xlim=(l, h))
+
+        plt.tight_layout(pad=0.5)
+        plt.savefig(f"{plot_path}-freq-{name}-part-{i}.png")
+        plt.clf()
+
+        i = i + 1
 
 
 if __name__ == "__main__":
