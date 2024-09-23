@@ -12,7 +12,7 @@ endif ()
 include(DownloadProject)
 download_project(PROJ googlebenchmark
         GIT_REPOSITORY https://github.com/google/benchmark.git
-        GIT_TAG v1.6.0
+        GIT_TAG v1.9.0
         ${UPDATE_DISCONNECTED_IF_AVAILABLE})
 
 #Benchmark
