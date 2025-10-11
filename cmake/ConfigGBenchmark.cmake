@@ -1,27 +1,19 @@
-# Adapted from https://github.com/Crascit/DownloadProject/blob/master/CMakeLists.txt
-#
-# CAVEAT: use DownloadProject.cmake
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-if (CMAKE_VERSION VERSION_LESS 3.2)
-    set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
-else ()
-    set(UPDATE_DISCONNECTED_IF_AVAILABLE "UPDATE_DISCONNECTED 1")
-endif ()
+set(ExternalProjectName googlebenchmark)
 
-include(DownloadProject)
-download_project(PROJ googlebenchmark
+include(FetchContent)
+FetchContent_Declare(
+        ${ExternalProjectName}
         GIT_REPOSITORY https://github.com/google/benchmark.git
         GIT_TAG v1.9.0
-        ${UPDATE_DISCONNECTED_IF_AVAILABLE})
+        FIND_PACKAGE_ARGS
+)
 
 #Benchmark
 # If you want to self-test benchmark lib too, turn me ON
-#
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "BENCHMARK_ENABLE_TESTING")
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "BENCHMARK_ENABLE_GTEST_TESTS")
-set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "BENCHMARK_ENABLE_INSTALL")
 
-add_subdirectory(${googlebenchmark_SOURCE_DIR} ${googlebenchmark_BINARY_DIR} EXCLUDE_FROM_ALL)
+# Prevent Benchmark installation
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
-include_directories("${googlebenchmark_SOURCE_DIR}/include")
+FetchContent_MakeAvailable(${ExternalProjectName})
