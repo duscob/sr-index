@@ -4,8 +4,8 @@ include(FetchContent)
 
 FetchContent_Declare(
         ${ExternalProjectName}
-        DOWNLOAD_EXTRACT_TIMESTAMP true
-        URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.12.0
 )
 
 FetchContent_MakeAvailable(${ExternalProjectName})
