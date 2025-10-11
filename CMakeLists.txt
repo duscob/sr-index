@@ -32,13 +32,11 @@ add_link_options(LINKER:--as-needed)
 
 
 # Setup dependencies
-find_package(sdsl 3.0)
-if (NOT sdsl_FOUND)
-    include(ConfigSDSL)
-endif ()
-
+include(ConfigSDSL)
 include(ConfigBigBWT)
 include(ConfigJSON)
+include(ConfigGFlags)
+set(GFLAGS_LIB gflags::gflags)
 
 # Set common include folder for module
 set(COMMON_INCLUDES
@@ -93,10 +91,7 @@ if (SR-INDEX_ENABLE_TESTS)
 
     list(APPEND test_LIBS sr-index ${LIBS})
 
-    find_package(gtest 1.11)
-    if (NOT gtest_FOUND)
-        include(ConfigGTest)
-    endif ()
+    include(ConfigGTest)
     list(APPEND test_LIBS gtest gtest_main gmock)
 
     cxx_test_with_flags_and_args(lf_tests "" "${test_LIBS}" "" ${PROJECT_SOURCE_DIR}/test/lf_tests.cpp)
@@ -113,15 +108,8 @@ endif ()
 
 
 if (SR-INDEX_ENABLE_TOOLS)
-    list(APPEND tool_LIBS sr-index ${LIBS})
+    list(APPEND tool_LIBS sr-index ${LIBS} ${GFLAGS_LIB})
 
-    # TODO use find_package(gflags) instead find_library(...)
-    find_library(GFLAGS_LIB gflags)
-    if (NOT GFLAGS_LIB)
-        include(ConfigGFlags)
-        set(GFLAGS_LIB gflags::gflags)
-    endif ()
-    list(APPEND tool_LIBS ${GFLAGS_LIB})
     find_package(Threads)
     list(APPEND tool_LIBS ${CMAKE_THREAD_LIBS_INIT})
 
