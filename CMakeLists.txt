@@ -114,6 +114,8 @@ if (SR-INDEX_ENABLE_TOOLS)
     list(APPEND tool_LIBS ${CMAKE_THREAD_LIBS_INIT})
 
     cxx_executable_with_flags(int_vector_to_vector "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/int_vector_to_vector.cpp)
+    cxx_executable_with_flags(construct "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct.cpp)
+    cxx_executable_with_flags(load "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load.cpp)
 endif ()
 
 
