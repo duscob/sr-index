@@ -1,13 +1,9 @@
 # Configure benchmarks
 set(benchmark_LIBS sr-index ${LIBS})
 
-find_package(benchmark 1.6)
-if (NOT benchmark_FOUND)
-    include(ConfigGBenchmark)
-endif ()
+include(ConfigGBenchmark)
 list(APPEND benchmark_LIBS benchmark::benchmark benchmark::benchmark_main)
 
-find_library(GFLAGS_LIB gflags REQUIRED)
 list(APPEND benchmark_LIBS ${GFLAGS_LIB})
 find_package(Threads)
 list(APPEND benchmark_LIBS ${CMAKE_THREAD_LIBS_INIT})
