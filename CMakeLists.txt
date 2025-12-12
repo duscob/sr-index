@@ -75,6 +75,7 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa_psi.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sr_idx_generic.h
 )
 
 add_library(sr-index INTERFACE)
