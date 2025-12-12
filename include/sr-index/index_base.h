@@ -42,6 +42,8 @@ const TItem *set(GenericStorage &t_storage, const std::string &t_key, TItem &&t_
 template<typename TStorage = GenericStorage>
 class IndexBaseWithExternalStorage : public LocateIndex {
  public:
+  using Storage = TStorage;
+
   explicit IndexBaseWithExternalStorage(const TStorage &t_storage) : storage_{t_storage} {}
 
   IndexBaseWithExternalStorage() = default;
