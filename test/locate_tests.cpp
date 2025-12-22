@@ -22,8 +22,7 @@ using Values = std::vector<std::size_t>;
 using PatternXValues = std::tuple<String, Values>;
 using ListPatternXValues = std::vector<PatternXValues>;
 
-typedef std::shared_ptr<sri::IndexBaseWithExternalStorage<>> (*TConstructor)(const std::string& tt_data_path,
-                                                                             sri::Config& tt_config);
+typedef std::shared_ptr<sri::LocateIndex> (*TConstructor)(const std::string& tt_data_path, sri::Config& tt_config);
 
 class LocateTests : public BaseConfigTests,
                     public testing::WithParamInterface<
@@ -61,8 +60,7 @@ TEST_P(LocateTests, Locate) {
 
 template <typename TIndex>
 TConstructor createIndexBuilder() {
-  return [](const std::string& tt_data_path,
-            sri::Config& tt_config) -> std::shared_ptr<sri::IndexBaseWithExternalStorage<>> {
+  return [](const std::string& tt_data_path, sri::Config& tt_config) -> std::shared_ptr<sri::LocateIndex> {
     auto index = std::make_shared<TIndex>();
     sri::construct(*index, tt_data_path, tt_config);
     return index;
@@ -71,8 +69,7 @@ TConstructor createIndexBuilder() {
 
 template <typename TSrIndex>
 TConstructor createSrIndexBuilder() {
-  return [](const std::string& tt_data_path,
-            sri::Config& tt_config) -> std::shared_ptr<sri::IndexBaseWithExternalStorage<>> {
+  return [](const std::string& tt_data_path, sri::Config& tt_config) -> std::shared_ptr<sri::LocateIndex> {
     auto index = std::make_shared<TSrIndex>(6);
     sri::construct(*index, tt_data_path, tt_config);
     return index;
@@ -80,7 +77,8 @@ TConstructor createSrIndexBuilder() {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    LocateIndex, LocateTests,
+    LocateIndex,
+    LocateTests,
     testing::Combine(testing::Values(createIndexBuilder<sri::RIndex<>>(),                            //
                                      createSrIndexBuilder<sri::SrIndex<>>(),                         //
                                      createSrIndexBuilder<sri::SrIndexValidMark<>>(),                //
