@@ -146,30 +146,19 @@ const TItem* set(GenericStorage& t_storage, const std::string& t_key, TItem&& t_
 
 
 template <typename TStorage = GenericStorage>
-class IndexBaseWithExternalStorage : public LocateIndex {
+class IndexBaseWithExternalStorage {
  public:
   using Storage = TStorage;
 
   explicit IndexBaseWithExternalStorage(const TStorage& t_storage) : storage_{t_storage} {}
 
   IndexBaseWithExternalStorage() = default;
-
-  std::vector<std::size_t> Locate(const std::string& t_pattern) const override {
-    return index_->Locate(t_pattern);
-  }
-
-  std::pair<std::size_t, std::size_t> Count(const std::string& t_pattern) const override {
-    return index_->Count(t_pattern);
-  }
-
-  auto sizeSequence() const {
-    return n_;
-  }
+  virtual ~IndexBaseWithExternalStorage() = default;
 
   virtual void load(Config t_config) = 0;
+  virtual void load(std::istream& in) = 0;
 
   typedef std::size_t size_type;
-  virtual void load(std::istream& in) = 0;
 
   virtual size_type serialize(std::ostream& out) const {
     return serialize(out, nullptr, "");

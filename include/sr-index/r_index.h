@@ -27,13 +27,21 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RIndex : public IndexBaseWithExternalStorage<TStorage> {
+class RIndex : public LocateIndex, public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
   explicit RIndex(const TStorage& t_storage) : Base(t_storage) {}
 
   RIndex() = default;
+
+  std::vector<std::size_t> Locate(const std::string& t_pattern) const override {
+    return Base::index_->Locate(t_pattern);
+  }
+
+  std::pair<std::size_t, std::size_t> Count(const std::string& t_pattern) const override {
+    return Base::index_->Count(t_pattern);
+  }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
