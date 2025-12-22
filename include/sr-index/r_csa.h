@@ -5,35 +5,35 @@
 #ifndef SRI_R_CSA_H_
 #define SRI_R_CSA_H_
 
-#include <map>
-#include <string>
 #include <any>
 #include <functional>
+#include <map>
 #include <memory>
+#include <string>
 
 #include <sdsl/csa_alphabet_strategy.hpp>
 
-#include "index_base.h"
 #include "alphabet.h"
-#include "psi.h"
-#include "lf.h"
-#include "sequence_ops.h"
-#include "construct.h"
 #include "config.h"
+#include "construct.h"
+#include "index_base.h"
+#include "lf.h"
+#include "psi.h"
+#include "sequence_ops.h"
 
 namespace sri {
 
-template<typename TStorage = GenericStorage,
-    typename TAlphabet = Alphabet<>,
-    typename TPsiRLE = PsiCoreRLE<>,
-    typename TBvMark = sdsl::sd_vector<>,
-    typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>>
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TPsiRLE = PsiCoreRLE<>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>>
 class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
-  explicit RCSAWithBWTRun(const TStorage &t_storage) : Base(t_storage) {}
+  explicit RCSAWithBWTRun(const TStorage& t_storage) : Base(t_storage) {}
 
   RCSAWithBWTRun() = default;
 
@@ -42,14 +42,15 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     loadInner(source);
   }
 
-  void load(std::istream &in) override {
+  void load(std::istream& in) override {
     TSource source(std::ref(in));
     loadInner(source);
   }
 
-  using typename Base::size_type;
   using typename Base::ItemKey;
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
@@ -70,16 +71,16 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
   }
 
  protected:
-
   using typename Base::TSource;
 
-  virtual void loadInner(TSource &t_source) {
+  virtual void loadInner(TSource& t_source) {
     setupKeyNames();
     loadAllItems(t_source);
     constructIndex(t_source);
   }
 
   using Base::key;
+
   virtual void setupKeyNames() {
     key(ItemKey::ALPHABET) = conf::KEY_ALPHABET;
     key(ItemKey::NAVIGATE) = sdsl::conf::KEY_PSI;
@@ -88,7 +89,7 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     key(ItemKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
   }
 
-  virtual void loadAllItems(TSource &t_source) {
+  virtual void loadAllItems(TSource& t_source) {
     this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
     this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
@@ -102,21 +103,24 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
   }
 
-  virtual void constructIndex(TSource &t_source) {
-    this->index_.reset(new RIndexBase{
-        constructLF(t_source),
-        constructComputeDataBackwardSearchStep(
-            [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
-              const auto &[start, end] = tt_next_range;
-              return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
-            }),
-        constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
-        this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData(0)}; },
-        constructGetSymbol(t_source),
-        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
-        constructIsRangeEmpty()
-    });
+  virtual void constructIndex(TSource& t_source) {
+    this->index_.reset(
+        new RIndexBase{constructLF(t_source),  //
+                       constructComputeDataBackwardSearchStep(
+                           [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
+                             const auto& [start, end] = tt_next_range;
+                             return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
+                           }),                                                                                       //
+                       constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),  //
+                       this->n_,                                                                                     //
+                       [](const auto& tt_step) {
+                         return DataBackwardSearchStep{0, RunData(0)};
+                       },                             //
+                       constructGetSymbol(t_source),  //
+                       [](auto tt_seq_size) {
+                         return Range{0, tt_seq_size};
+                       },  //
+                       constructIsRangeEmpty()});
   }
 
   struct DataLF {
@@ -128,12 +132,14 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
       std::size_t rank = 0;
     } run;
 
-    bool operator==(const DataLF &rhs) const {
-      return value == rhs.value; // && run.start == rhs.run.start && run.end == rhs.run.end && run.rank == rhs.run.rank;
+    bool operator==(const DataLF& rhs) const {
+      return value == rhs.value;
+      // && run.start == rhs.run.start && run.end == rhs.run.end && run.rank == rhs.run.rank;
     }
 
-    bool operator<(const DataLF &rhs) const {
-      return value < rhs.value; // || run.start < rhs.run.start || run.end < rhs.run.end || run.rank < rhs.run.rank;
+    bool operator<(const DataLF& rhs) const {
+      return value < rhs.value;
+      // || run.start < rhs.run.start || run.end < rhs.run.end || run.rank < rhs.run.rank;
     }
   };
 
@@ -145,7 +151,7 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     Position start;
     Position end;
 
-    Range &operator=(const RangeLF &t_range) {
+    Range& operator=(const RangeLF& t_range) {
       start = t_range.start.value;
       end = t_range.end.value;
       return *this;
@@ -158,10 +164,12 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
   };
 
   auto constructIsRangeEmpty() {
-    return [](const Range &tt_range) { return !(tt_range.start < tt_range.end); };
+    return [](const Range& tt_range) {
+      return !(tt_range.start < tt_range.end);
+    };
   }
 
-  auto constructLF(TSource &t_source) {
+  auto constructLF(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     this->n_ = cumulative[cref_alphabet.get().sigma];
@@ -169,15 +177,15 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     auto psi_rank = [cref_psi_core](auto tt_c, auto tt_rnk) {
       DataLF data;
-      auto report =
-          [&data](const auto &tt_rank, const auto &tt_run_start, const auto &tt_run_end, const auto &tt_run_rank) {
-            data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
-          };
+      auto report = [&data](const auto& tt_rank, const auto& tt_run_start, const auto& tt_run_end,
+                            const auto& tt_run_rank) {
+        data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
+      };
       cref_psi_core.get().rank(tt_c, tt_rnk, report);
       return data;
     };
 
-    auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto &tt_smaller_c) -> RangeLF {
+    auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto& tt_smaller_c) -> RangeLF {
       tt_c_before_sp.value += tt_smaller_c;
       tt_c_until_ep.value += tt_smaller_c;
       return {tt_c_before_sp, tt_c_until_ep};
@@ -192,18 +200,20 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     std::size_t pos;
 
     explicit RunData(std::size_t t_pos) : pos{t_pos} {}
+
     virtual ~RunData() = default;
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
 
-  template<typename TCreateData>
-  auto constructComputeDataBackwardSearchStep(const TCreateData &t_create_data) {
+  template <typename TCreateData>
+  auto constructComputeDataBackwardSearchStep(const TCreateData& t_create_data) {
     return buildComputeDataBackwardSearchStepForPhiForward(t_create_data);
   }
 
   using Value = std::size_t;
-  auto constructPhiForRange(TSource &t_source) {
+
+  auto constructPhiForRange(TSource& t_source) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
     auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
@@ -216,9 +226,9 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     SampleValidatorDefault sample_validator_default;
 
     auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
-    auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
+    auto phi_for_range = [phi](const auto& t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
-      const auto &[start, end] = t_range;
+      const auto& [start, end] = t_range;
       for (auto i = start; i < end; ++i) {
         k = phi(k).first;
         t_report(k);
@@ -228,11 +238,11 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     return phi_for_range;
   }
 
-  auto constructComputeToehold(TSource &t_source) {
+  auto constructComputeToehold(TSource& t_source) {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
 
     auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData &tt_run_data) {
+    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData& tt_run_data) {
       auto run = cref_psi_core.get().rankRun(tt_run_data.pos);
       return cref_samples.get()[run] + 1;
     };
@@ -240,10 +250,10 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     return buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
   }
 
-  template<typename TPhiRange, typename TComputeToehold>
-  auto constructComputeSAValues(const TPhiRange &t_phi_range, const TComputeToehold &t_compute_toehold) {
+  template <typename TPhiRange, typename TComputeToehold>
+  auto constructComputeSAValues(const TPhiRange& t_phi_range, const TComputeToehold& t_compute_toehold) {
     auto update_range = [](Range tt_range) {
-      auto &[start, end] = tt_range;
+      auto& [start, end] = tt_range;
       ++start;
       return tt_range;
     };
@@ -251,31 +261,35 @@ class RCSAWithBWTRun : public IndexBaseWithExternalStorage<TStorage> {
     return ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
   }
 
-  auto constructGetSymbol(TSource &t_source) {
+  auto constructGetSymbol(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[static_cast<uint8_t>(tt_c)]; };
+    auto get_symbol = [cref_alphabet](char tt_c) {
+      return cref_alphabet.get().char2comp[static_cast<uint8_t>(tt_c)];
+    };
     return get_symbol;
   }
-
 };
 
-template<typename TStorage = GenericStorage,
-    typename TAlphabet = Alphabet<>,
-    typename TPsiRLE = PsiCoreRLE<>,
-    typename TSA = sdsl::int_vector<>>
+//~~~~~~~
+
+
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TPsiRLE = PsiCoreRLE<>,
+          typename TSA = sdsl::int_vector<>>
 class CSARaw : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE> {
  public:
   using Base = RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE>;
 
-  explicit CSARaw(const TStorage &t_storage) : Base(t_storage) {}
+  explicit CSARaw(const TStorage& t_storage) : Base(t_storage) {}
 
   CSARaw() = default;
 
-  using typename Base::size_type;
   using typename Base::ItemKey;
+  using typename Base::size_type;
 
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
@@ -289,41 +303,44 @@ class CSARaw : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE> {
   }
 
  protected:
-
-  using typename Base::TSource;
   using Base::key;
+  using typename Base::TSource;
 
-  virtual void loadAllItems(TSource &t_source) {
+  virtual void loadAllItems(TSource& t_source) {
     this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     this->template loadItem<TSA>(sdsl::conf::KEY_SA, t_source);
   }
 
+  using typename Base::DataBackwardSearchStep;
   using typename Base::Range;
   using typename Base::RangeLF;
-  using typename Base::DataBackwardSearchStep;
   using typename Base::RunData;
-  virtual void constructIndex(TSource &t_source) {
-    this->index_.reset(new RIndexBase{
-        this->constructLF(t_source),
-        this->constructComputeDataBackwardSearchStep(
-            [](const Range &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
-              const auto &[start, end] = tt_next_range;
-              return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
-            }),
-        constructComputeSAValues(t_source),
-        this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunData(0)}; },
-        this->constructGetSymbol(t_source),
-        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
-        this->constructIsRangeEmpty()
-    });
+
+  virtual void constructIndex(TSource& t_source) {
+    this->index_.reset(
+        new RIndexBase{this->constructLF(t_source),  //
+                       this->constructComputeDataBackwardSearchStep(
+                           [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
+                             const auto& [start, end] = tt_next_range;
+                             return DataBackwardSearchStep{tt_step, RunData(start.run.start)};
+                           }),                              //
+                       constructComputeSAValues(t_source),  //
+                       this->n_,                            //
+                       [](const auto& tt_step) {
+                         return DataBackwardSearchStep{0, RunData(0)};
+                       },                                   //
+                       this->constructGetSymbol(t_source),  //
+                       [](auto tt_seq_size) {
+                         return Range{0, tt_seq_size};
+                       },  //
+                       this->constructIsRangeEmpty()});
   }
 
-  auto constructComputeSAValues(TSource &t_source) {
+  auto constructComputeSAValues(TSource& t_source) {
     auto cref_sa = this->template loadItem<TSA>(sdsl::conf::KEY_SA, t_source);
 
-    auto compute_sa_values = [cref_sa](const auto &tt_range, const auto &, auto tt_report) {
+    auto compute_sa_values = [cref_sa](const auto& tt_range, const auto&, auto tt_report) {
       auto [first, last] = tt_range;
 
       while (first < last) {
@@ -333,23 +350,28 @@ class CSARaw : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE> {
 
     return compute_sa_values;
   }
-
 };
 
-template<uint8_t t_width, typename TBvMark>
-void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_config);
+template <uint8_t t_width, typename TBvMark>
+void constructRCSAWithBWTRuns(const std::string& t_data_path, sri::Config& t_config);
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TPsiCore, typename TBvMark, typename TMarkToSampleIdx, typename TSample>
-void construct(RCSAWithBWTRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample> &t_index,
-               const std::string &t_data_path,
-               sri::Config &t_config) {
+template <typename TStorage,
+          template <uint8_t> typename TAlphabet,
+          uint8_t t_width,
+          typename TPsiCore,
+          typename TBvMark,
+          typename TMarkToSampleIdx,
+          typename TSample>
+void construct(RCSAWithBWTRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample>& t_index,
+               const std::string& t_data_path,
+               sri::Config& t_config) {
   constructRCSAWithBWTRuns<t_width, TBvMark>(t_data_path, t_config);
 
   t_index.load(t_config);
 }
 
-template<uint8_t t_width, typename TBvMark>
-void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_config) {
+template <uint8_t t_width, typename TBvMark>
+void constructRCSAWithBWTRuns(const std::string& t_data_path, sri::Config& t_config) {
   constructIndexBaseItems<t_width>(t_data_path, t_config);
 
   // Construct Psi
@@ -377,12 +399,15 @@ void constructRCSAWithBWTRuns(const std::string &t_data_path, sri::Config &t_con
   }
 }
 
-template<typename TStorage = GenericStorage,
-    typename TAlphabet = Alphabet<>,
-    typename TPsiRLE = PsiCoreRLE<>,
-    typename TBvMark = sdsl::sd_vector<>,
-    typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>>
+//~~~~~~~
+
+
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TPsiRLE = PsiCoreRLE<>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>>
 class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
  public:
   using Alphabet = TAlphabet;
@@ -391,7 +416,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   using MarksToSamples = TMarkToSampleIdx;
   using Base = IndexBaseWithExternalStorage<TStorage>;
 
-  explicit RCSAWithPsiRun(const TStorage &t_storage) : Base(t_storage) {}
+  explicit RCSAWithPsiRun(const TStorage& t_storage) : Base(t_storage) {}
 
   RCSAWithPsiRun() = default;
 
@@ -402,14 +427,15 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     loadInner(source, t_config.keys);
   }
 
-  void load(std::istream &in) override {
+  void load(std::istream& in) override {
     TSource source(std::ref(in));
     loadInner(source, createDefaultKeys<TAlphabet::int_width>());
   }
 
-  using typename Base::size_type;
   using typename Base::ItemKey;
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
@@ -430,17 +456,17 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   }
 
  protected:
-
   using typename Base::TSource;
 
-  virtual void loadInner(TSource &t_source, const JSON &t_keys) {
+  virtual void loadInner(TSource& t_source, const JSON& t_keys) {
     setupKeyNames(t_keys);
     loadAllItems(t_source);
     constructIndex(t_source);
   }
 
   using Base::key;
-  virtual void setupKeyNames(const JSON &t_keys) {
+
+  virtual void setupKeyNames(const JSON& t_keys) {
     using namespace sri::conf;
     key(ItemKey::ALPHABET) = t_keys[kAlphabet];
     key(ItemKey::NAVIGATE) = t_keys[kPsi][kBase];
@@ -449,7 +475,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     key(ItemKey::MARK_TO_SAMPLE) = t_keys[kPsi][kTail][kTextPosAsc][kLink];
   }
 
-  virtual void loadAllItems(TSource &t_source) {
+  virtual void loadAllItems(TSource& t_source) {
     this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
     this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
@@ -464,21 +490,23 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   virtual void constructIndex(TSource& t_source) {
-    this->index_.reset(new RIndexBase{
-      constructLF(t_source),
-      constructComputeDataBackwardSearchStep(
-        [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
-          const auto& [start, end] = tt_next_range;
-          return DataBackwardSearchStep{tt_step, RunData{tt_c, start.run.rank}};
-        }
-      ),
-      constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),
-      this->n_,
-      [](const auto& tt_step) { return DataBackwardSearchStep{0, RunData{0, 0}}; },
-      constructGetSymbol(t_source),
-      [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
-      constructIsRangeEmpty()
-    });
+    this->index_.reset(
+        new RIndexBase{constructLF(t_source),  //
+                       constructComputeDataBackwardSearchStep(
+                           [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
+                             const auto& [start, end] = tt_next_range;
+                             return DataBackwardSearchStep{tt_step, RunData{tt_c, start.run.rank}};
+                           }),                                                                                       //
+                       constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),  //
+                       this->n_,                                                                                     //
+                       [](const auto& tt_step) {
+                         return DataBackwardSearchStep{0, RunData{0, 0}};
+                       },                             //
+                       constructGetSymbol(t_source),  //
+                       [](auto tt_seq_size) {
+                         return Range{0, tt_seq_size};
+                       },  //
+                       constructIsRangeEmpty()});
   }
 
   struct DataLF {
@@ -490,12 +518,14 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
       std::size_t rank = 0;
     } run;
 
-    bool operator==(const DataLF &rhs) const {
-      return value == rhs.value; // && run.start == rhs.run.start && run.end == rhs.run.end && run.rank == rhs.run.rank;
+    bool operator==(const DataLF& rhs) const {
+      return value == rhs.value;
+      // && run.start == rhs.run.start && run.end == rhs.run.end && run.rank == rhs.run.rank;
     }
 
-    bool operator<(const DataLF &rhs) const {
-      return value < rhs.value; // || run.start < rhs.run.start || run.end < rhs.run.end || run.rank < rhs.run.rank;
+    bool operator<(const DataLF& rhs) const {
+      return value < rhs.value;
+      // || run.start < rhs.run.start || run.end < rhs.run.end || run.rank < rhs.run.rank;
     }
   };
 
@@ -507,7 +537,7 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     Position start;
     Position end;
 
-    Range &operator=(const RangeLF &t_range) {
+    Range& operator=(const RangeLF& t_range) {
       start = t_range.start.value;
       end = t_range.end.value;
       return *this;
@@ -520,10 +550,12 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   };
 
   auto constructIsRangeEmpty() {
-    return [](const Range &tt_range) { return !(tt_range.start < tt_range.end); };
+    return [](const Range& tt_range) {
+      return !(tt_range.start < tt_range.end);
+    };
   }
 
-  auto constructLF(TSource &t_source) {
+  auto constructLF(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     this->n_ = cumulative[cref_alphabet.get().sigma];
@@ -531,15 +563,15 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     auto psi_rank = [cref_psi_core](auto tt_c, auto tt_rnk) {
       DataLF data;
-      auto report =
-          [&data](const auto &tt_rank, const auto &tt_run_start, const auto &tt_run_end, const auto &tt_run_rank) {
-            data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
-          };
+      auto report = [&data](const auto& tt_rank, const auto& tt_run_start, const auto& tt_run_end,
+                            const auto& tt_run_rank) {
+        data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
+      };
       cref_psi_core.get().rank(tt_c, tt_rnk, report);
       return data;
     };
 
-    auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto &tt_smaller_c) -> RangeLF {
+    auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto& tt_smaller_c) -> RangeLF {
       tt_c_before_sp.value += tt_smaller_c;
       tt_c_until_ep.value += tt_smaller_c;
       return {tt_c_before_sp, tt_c_until_ep};
@@ -551,19 +583,20 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
   }
 
   struct RunData {
-    Char c; // Character for LF step in the range
-    std::size_t partial_rank; // Rank of first run item (total rank for symbol c and partial rank for all symbols)
+    Char c;                    // Character for LF step in the range
+    std::size_t partial_rank;  // Rank of first run item (total rank for symbol c and partial rank for all symbols)
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunData>;
 
-  template<typename TCreateData>
-  auto constructComputeDataBackwardSearchStep(const TCreateData &t_create_data) {
+  template <typename TCreateData>
+  auto constructComputeDataBackwardSearchStep(const TCreateData& t_create_data) {
     return buildComputeDataBackwardSearchStepForPhiForward(t_create_data);
   }
 
   using Value = std::size_t;
-  auto constructPhiForRange(TSource &t_source) {
+
+  auto constructPhiForRange(TSource& t_source) {
     auto bv_mark_rank = this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
     auto bv_mark_select = this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
     auto successor = CircularSoftSuccessor(bv_mark_rank, bv_mark_select, this->n_);
@@ -576,9 +609,9 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     SampleValidatorDefault sample_validator_default;
 
     auto phi = buildPhiForward(successor, get_mark_to_sample_idx, get_sample, sample_validator_default, this->n_);
-    auto phi_for_range = [phi](const auto &t_range, std::size_t t_k, auto t_report) {
+    auto phi_for_range = [phi](const auto& t_range, std::size_t t_k, auto t_report) {
       auto k = t_k;
-      const auto &[start, end] = t_range;
+      const auto& [start, end] = t_range;
       for (auto i = start; i < end; ++i) {
         k = phi(k).first;
         t_report(k);
@@ -588,11 +621,11 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     return phi_for_range;
   }
 
-  auto constructComputeToehold(TSource &t_source) {
+  auto constructComputeToehold(TSource& t_source) {
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
 
     auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
-    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData &tt_run_data) {
+    auto get_sa_value_for_bwt_run_start = [cref_psi_core, cref_samples](const RunData& tt_run_data) {
       auto n_prev_runs = cref_psi_core.get().rankCharRun(tt_run_data.c);
       return cref_samples.get()[n_prev_runs + tt_run_data.partial_rank] + 1;
     };
@@ -600,10 +633,10 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     return buildComputeToeholdForPhiForward(get_sa_value_for_bwt_run_start, cref_psi_core.get().size());
   }
 
-  template<typename TPhiRange, typename TComputeToehold>
-  auto constructComputeSAValues(const TPhiRange &t_phi_range, const TComputeToehold &t_compute_toehold) {
+  template <typename TPhiRange, typename TComputeToehold>
+  auto constructComputeSAValues(const TPhiRange& t_phi_range, const TComputeToehold& t_compute_toehold) {
     auto update_range = [](Range tt_range) {
-      auto &[start, end] = tt_range;
+      auto& [start, end] = tt_range;
       ++start;
       return tt_range;
     };
@@ -611,16 +644,17 @@ class RCSAWithPsiRun : public IndexBaseWithExternalStorage<TStorage> {
     return ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
   }
 
-  auto constructGetSymbol(TSource &t_source) {
+  auto constructGetSymbol(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](char tt_c) { return cref_alphabet.get().char2comp[static_cast<uint8_t>(tt_c)]; };
+    auto get_symbol = [cref_alphabet](char tt_c) {
+      return cref_alphabet.get().char2comp[static_cast<uint8_t>(tt_c)];
+    };
     return get_symbol;
   }
-
 };
 
-template<typename... TArgs>
+template <typename... TArgs>
 void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
   using Index = RCSAWithPsiRun<TArgs...>;
   using namespace sri::conf;
@@ -676,6 +710,6 @@ void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
   }
 }
 
-}
+}  // namespace sri
 
-#endif //SRI_R_CSA_H_
+#endif  // SRI_R_CSA_H_

@@ -20,6 +20,7 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: true
+BinPackParameters: OnePerLine
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: false

@@ -28,14 +28,23 @@ class LocateIndex {
 //~~~~~~~
 
 
-template <typename TBackwardNav, typename TUpdateToeholdData, typename TComputeAllValues,
-          typename TGetInitialToeholdData, typename TGetSymbol, typename TCreateFullRange, typename TIsRangeEmpty>
+template <typename TBackwardNav,
+          typename TUpdateToeholdData,
+          typename TComputeAllValues,
+          typename TGetInitialToeholdData,
+          typename TGetSymbol,
+          typename TCreateFullRange,
+          typename TIsRangeEmpty>
 class RIndexBase : public LocateIndex {
  public:
-  RIndexBase(const TBackwardNav& t_lf, const TUpdateToeholdData& t_update_toehold_data,
-             const TComputeAllValues& t_compute_all_values, std::size_t t_bwt_size,
-             const TGetInitialToeholdData& t_get_initial_toehold_data, const TGetSymbol& t_get_symbol,
-             const TCreateFullRange& t_create_full_range, const TIsRangeEmpty& t_is_range_empty)
+  RIndexBase(const TBackwardNav& t_lf,
+             const TUpdateToeholdData& t_update_toehold_data,
+             const TComputeAllValues& t_compute_all_values,
+             std::size_t t_bwt_size,
+             const TGetInitialToeholdData& t_get_initial_toehold_data,
+             const TGetSymbol& t_get_symbol,
+             const TCreateFullRange& t_create_full_range,
+             const TIsRangeEmpty& t_is_range_empty)
       : lf_{t_lf},
         update_toehold_data_{t_update_toehold_data},
         compute_all_values_{t_compute_all_values},
@@ -132,6 +141,9 @@ const TItem* set(GenericStorage& t_storage, const std::string& t_key, TItem&& t_
   auto [it, inserted] = t_storage.emplace(t_key, t_item);
   return std::any_cast<TItem>(&it->second);
 }
+
+//~~~~~~~
+
 
 template <typename TStorage = GenericStorage>
 class IndexBaseWithExternalStorage : public LocateIndex {
@@ -262,7 +274,9 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   }
 
   template <typename TItem>
-  std::size_t serializeItem(const std::string& t_key, std::ostream& out, sdsl::structure_tree_node* v,
+  std::size_t serializeItem(const std::string& t_key,
+                            std::ostream& out,
+                            sdsl::structure_tree_node* v,
                             const std::string& name) const {
     auto item = get<TItem>(storage_, t_key);
     if (item) {
@@ -272,13 +286,17 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   }
 
   template <typename TItem, typename TItemRank = typename TItem::rank_1_type>
-  std::size_t serializeRank(const std::string& t_key, std::ostream& out, sdsl::structure_tree_node* v,
+  std::size_t serializeRank(const std::string& t_key,
+                            std::ostream& out,
+                            sdsl::structure_tree_node* v,
                             const std::string& name) const {
     return serializeItem<TItemRank>(t_key + "_rank", out, v, name);
   }
 
   template <typename TItem, typename TItemSelect = typename TItem::select_1_type>
-  std::size_t serializeSelect(const std::string& t_key, std::ostream& out, sdsl::structure_tree_node* v,
+  std::size_t serializeSelect(const std::string& t_key,
+                              std::ostream& out,
+                              sdsl::structure_tree_node* v,
                               const std::string& name) const {
     return serializeItem<TItemSelect>(t_key + "_select", out, v, name);
   }
@@ -294,11 +312,20 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   std::shared_ptr<LocateIndex> index_ = nullptr;
 };
 
-template <typename TBackwardNav, typename TGetLastValue, typename TComputeAllValues, typename TGetFinalValue,
+//~~~~~~~
+
+
+template <typename TBackwardNav,
+          typename TGetLastValue,
+          typename TComputeAllValues,
+          typename TGetFinalValue,
           typename TGetSymbol>
-auto buildSharedPtrRIndex(const TBackwardNav& t_lf, const TGetLastValue& t_get_last_value,
-                          const TComputeAllValues& t_compute_all_values, std::size_t t_bwt_size,
-                          const TGetFinalValue& t_get_final_sa_value, const TGetSymbol& t_get_symbol) {
+auto buildSharedPtrRIndex(const TBackwardNav& t_lf,
+                          const TGetLastValue& t_get_last_value,
+                          const TComputeAllValues& t_compute_all_values,
+                          std::size_t t_bwt_size,
+                          const TGetFinalValue& t_get_final_sa_value,
+                          const TGetSymbol& t_get_symbol) {
   using Range = std::pair<std::size_t, std::size_t>;
   using TFnCreateFullRange = std::function<Range(std::size_t)>;
   auto create_full_range = [](auto tt_seq_size) {
