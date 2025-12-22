@@ -101,7 +101,7 @@ class Factory {
     std::size_t sampling_size;
   };
 
-  std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> make(const Config &t_config) const {
+  std::pair<std::shared_ptr<sri::LocateIndex<>>, std::size_t> make(const Config &t_config) const {
     return internal_make(t_config);
   }
 
@@ -234,7 +234,7 @@ class Factory {
         + t_components.head_marked_sample_trusted_areas.size_in_bytes;
   }
 
-  std::pair<std::shared_ptr<sri::LocateIndex>, std::size_t> internal_make(const Config &t_config) const {
+  std::pair<std::shared_ptr<sri::LocateIndex<>>, std::size_t> internal_make(const Config &t_config) const {
     auto get_symbol = [](const auto &tt_c) { return (unsigned char)tt_c; };
 
     switch (t_config.index) {
@@ -244,7 +244,7 @@ class Factory {
         auto sa_end_value =
             sri::GetOptionalValue(components.tails_in_text.item[components.tails_in_text.item.size() - 1] + 1);
 
-        return {sri::buildSharedPtrRIndex(makeLF(),
+        return {sri::buildSharedPtrRIndex<std::string>(makeLF(),
                                           makeGetLastValue(),
                                           makeComputeAllValuesWithPhi(),
                                           seq_size_,
@@ -263,7 +263,7 @@ class Factory {
 
         auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(bwt_rle_.item[seq_size_ - 1], seq_size_ - 1);
 
-        return {sri::buildSharedPtrRIndex(makeLF(),
+        return {sri::buildSharedPtrRIndex<std::string>(makeLF(),
                                           makeGetLastSpecialBackwardSearchStep(),
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRangeSimple(s, phi)),
                                           seq_size_,
@@ -282,7 +282,7 @@ class Factory {
 
         auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(bwt_rle_.item[seq_size_ - 1], seq_size_ - 1);
 
-        return {sri::buildSharedPtrRIndex(makeLF(),
+        return {sri::buildSharedPtrRIndex<std::string>(makeLF(),
                                           makeGetLastSpecialBackwardSearchStep(),
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                           seq_size_,
@@ -304,7 +304,7 @@ class Factory {
 
         auto sa_end_value = sri::buildGetInitialDataBackwardSearchStep(bwt_rle_.item[seq_size_ - 1], seq_size_ - 1);
 
-        return {sri::buildSharedPtrRIndex(makeLF(),
+        return {sri::buildSharedPtrRIndex<std::string>(makeLF(),
                                           makeGetLastSpecialBackwardSearchStep(),
                                           makeComputeAllValuesWithPhiForRange(s, makePhiForRange(s, phi)),
                                           seq_size_,

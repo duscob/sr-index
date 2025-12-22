@@ -17,27 +17,30 @@
 
 namespace sri {
 
+template <typename TSequence = std::string>
 class LocateIndex {
  public:
   virtual ~LocateIndex() = default;
 
-  virtual std::vector<std::size_t> Locate(const std::string& _pattern) const = 0;
-  virtual std::pair<std::size_t, std::size_t> Count(const std::string& _pattern) const = 0;
+  virtual std::vector<std::size_t> Locate(const TSequence& _pattern) const = 0;
+  virtual std::pair<std::size_t, std::size_t> Count(const TSequence& _pattern) const = 0;
 };
 
 //~~~~~~~
 
 
-template <typename TBackwardNav,
+template <typename TSequence,
+          typename TBackwardNav,
           typename TUpdateToeholdData,
           typename TComputeAllValues,
           typename TGetInitialToeholdData,
           typename TGetSymbol,
           typename TCreateFullRange,
           typename TIsRangeEmpty>
-class RIndexBase : public LocateIndex {
+class RIndexBase : public LocateIndex<TSequence> {
  public:
-  RIndexBase(const TBackwardNav& t_lf,
+  RIndexBase(const TSequence& t_sequence,
+             const TBackwardNav& t_lf,
              const TUpdateToeholdData& t_update_toehold_data,
              const TComputeAllValues& t_compute_all_values,
              std::size_t t_bwt_size,
@@ -54,7 +57,7 @@ class RIndexBase : public LocateIndex {
         create_full_range_{t_create_full_range},
         is_range_empty_{t_is_range_empty} {}
 
-  std::vector<std::size_t> Locate(const std::string& t_pattern) const override {
+  std::vector<std::size_t> Locate(const TSequence& t_pattern) const override {
     std::vector<std::size_t> values;
     auto report = [&values](const auto& v) {
       values.emplace_back(v);
@@ -87,7 +90,7 @@ class RIndexBase : public LocateIndex {
     }
   }
 
-  std::pair<std::size_t, std::size_t> Count(const std::string& t_pattern) const override {
+  std::pair<std::size_t, std::size_t> Count(const TSequence& t_pattern) const override {
     std::pair<std::size_t, std::size_t> range;
     auto report = [&range](const auto& tt_range) {
       const auto& [start, end] = tt_range;
@@ -297,14 +300,35 @@ class IndexBaseWithExternalStorage {
   std::size_t n_ = 0;
   TStorage storage_;
   std::array<std::string, static_cast<u_int8_t>(ItemKey::NUM_ITEMS)> keys_;
-
-  std::shared_ptr<LocateIndex> index_ = nullptr;
 };
 
 //~~~~~~~
 
 
-template <typename TBackwardNav,
+template <typename TSequence, typename TStorage = GenericStorage>
+class LocateIndexExtStorage : public LocateIndex<TSequence>, public IndexBaseWithExternalStorage<TStorage> {
+ public:
+  explicit LocateIndexExtStorage(const TStorage& t_storage) : IndexBaseWithExternalStorage<TStorage>(t_storage) {}
+
+  LocateIndexExtStorage() = default;
+
+  std::vector<std::size_t> Locate(const TSequence& t_pattern) const override {
+    return index_->Locate(t_pattern);
+  }
+
+  std::pair<std::size_t, std::size_t> Count(const TSequence& t_pattern) const override {
+    return index_->Count(t_pattern);
+  }
+
+ protected:
+  std::shared_ptr<LocateIndex<TSequence>> index_ = nullptr;
+};
+
+//~~~~~~~
+
+
+template <typename TSequence,
+          typename TBackwardNav,
           typename TGetLastValue,
           typename TComputeAllValues,
           typename TGetFinalValue,
@@ -326,10 +350,10 @@ auto buildSharedPtrRIndex(const TBackwardNav& t_lf,
     return tt_range.second < tt_range.first;
   };
 
-  return std::make_shared<RIndexBase<TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue, TGetSymbol,
-                                     TFnCreateFullRange, TFnIsRangeEmpty>>(
-      t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol, create_full_range,
-      is_range_empty);
+  return std::make_shared<RIndexBase<TSequence, TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue,
+                                     TGetSymbol, TFnCreateFullRange, TFnIsRangeEmpty>>(
+      TSequence{}, t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol,
+      create_full_range, is_range_empty);
 }
 
 }  // namespace sri

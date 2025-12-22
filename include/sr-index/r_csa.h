@@ -29,21 +29,13 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSAWithBWTRun : public LocateIndex, public IndexBaseWithExternalStorage<TStorage> {
+class RCSAWithBWTRun : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
  public:
-  using Base = IndexBaseWithExternalStorage<TStorage>;
+  using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
 
   explicit RCSAWithBWTRun(const TStorage& t_storage) : Base(t_storage) {}
 
   RCSAWithBWTRun() = default;
-
-  std::vector<std::size_t> Locate(const std::string& t_pattern) const override {
-    return Base::index_->Locate(t_pattern);
-  }
-
-  std::pair<std::size_t, std::size_t> Count(const std::string& t_pattern) const override {
-    return Base::index_->Count(t_pattern);
-  }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -113,7 +105,8 @@ class RCSAWithBWTRun : public LocateIndex, public IndexBaseWithExternalStorage<T
 
   virtual void constructIndex(TSource& t_source) {
     this->index_.reset(
-        new RIndexBase{constructLF(t_source),  //
+        new RIndexBase{typename TAlphabet::string_type{},  //
+                       constructLF(t_source),              //
                        constructComputeDataBackwardSearchStep(
                            [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
                              const auto& [start, end] = tt_next_range;
@@ -327,7 +320,8 @@ class CSARaw : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE> {
 
   virtual void constructIndex(TSource& t_source) {
     this->index_.reset(
-        new RIndexBase{this->constructLF(t_source),  //
+        new RIndexBase{typename TAlphabet::string_type{},  //
+                       this->constructLF(t_source),        //
                        this->constructComputeDataBackwardSearchStep(
                            [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
                              const auto& [start, end] = tt_next_range;
@@ -416,27 +410,19 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSAWithPsiRun : public LocateIndex, public IndexBaseWithExternalStorage<TStorage> {
+class RCSAWithPsiRun : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
  public:
   using Alphabet = TAlphabet;
   using Samples = TSample;
   using BvMarks = TBvMark;
   using MarksToSamples = TMarkToSampleIdx;
-  using Base = IndexBaseWithExternalStorage<TStorage>;
+  using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
 
   explicit RCSAWithPsiRun(const TStorage& t_storage) : Base(t_storage) {}
 
   RCSAWithPsiRun() = default;
 
   virtual ~RCSAWithPsiRun() = default;
-
-  std::vector<std::size_t> Locate(const std::string& t_pattern) const override {
-    return Base::index_->Locate(t_pattern);
-  }
-
-  std::pair<std::size_t, std::size_t> Count(const std::string& t_pattern) const override {
-    return Base::index_->Count(t_pattern);
-  }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -507,7 +493,8 @@ class RCSAWithPsiRun : public LocateIndex, public IndexBaseWithExternalStorage<T
 
   virtual void constructIndex(TSource& t_source) {
     this->index_.reset(
-        new RIndexBase{constructLF(t_source),  //
+        new RIndexBase{typename TAlphabet::string_type{},  //
+                       constructLF(t_source),              //
                        constructComputeDataBackwardSearchStep(
                            [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
                              const auto& [start, end] = tt_next_range;

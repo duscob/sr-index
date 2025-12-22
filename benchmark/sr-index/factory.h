@@ -43,7 +43,7 @@ class Factory {
   auto sizeSequence() const { return n_; }
 
   struct Index {
-    std::shared_ptr<sri::LocateIndex> idx;
+    std::shared_ptr<sri::LocateIndex<>> idx;
     std::size_t size = 0;
   };
 

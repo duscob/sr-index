@@ -240,6 +240,7 @@ class SrCSASlim : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkT
   template<typename TPhiRange>
   void constructIndex(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new RIndexBase{
+        typename TAlphabet::string_type{},
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const Range &tt_range, Char tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {
@@ -454,6 +455,7 @@ class SrCSA : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSam
   template<typename TPhiRange>
   void constructIndex(TSource &t_source, const TPhiRange &t_phi_range) {
     this->index_.reset(new RIndexBase{
+        typename TAlphabet::string_type{},
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(
             [](const auto &tt_range, auto tt_c, const RangeLF &tt_next_range, std::size_t tt_step) {

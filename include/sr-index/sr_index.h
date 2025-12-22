@@ -93,6 +93,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   template<typename TConstructPhiForRange>
   void constructIndex(TSource &t_source, const TConstructPhiForRange &t_construct_phi_for_range) {
     this->index_.reset(new RIndexBase{
+        typename TAlphabet::string_type{},
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         this->constructComputeSAValues(t_construct_phi_for_range(t_source), constructComputeToehold(t_source)),
