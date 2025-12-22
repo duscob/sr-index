@@ -9,8 +9,8 @@
 #include "sr-index/config.h"
 #include "sr-index/r_csa.h"
 #include "sr-index/r_index.h"
-#include "sr-index/sr_csa_bwt.h"
 #include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_bwt.h"
 #include "sr-index/sr_idx_generic.h"
 #include "sr-index/sr_index.h"
 
@@ -79,22 +79,21 @@ TConstructor createSrIndexBuilder() {
 INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
     LocateTests,
-    testing::Combine(testing::Values(createIndexBuilder<sri::RIndex<>>(),                            //
-                                     createSrIndexBuilder<sri::SrIndex<>>(),                         //
-                                     createSrIndexBuilder<sri::SrIndexValidMark<>>(),                //
-                                     createSrIndexBuilder<sri::SrIndexValidArea<>>(),                //
-                                     createIndexBuilder<sri::RCSABWTRun<>>(),                    //
-                                     createSrIndexBuilder<sri::SrCSABWTRun<>>(),                           //
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),      //
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),      //
-                                     createSrIndexBuilder<sri::SrCSABWTRunSlim<>>(),                       //
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),  //
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),  //
-                                     createIndexBuilder<sri::RCSAWithPsiRun<>>(),                    //
-                                     createSrIndexBuilder<sri::SrCSAWithPsiRun<>>(),                 //
-                                     createSrIndexBuilder<sri::SRCSAValidMark<>>(),                  //
-                                     createSrIndexBuilder<sri::SRCSAValidArea<>>()                   //
-                                     ),
+    testing::Combine(testing::Values(createIndexBuilder<sri::RIndex<>>(),
+                                     createSrIndexBuilder<sri::SrIndex<>>(),
+                                     createSrIndexBuilder<sri::SrIndexValidMark<>>(),
+                                     createSrIndexBuilder<sri::SrIndexValidArea<>>(),
+                                     createIndexBuilder<sri::RCSABWTRun<>>(),
+                                     createSrIndexBuilder<sri::SrCSABWTRun<>>(),
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),
+                                     createSrIndexBuilder<sri::SrCSABWTRunSlim<>>(),
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),
+                                     createIndexBuilder<sri::RCSA<>>(),
+                                     createSrIndexBuilder<sri::SrCSA<>>(),
+                                     createSrIndexBuilder<sri::SrCSAValidMark<>>(),
+                                     createSrIndexBuilder<sri::SrCSAValidArea<>>()),
                      testing::Values(std::make_tuple(String{"abcabcababc"},
                                                      ListPatternXValues{
                                                          std::make_tuple(String{"ab"}, Values{6, 8, 3, 0}),
@@ -121,13 +120,11 @@ class LocateTypedTests : public BaseConfigTests {
 template <typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<         //
-    sri::RIndex<>,                         //
-    sri::RCSABWTRun<>,                 //
-    sri::RCSAWithPsiRun<>,                 //
-    sri::SrIdxGeneric<sri::SrIndex<>, 2>,  //
-    sri::SrIdxGeneric<sri::SrCSABWTRun<>, 4>     //
-    >;
+using RIndexes = ::testing::Types<sri::RIndex<>,
+                                  sri::RCSABWTRun<>,
+                                  sri::RCSA<>,
+                                  sri::SrIdxGeneric<sri::SrIndex<>, 2>,
+                                  sri::SrIdxGeneric<sri::SrCSABWTRun<>, 4>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
@@ -153,20 +150,18 @@ TYPED_TEST(RIndexLocateTypedTests, serialize) {
 template <typename TIndex>
 class SRIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using SRIndexes = ::testing::Types<         //
-    sri::SrIndex<>,                         //
-    sri::SrIndexValidMark<>,                //
-    sri::SrIndexValidArea<>,                //
-    sri::SrCSABWTRun<>,                           //
-    sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>,      //
-    sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>,      //
-    sri::SrCSABWTRunSlim<>,                       //
-    sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>,  //
-    sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>,  //
-    sri::SrCSAWithPsiRun<>,                 //
-    sri::SRCSAValidMark<>,                  //
-    sri::SRCSAValidArea<>                   //
-    >;
+using SRIndexes = ::testing::Types<sri::SrIndex<>,
+                                   sri::SrIndexValidMark<>,
+                                   sri::SrIndexValidArea<>,
+                                   sri::SrCSABWTRun<>,
+                                   sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>,
+                                   sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>,
+                                   sri::SrCSABWTRunSlim<>,
+                                   sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>,
+                                   sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>,
+                                   sri::SrCSA<>,
+                                   sri::SrCSAValidMark<>,
+                                   sri::SrCSAValidArea<>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {

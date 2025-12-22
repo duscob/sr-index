@@ -29,7 +29,7 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSAWithPsiRun : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
+class RCSA : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
  public:
   using Alphabet = TAlphabet;
   using Samples = TSample;
@@ -37,11 +37,11 @@ class RCSAWithPsiRun : public LocateIndexExtStorage<typename TAlphabet::string_t
   using MarksToSamples = TMarkToSampleIdx;
   using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
 
-  explicit RCSAWithPsiRun(const TStorage& t_storage) : Base(t_storage) {}
+  explicit RCSA(const TStorage& t_storage) : Base(t_storage) {}
 
-  RCSAWithPsiRun() = default;
+  RCSA() = default;
 
-  virtual ~RCSAWithPsiRun() = default;
+  virtual ~RCSA() = default;
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -277,8 +277,8 @@ class RCSAWithPsiRun : public LocateIndexExtStorage<typename TAlphabet::string_t
 };
 
 template <typename... TArgs>
-void constructItems(RCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
-  using Index = RCSAWithPsiRun<TArgs...>;
+void constructItems(RCSA<TArgs...>& t_index, Config& t_config) {
+  using Index = RCSA<TArgs...>;
   using namespace sri::conf;
   constexpr auto width = Index::Alphabet::int_width;
   const auto& keys = t_config.keys;

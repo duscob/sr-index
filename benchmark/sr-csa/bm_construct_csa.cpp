@@ -77,7 +77,7 @@ auto BM_ConstructRCSAWithBWTRun = [](benchmark::State &t_state, sri::Config t_co
 };
 
 auto BM_ConstructRCSAWithPsiRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructRCSA<sri::RCSAWithPsiRun<>>(t_state, t_config, t_data_path);
+  BM_ConstructRCSA<sri::RCSA<>>(t_state, t_config, t_data_path);
 };
 
 template<typename TSrIndex>
@@ -123,7 +123,7 @@ auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sri::Config t_config,
 };
 
 auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSAWithPsiRun<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
@@ -135,11 +135,11 @@ auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sri::Config t_co
 };
 
 auto BM_ConstructSRCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SRCSAValidMark<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSAValidMark<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSRCSAValidArea = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SRCSAValidArea<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSAValidArea<>>(t_state, t_config, t_data_path);
 };
 
 int main(int argc, char **argv) {

@@ -19,7 +19,7 @@ template <typename TStorage = GenericStorage,
           typename TSample = sdsl::int_vector<>,
           typename TBvSampleIdx = sdsl::sd_vector<>,
           typename TCumulativeRun = sdsl::int_vector<>>
-class SrCSAWithPsiRun : public RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSA : public RCSA<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
   using Alphabet = TAlphabet;
   using Samples = TSample;
@@ -27,17 +27,17 @@ class SrCSAWithPsiRun : public RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvM
   using MarksToSamples = TMarkToSampleIdx;
   using BvSamplesIdx = TBvSampleIdx;
   using CumulativeRuns = TCumulativeRun;
-  using Base = RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = RCSA<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrCSAWithPsiRun(const TStorage& t_storage, const std::size_t t_sr)
+  SrCSA(const TStorage& t_storage, const std::size_t t_sr)
       : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  explicit SrCSAWithPsiRun(const std::size_t t_sr)
+  explicit SrCSA(const std::size_t t_sr)
       : Base(), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  SrCSAWithPsiRun() = default;
+  SrCSA() = default;
 
-  ~SrCSAWithPsiRun() override = default;
+  ~SrCSA() override = default;
 
   [[nodiscard]] std::size_t SubsampleRate() const {
     return subsample_rate_;
@@ -313,18 +313,18 @@ class SrCSAWithPsiRun : public RCSAWithPsiRun<TStorage, TAlphabet, TPsiRLE, TBvM
   std::string key_prefix_;
 };
 
-template <typename TSrCSA = SrCSAWithPsiRun<>, typename TBvValidMark = sdsl::bit_vector>
-class SRCSAValidMark : public TSrCSA {
+template <typename TSrCSA = SrCSA<>, typename TBvValidMark = sdsl::bit_vector>
+class SrCSAValidMark : public TSrCSA {
  public:
   using Base = TSrCSA;
   using BvValidMarks = TBvValidMark;
 
   template <typename TStorage>
-  SRCSAValidMark(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSAValidMark(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SRCSAValidMark(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSAValidMark(std::size_t t_sr) : Base(t_sr) {}
 
-  SRCSAValidMark() = default;
+  SrCSAValidMark() = default;
 
   using typename Base::ItemKey;
   using typename Base::size_type;
@@ -397,20 +397,18 @@ class SRCSAValidMark : public TSrCSA {
   }
 };
 
-template <typename TSrCSA = SrCSAWithPsiRun<>,
-          typename TBvValidMark = sdsl::bit_vector,
-          typename TValidArea = sdsl::int_vector<>>
-class SRCSAValidArea : public SRCSAValidMark<TSrCSA, TBvValidMark> {
+template <typename TSrCSA = SrCSA<>, typename TBvValidMark = sdsl::bit_vector, typename TValidArea = sdsl::int_vector<>>
+class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
  public:
-  using Base = SRCSAValidMark<TSrCSA, TBvValidMark>;
+  using Base = SrCSAValidMark<TSrCSA, TBvValidMark>;
   using ValidAreas = TValidArea;
 
   template <typename TStorage>
-  SRCSAValidArea(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSAValidArea(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SRCSAValidArea(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSAValidArea(std::size_t t_sr) : Base(t_sr) {}
 
-  SRCSAValidArea() = default;
+  SrCSAValidArea() = default;
 
   using typename Base::ItemKey;
   using typename Base::size_type;
@@ -478,8 +476,8 @@ template <typename TRunCumulativeCount>
 void constructCumulativeCountsWithPsiRuns(Config& t_config);
 
 template <typename... TArgs>
-void constructItems(SrCSAWithPsiRun<TArgs...>& t_index, Config& t_config) {
-  using Index = SrCSAWithPsiRun<TArgs...>;
+void constructItems(SrCSA<TArgs...>& t_index, Config& t_config) {
+  using Index = SrCSA<TArgs...>;
   constexpr auto width = Index::Alphabet::int_width;
   using namespace conf;
   const auto& keys = t_config.keys;
@@ -729,8 +727,8 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
 inline void constructSubmarksValidity(std::size_t t_subsample_rate, Config& t_config);
 
 template <typename... TArgs>
-void constructItems(SRCSAValidMark<TArgs...>& t_index, Config& t_config) {
-  using Index = SRCSAValidMark<TArgs...>;
+void constructItems(SrCSAValidMark<TArgs...>& t_index, Config& t_config) {
+  using Index = SrCSAValidMark<TArgs...>;
   using namespace conf;
   const auto& keys = t_config.keys;
 
@@ -806,8 +804,8 @@ inline void constructSubmarksValidity(const std::size_t t_subsample_rate, Config
 }
 
 template <typename... TArgs>
-void constructItems(SRCSAValidArea<TArgs...>& t_index, Config& t_config) {
-  using Index = SRCSAValidArea<TArgs...>;
+void constructItems(SrCSAValidArea<TArgs...>& t_index, Config& t_config) {
+  using Index = SrCSAValidArea<TArgs...>;
   using namespace conf;
   const auto& keys = t_config.keys;
 

@@ -48,7 +48,7 @@ protected:
 
 TEST_P(RCSATests, construct) {
   using namespace sri::conf;
-  sri::RCSAWithPsiRun<> index;
+  sri::RCSA<> index;
   sri::constructItems(index, config_);
 
   compare(config_.keys[kPsi][kBase], std::get<1>(GetParam()));
@@ -107,7 +107,7 @@ TEST_P(SRCSATests, construct) {
   using namespace sri::conf;
 
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::SrCSAWithPsiRun<> index(subsample_rate);
+  sri::SrCSA<> index(subsample_rate);
   sri::constructItems(index, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
@@ -168,7 +168,7 @@ TEST_P(SRCSAValidAreaTests, construct) {
   using namespace sri::conf;
 
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::SRCSAValidArea<> index(subsample_rate);
+  sri::SrCSAValidArea<> index(subsample_rate);
   sri::constructItems(index, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
