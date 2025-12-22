@@ -7,7 +7,7 @@
 
 #include <optional>
 
-#include "r_csa.h"
+#include "r_csa_bwt.h"
 #include "sampling.h"
 
 namespace sri {

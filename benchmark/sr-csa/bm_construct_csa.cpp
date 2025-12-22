@@ -12,6 +12,7 @@
 
 #include "sr-index/construct.h"
 #include "sr-index/r_csa.h"
+#include "sr-index/r_csa_bwt.h"
 #include "sr-index/sr_csa_bwt.h"
 #include "sr-index/sr_csa_psi.h"
 
