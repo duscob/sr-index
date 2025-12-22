@@ -14,7 +14,7 @@ namespace sri {
 
 template<typename TStorage = GenericStorage,
     typename TAlphabet = Alphabet<>,
-    typename TBwtRLE = RLEString<>,
+    typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
@@ -251,7 +251,7 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
 
 template<typename TStorage = GenericStorage,
     typename TAlphabet = Alphabet<>,
-    typename TBwtRLE = RLEString<>,
+    typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
@@ -352,7 +352,7 @@ class SrIndexValidMark : public SrIndex<
 
 template<typename TStorage = GenericStorage,
     typename TAlphabet = Alphabet<>,
-    typename TBwtRLE = RLEString<>,
+    typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
     typename TBvMark = sdsl::sd_vector<>,
     typename TMarkToSampleIdx = sdsl::int_vector<>,
     typename TSample = sdsl::int_vector<>,
