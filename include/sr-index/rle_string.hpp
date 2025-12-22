@@ -632,6 +632,9 @@ class rle_string {
 typedef rle_string<sparse_sd_vector> rle_string_sd;
 typedef rle_string<sparse_hyb_vector> rle_string_hyb;
 
+//~~~~~~~
+
+
 template <typename TString = sdsl::wt_huff<>,
           typename TBitVector = sdsl::sd_vector<>,
           typename TBitVectorRank = typename TBitVector::rank_1_type,
@@ -1053,6 +1056,42 @@ class RLEString {
   BitVector runs_;                          // Blocks of runs stored contiguously
   std::vector<BitVector> runs_per_symbol_;  // For each letter, its runs stored contiguously
 };
+
+template <uint8_t t_width>
+class RLEStringS : public RLEString<> {
+ public:
+  RLEStringS() = default;
+
+  template <typename TIter>
+  RLEStringS(TIter t_first, TIter t_last, std::size_t t_b = 2) : RLEString{t_first, t_last, t_b} {}
+};
+
+template <>
+class RLEStringS<8> : public RLEString<sdsl::wt_huff<sdsl::bit_vector,
+                                                     sdsl::bit_vector::rank_1_type,
+                                                     sdsl::bit_vector::select_1_type,
+                                                     sdsl::bit_vector::select_0_type,
+                                                     sdsl::byte_tree<>>> {
+ public:
+  RLEStringS() = default;
+
+  template <typename TIter>
+  RLEStringS(TIter t_first, TIter t_last, std::size_t t_b = 2) : RLEString{t_first, t_last, t_b} {}
+};
+
+template <>
+class RLEStringS<0> : public RLEString<sdsl::wt_huff<sdsl::bit_vector,
+                                                     sdsl::bit_vector::rank_1_type,
+                                                     sdsl::bit_vector::select_1_type,
+                                                     sdsl::bit_vector::select_0_type,
+                                                     sdsl::int_tree<>>> {
+ public:
+  RLEStringS() = default;
+
+  template <typename TIter>
+  RLEStringS(TIter t_first, TIter t_last, std::size_t t_b = 2) : RLEString{t_first, t_last, t_b} {}
+};
+
 
 }  // namespace sri
 

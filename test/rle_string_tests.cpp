@@ -113,6 +113,31 @@ TEST_P(SelectTests, RLEString) {
   EXPECT_EQ(pos, e_pos);
 }
 
+TEST_P(SelectTests, RLEStringSB) {
+  const auto &str = std::get<0>(GetParam());
+  sri::RLEStringS<8> rle_str(str.begin(), str.end());
+
+  const auto &rnk = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto pos = rle_str.select(rnk, c);
+
+  const auto &e_pos = std::get<3>(GetParam());
+  EXPECT_EQ(pos, e_pos);
+}
+
+TEST_P(SelectTests, RLEStringSI) {
+  const auto &str = std::get<0>(GetParam());
+  sri::RLEStringS<0> rle_str(str.begin(), str.end());
+
+  const auto &rnk = std::get<1>(GetParam());
+  const auto &c = std::get<2>(GetParam());
+  auto pos = rle_str.select(rnk, c);
+
+  const auto &e_pos = std::get<3>(GetParam());
+  EXPECT_EQ(pos, e_pos);
+}
+
+
 INSTANTIATE_TEST_SUITE_P(
     RLEString,
     SelectTests,
