@@ -11,7 +11,7 @@
 #include <sdsl/int_vector_buffer.hpp>
 
 #include "sr-index/r_csa.h"
-#include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_bwt.h"
 #include "sr-index/sr_csa_psi.h"
 #include "config.h"
 
