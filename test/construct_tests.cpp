@@ -8,7 +8,7 @@
 
 #include "sr-index/config.h"
 #include "sr-index/r_csa.h"
-#include "sr-index/sr_csa_psi.h"
+#include "sr-index/sr_csa.h"
 
 #include "base_tests.h"
 

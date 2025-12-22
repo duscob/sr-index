@@ -13,7 +13,7 @@
 #include "sr-index/r_csa.h"
 #include "sr-index/r_csa_bwt.h"
 #include "sr-index/sr_csa_bwt.h"
-#include "sr-index/sr_csa_psi.h"
+#include "sr-index/sr_csa.h"
 #include "config.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;

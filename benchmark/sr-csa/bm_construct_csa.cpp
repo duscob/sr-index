@@ -14,7 +14,7 @@
 #include "sr-index/r_csa.h"
 #include "sr-index/r_csa_bwt.h"
 #include "sr-index/sr_csa_bwt.h"
-#include "sr-index/sr_csa_psi.h"
+#include "sr-index/sr_csa.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
