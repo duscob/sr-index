@@ -24,13 +24,14 @@ using ListPatternXValues = std::vector<PatternXValues>;
 
 typedef std::shared_ptr<sri::LocateIndex<>> (*TConstructor)(const std::string& tt_data_path, sri::Config& tt_config);
 
-class LocateTests : public BaseConfigTests,
-                    public testing::WithParamInterface<
-                        std::tuple<TConstructor, std::tuple<String, ListPatternXValues>, sri::SAAlgo>> {
+template <typename TData>
+class LocateTests
+    : public BaseConfigTests,
+      public testing::WithParamInterface<std::tuple<TConstructor, std::tuple<TData, ListPatternXValues>, sri::SAAlgo>> {
  protected:
   void SetUp() override {
-    const auto& data = std::get<0>(std::get<1>(GetParam()));
-    const auto& sa_algo = std::get<2>(GetParam());
+    const auto& data = std::get<0>(std::get<1>(this->GetParam()));
+    const auto& sa_algo = std::get<2>(this->GetParam());
 #ifndef NDEBUG
     if (sa_algo == sri::SAAlgo::BIG_BWT) {
       GTEST_SKIP_("Tests with BigBWT fail in Debug mode");
@@ -40,23 +41,8 @@ class LocateTests : public BaseConfigTests,
   }
 };
 
-TEST_P(LocateTests, Locate) {
-  auto buildIndex = std::get<0>(GetParam());
-  auto index = buildIndex(config_.file_map[key_tmp_input_], config_);
-  const auto& info = std::get<1>(GetParam());
+//~~~~~~~
 
-  const auto& listPatternXValues = std::get<1>(info);
-  for (const auto& item : listPatternXValues) {
-    const auto& pattern = std::get<0>(item);
-
-    auto results = index->Locate(pattern);
-    std::sort(results.begin(), results.end());
-
-    auto e_results = std::get<1>(item);
-    std::sort(e_results.begin(), e_results.end());
-    EXPECT_EQ(results, e_results) << pattern;
-  }
-}
 
 template <typename TIndex>
 TConstructor createIndexBuilder() {
@@ -76,10 +62,7 @@ TConstructor createSrIndexBuilder() {
   };
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    LocateIndex,
-    LocateTests,
-    testing::Combine(testing::Values(createIndexBuilder<sri::RIndex<>>(),
+auto LocateIndexes = testing::Values(createIndexBuilder<sri::RIndex<>>(),
                                      createSrIndexBuilder<sri::SrIndex<>>(),
                                      createSrIndexBuilder<sri::SrIndexValidMark<>>(),
                                      createSrIndexBuilder<sri::SrIndexValidArea<>>(),
@@ -93,7 +76,35 @@ INSTANTIATE_TEST_SUITE_P(
                                      createIndexBuilder<sri::RCSA<>>(),
                                      createSrIndexBuilder<sri::SrCSA<>>(),
                                      createSrIndexBuilder<sri::SrCSAValidMark<>>(),
-                                     createSrIndexBuilder<sri::SrCSAValidArea<>>()),
+                                     createSrIndexBuilder<sri::SrCSAValidArea<>>());
+
+//~~~~~~~
+
+
+class LocateStringTests : public LocateTests<String> {};
+
+TEST_P(LocateStringTests, Locate) {
+  auto buildIndex = std::get<0>(GetParam());
+  auto index = buildIndex(config_.file_map[key_tmp_input_], config_);
+  const auto& info = std::get<1>(GetParam());
+
+  const auto& listPatternXValues = std::get<1>(info);
+  for (const auto& item : listPatternXValues) {
+    const auto& pattern = std::get<0>(item);
+
+    auto results = index->Locate(pattern);
+    std::sort(results.begin(), results.end());
+
+    auto e_results = std::get<1>(item);
+    std::sort(e_results.begin(), e_results.end());
+    EXPECT_EQ(results, e_results) << pattern;
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    LocateIndex,
+    LocateStringTests,
+    testing::Combine(LocateIndexes,
                      testing::Values(std::make_tuple(String{"abcabcababc"},
                                                      ListPatternXValues{
                                                          std::make_tuple(String{"ab"}, Values{6, 8, 3, 0}),
@@ -103,6 +114,9 @@ INSTANTIATE_TEST_SUITE_P(
                      testing::Values(sri::SDSL_LIBDIVSUFSORT,
                                      sri::BIG_BWT  // Fails in Debug Mode
                                      )));
+
+//~~~~~~~
+
 
 template <typename TIndex>
 class LocateTypedTests : public BaseConfigTests {
@@ -146,6 +160,9 @@ TYPED_TEST(RIndexLocateTypedTests, serialize) {
   std::sort(e_results.begin(), e_results.end());
   EXPECT_EQ(results, e_results);
 }
+
+//~~~~~~~
+
 
 template <typename TIndex>
 class SRIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
