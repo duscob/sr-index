@@ -19,15 +19,18 @@
 using String = std::string;
 
 using Values = std::vector<std::size_t>;
-using PatternXValues = std::tuple<String, Values>;
-using ListPatternXValues = std::vector<PatternXValues>;
-
-typedef std::shared_ptr<sri::LocateIndex<>> (*TConstructor)(const std::string& tt_data_path, sri::Config& tt_config);
+template <typename TData>
+using PatternXValues = std::tuple<TData, Values>;
+template <typename TData>
+using ListPatternXValues = std::vector<PatternXValues<TData>>;
 
 template <typename TData>
-class LocateTests
-    : public BaseConfigTests,
-      public testing::WithParamInterface<std::tuple<TConstructor, std::tuple<TData, ListPatternXValues>, sri::SAAlgo>> {
+using TConstructor = std::function<std::shared_ptr<sri::LocateIndex<TData>>(const std::string&, sri::Config&)>;
+
+template <typename TData>
+class LocateTests : public BaseConfigTests,
+                    public testing::WithParamInterface<
+                        std::tuple<TConstructor<TData>, std::tuple<TData, ListPatternXValues<TData>>, sri::SAAlgo>> {
  protected:
   void SetUp() override {
     const auto& data = std::get<0>(std::get<1>(this->GetParam()));
@@ -44,46 +47,32 @@ class LocateTests
 //~~~~~~~
 
 
-template <typename TIndex>
-TConstructor createIndexBuilder() {
-  return [](const std::string& tt_data_path, sri::Config& tt_config) -> std::shared_ptr<sri::LocateIndex<>> {
+template <typename TData, typename TIndex>
+TConstructor<TData> createIndexBuilder() {
+  return [](const std::string& tt_data_path, sri::Config& tt_config) -> std::shared_ptr<sri::LocateIndex<TData>> {
     auto index = std::make_shared<TIndex>();
     sri::construct(*index, tt_data_path, tt_config);
     return index;
   };
 }
 
-template <typename TSrIndex>
-TConstructor createSrIndexBuilder() {
-  return [](const std::string& tt_data_path, sri::Config& tt_config) -> std::shared_ptr<sri::LocateIndex<>> {
+template <typename TData, typename TSrIndex>
+TConstructor<TData> createSrIndexBuilder() {
+  return [](const std::string& tt_data_path, sri::Config& tt_config) -> std::shared_ptr<sri::LocateIndex<TData>> {
     auto index = std::make_shared<TSrIndex>(6);
     sri::construct(*index, tt_data_path, tt_config);
     return index;
   };
 }
 
-auto LocateIndexes = testing::Values(createIndexBuilder<sri::RIndex<>>(),
-                                     createSrIndexBuilder<sri::SrIndex<>>(),
-                                     createSrIndexBuilder<sri::SrIndexValidMark<>>(),
-                                     createSrIndexBuilder<sri::SrIndexValidArea<>>(),
-                                     createIndexBuilder<sri::RCSABWTRun<>>(),
-                                     createSrIndexBuilder<sri::SrCSABWTRun<>>(),
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),
-                                     createSrIndexBuilder<sri::SrCSABWTRunSlim<>>(),
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),
-                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),
-                                     createIndexBuilder<sri::RCSA<>>(),
-                                     createSrIndexBuilder<sri::SrCSA<>>(),
-                                     createSrIndexBuilder<sri::SrCSAValidMark<>>(),
-                                     createSrIndexBuilder<sri::SrCSAValidArea<>>());
-
 //~~~~~~~
 
 
-class LocateStringTests : public LocateTests<String> {};
+using DataBytes = sri::Alphabet<8>::string_type;
 
-TEST_P(LocateStringTests, Locate) {
+class LocateBytesTests : public LocateTests<DataBytes> {};
+
+TEST_P(LocateBytesTests, Locate) {
   auto buildIndex = std::get<0>(GetParam());
   auto index = buildIndex(config_.file_map[key_tmp_input_], config_);
   const auto& info = std::get<1>(GetParam());
@@ -103,17 +92,32 @@ TEST_P(LocateStringTests, Locate) {
 
 INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
-    LocateStringTests,
-    testing::Combine(LocateIndexes,
-                     testing::Values(std::make_tuple(String{"abcabcababc"},
-                                                     ListPatternXValues{
-                                                         std::make_tuple(String{"ab"}, Values{6, 8, 3, 0}),
-                                                         std::make_tuple(String{"aba"}, Values{6}),
-                                                         std::make_tuple(String{"bc"}, Values{9, 4, 1}),
-                                                     })),
-                     testing::Values(sri::SDSL_LIBDIVSUFSORT,
-                                     sri::BIG_BWT  // Fails in Debug Mode
-                                     )));
+    LocateBytesTests,
+    testing::Combine(
+        testing::Values(createIndexBuilder<DataBytes, sri::RIndex<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrIndex<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrIndexValidMark<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrIndexValidArea<>>(),
+                        createIndexBuilder<DataBytes, sri::RCSABWTRun<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRun<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunSlim<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),
+                        createIndexBuilder<DataBytes, sri::RCSA<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSA<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSAValidMark<>>(),
+                        createSrIndexBuilder<DataBytes, sri::SrCSAValidArea<>>()),
+        testing::Values(std::make_tuple(DataBytes{"abcabcababc"},
+                                        ListPatternXValues<DataBytes>{
+                                            std::make_tuple(DataBytes{"ab"}, Values{6, 8, 3, 0}),
+                                            std::make_tuple(DataBytes{"aba"}, Values{6}),
+                                            std::make_tuple(DataBytes{"bc"}, Values{9, 4, 1}),
+                                        })),
+        testing::Values(sri::SDSL_LIBDIVSUFSORT,
+                        sri::BIG_BWT  // Fails in Debug Mode
+                        )));
 
 //~~~~~~~
 
