@@ -5,38 +5,55 @@
 #ifndef SRI_IO_H_
 #define SRI_IO_H_
 
-#include <utility>
 #include <iostream>
 #include <string>
+#include <utility>
 
-#include <sdsl/io.hpp>
 #include <sdsl/config.hpp>
+#include <sdsl/io.hpp>
 #include <sdsl/util.hpp>
 
 namespace std {
 
-template<typename X, typename Y>
-uint64_t serialize(const std::pair<X, Y> &x,
-                   std::ostream &out,
-                   sdsl::structure_tree_node *v = nullptr,
-                   const std::string &name = "") {
+template <typename X, typename Y>
+uint64_t serialize(const std::pair<X, Y>& x,
+                   std::ostream& out,
+                   sdsl::structure_tree_node* v = nullptr,
+                   const std::string& name = "") {
   return serialize(x.first, out, v, name) + serialize(x.second, out, v, name);
 }
 
-template<typename X, typename Y>
-void load(std::pair<X, Y> &x, std::istream &in) {
+template <typename X, typename Y>
+void load(std::pair<X, Y>& x, std::istream& in) {
   using sdsl::load;
   load(x.first, in);
   load(x.second, in);
 }
 
-}
+}  // namespace std
 
 namespace sri {
 
+//! Register the existing resource specified by the key to the cache
+/*!
+ *  \param key        Resource key.
+ *  \param config    Cache configuration.
+ *
+ *  Note: If the resource does not exist under the given key,
+ *  it will be not added to the cache configuration.
+ */
+template <class T>
+inline void register_cache_file(std::string const& key, sdsl::cache_config& config) {
+  std::string file_name = sdsl::cache_file_name<T>(key, config);
+  sdsl::isfstream in(file_name);
+  if (in) {  // if file exists, register it.
+    config.file_map[key] = file_name;
+  }
+}
+
 //! Stores the object v as a resource in the cache.
-template<class T>
-bool store_to_cache(const T &v, const std::string &key, sdsl::cache_config &config, bool add_type_hash = false) {
+template <class T>
+bool store_to_cache(const T& v, const std::string& key, sdsl::cache_config& config, bool add_type_hash = false) {
   std::string file;
   if (add_type_hash) {
     file = sdsl::cache_file_name<T>(key, config);
@@ -52,6 +69,6 @@ bool store_to_cache(const T &v, const std::string &key, sdsl::cache_config &conf
   }
 }
 
-}
+}  // namespace sri
 
-#endif //SRI_IO_H_
+#endif  // SRI_IO_H_

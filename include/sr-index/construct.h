@@ -133,7 +133,7 @@ void constructPsiRuns(Config &t_config) {
     }
 
     psi_run_text_pos.close();
-    sdsl::register_cache_file(key_psi_run_text_pos, t_config);
+    register_cache_file<sdsl::int_vector<>>(key_psi_run_text_pos, t_config);
   }
 }
 
