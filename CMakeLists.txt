@@ -73,8 +73,8 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_index.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_index.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa_bwt.h
-        ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa_bwt.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa_psi.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_idx_generic.h
 )

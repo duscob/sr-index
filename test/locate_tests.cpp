@@ -83,13 +83,13 @@ INSTANTIATE_TEST_SUITE_P(
                                      createSrIndexBuilder<sri::SrIndex<>>(),                         //
                                      createSrIndexBuilder<sri::SrIndexValidMark<>>(),                //
                                      createSrIndexBuilder<sri::SrIndexValidArea<>>(),                //
-                                     createIndexBuilder<sri::RCSAWithBWTRun<>>(),                    //
-                                     createSrIndexBuilder<sri::SrCSA<>>(),                           //
-                                     createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSA<>>>(),      //
-                                     createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSA<>>>(),      //
-                                     createSrIndexBuilder<sri::SrCSASlim<>>(),                       //
-                                     createSrIndexBuilder<sri::SrCSAValidMark<sri::SrCSASlim<>>>(),  //
-                                     createSrIndexBuilder<sri::SrCSAValidArea<sri::SrCSASlim<>>>(),  //
+                                     createIndexBuilder<sri::RCSABWTRun<>>(),                    //
+                                     createSrIndexBuilder<sri::SrCSABWTRun<>>(),                           //
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),      //
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),      //
+                                     createSrIndexBuilder<sri::SrCSABWTRunSlim<>>(),                       //
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),  //
+                                     createSrIndexBuilder<sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),  //
                                      createIndexBuilder<sri::RCSAWithPsiRun<>>(),                    //
                                      createSrIndexBuilder<sri::SrCSAWithPsiRun<>>(),                 //
                                      createSrIndexBuilder<sri::SRCSAValidMark<>>(),                  //
@@ -123,10 +123,10 @@ class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
 using RIndexes = ::testing::Types<         //
     sri::RIndex<>,                         //
-    sri::RCSAWithBWTRun<>,                 //
+    sri::RCSABWTRun<>,                 //
     sri::RCSAWithPsiRun<>,                 //
     sri::SrIdxGeneric<sri::SrIndex<>, 2>,  //
-    sri::SrIdxGeneric<sri::SrCSA<>, 4>     //
+    sri::SrIdxGeneric<sri::SrCSABWTRun<>, 4>     //
     >;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
@@ -157,12 +157,12 @@ using SRIndexes = ::testing::Types<         //
     sri::SrIndex<>,                         //
     sri::SrIndexValidMark<>,                //
     sri::SrIndexValidArea<>,                //
-    sri::SrCSA<>,                           //
-    sri::SrCSAValidMark<sri::SrCSA<>>,      //
-    sri::SrCSAValidArea<sri::SrCSA<>>,      //
-    sri::SrCSASlim<>,                       //
-    sri::SrCSAValidMark<sri::SrCSASlim<>>,  //
-    sri::SrCSAValidArea<sri::SrCSASlim<>>,  //
+    sri::SrCSABWTRun<>,                           //
+    sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>,      //
+    sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>,      //
+    sri::SrCSABWTRunSlim<>,                       //
+    sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>,  //
+    sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>,  //
     sri::SrCSAWithPsiRun<>,                 //
     sri::SRCSAValidMark<>,                  //
     sri::SRCSAValidArea<>                   //

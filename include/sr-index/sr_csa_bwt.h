@@ -18,19 +18,19 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class SrCSABase : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSABWTRunBase : public RCSABWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = RCSABWTRun<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrCSABase(const TStorage& t_storage, std::size_t t_sr)
+  SrCSABWTRunBase(const TStorage& t_storage, std::size_t t_sr)
       : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  explicit SrCSABase(std::size_t t_sr)
+  explicit SrCSABWTRunBase(std::size_t t_sr)
       : Base(), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
-  SrCSABase() = default;
+  SrCSABWTRunBase() = default;
 
-  virtual ~SrCSABase() = default;
+  virtual ~SrCSABWTRunBase() = default;
 
   [[nodiscard]] std::size_t SubsampleRate() const {
     return subsample_rate_;
@@ -173,15 +173,15 @@ template <typename TStorage = GenericStorage,
           typename TSample = sdsl::int_vector<>,
           typename TBvSampleIdx = sdsl::sd_vector<>,
           typename TRunCumulativeCount = sdsl::int_vector<>>
-class SrCSASlim : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSABWTRunSlim : public SrCSABWTRunBase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = SrCSABWTRunBase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrCSASlim(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSABWTRunSlim(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SrCSASlim(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSABWTRunSlim(std::size_t t_sr) : Base(t_sr) {}
 
-  SrCSASlim() = default;
+  SrCSABWTRunSlim() = default;
 
   using typename Base::ItemKey;
   using typename Base::size_type;
@@ -404,15 +404,15 @@ template <typename TStorage = GenericStorage,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>,
           typename TBvSamplePos = sdsl::sd_vector<>>
-class SrCSA : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
+class SrCSABWTRun : public SrCSABWTRunBase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
-  using Base = SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
+  using Base = SrCSABWTRunBase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrCSA(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSABWTRun(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SrCSA(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSABWTRun(std::size_t t_sr) : Base(t_sr) {}
 
-  SrCSA() = default;
+  SrCSABWTRun() = default;
 
   using typename Base::ItemKey;
   using typename Base::size_type;
@@ -598,16 +598,16 @@ class SrCSA : public SrCSABase<TStorage, TAlphabet, TPsiRLE, TBvMark, TMarkToSam
 };
 
 template <typename TSrCSA, typename TBvValidMark = sdsl::bit_vector>
-class SrCSAValidMark : public TSrCSA {
+class SrCSABWTRunValidMark : public TSrCSA {
  public:
   using Base = TSrCSA;
 
   template <typename TStorage>
-  SrCSAValidMark(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSABWTRunValidMark(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SrCSAValidMark(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSABWTRunValidMark(std::size_t t_sr) : Base(t_sr) {}
 
-  SrCSAValidMark() = default;
+  SrCSABWTRunValidMark() = default;
 
   using typename Base::ItemKey;
   using typename Base::size_type;
@@ -705,16 +705,16 @@ class SrCSAValidMark : public TSrCSA {
 };
 
 template <typename TSrCSA, typename TBvValidMark = sdsl::bit_vector, typename TValidArea = sdsl::int_vector<>>
-class SrCSAValidArea : public SrCSAValidMark<TSrCSA, TBvValidMark> {
+class SrCSABWTRunValidArea : public SrCSABWTRunValidMark<TSrCSA, TBvValidMark> {
  public:
-  using Base = SrCSAValidMark<TSrCSA, TBvValidMark>;
+  using Base = SrCSABWTRunValidMark<TSrCSA, TBvValidMark>;
 
   template <typename TStorage>
-  SrCSAValidArea(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrCSABWTRunValidArea(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
-  explicit SrCSAValidArea(std::size_t t_sr) : Base(t_sr) {}
+  explicit SrCSABWTRunValidArea(std::size_t t_sr) : Base(t_sr) {}
 
-  SrCSAValidArea() = default;
+  SrCSABWTRunValidArea() = default;
 
   using typename Base::ItemKey;
   using typename Base::size_type;
@@ -801,7 +801,7 @@ template <typename TStorage,
           typename TBVSampleIdx,
           typename TRunCumCnt>
 void construct(
-    SrCSASlim<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt>&
+    SrCSABWTRunSlim<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSample, TSample, TBVSampleIdx, TRunCumCnt>&
         t_index,
     const std::string& t_data_path,
     Config& t_config) {
@@ -847,9 +847,10 @@ template <typename TStorage,
           typename TMarkToSampleIdx,
           typename TSample,
           typename TBvSamplePos>
-void construct(SrCSA<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>& t_index,
-               const std::string& t_data_path,
-               sri::Config& t_config) {
+void construct(
+    SrCSABWTRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample, TBvSamplePos>& t_index,
+    const std::string& t_data_path,
+    sri::Config& t_config) {
   constructRCSAWithBWTRuns<t_width, TBvMark>(t_data_path, t_config);
 
   auto subsample_rate = t_index.SubsampleRate();
@@ -887,7 +888,7 @@ template <template <typename, typename> typename TSrCSA,
           template <uint8_t> typename TAlphabet,
           uint8_t t_width,
           typename TBvValidMark>
-void construct(SrCSAValidMark<TSrCSA<TStorage, TAlphabet<t_width>>, TBvValidMark>& t_index,
+void construct(SrCSABWTRunValidMark<TSrCSA<TStorage, TAlphabet<t_width>>, TBvValidMark>& t_index,
                const std::string& t_data_path,
                sri::Config& t_config) {
   //  construct(dynamic_cast<TSrCSA &>(t_index), t_config);
@@ -921,8 +922,10 @@ void construct(SrCSAValidMark<TSrCSA<TStorage, TAlphabet<t_width>>, TBvValidMark
 }
 
 template <typename TSrCSA, typename TBvValidMark>
-void construct(SrCSAValidArea<TSrCSA, TBvValidMark>& t_index, const std::string& t_data_path, sri::Config& t_config) {
-  construct(dynamic_cast<SrCSAValidMark<TSrCSA, TBvValidMark>&>(t_index), t_data_path, t_config);
+void construct(SrCSABWTRunValidArea<TSrCSA, TBvValidMark>& t_index,
+               const std::string& t_data_path,
+               sri::Config& t_config) {
+  construct(dynamic_cast<SrCSABWTRunValidMark<TSrCSA, TBvValidMark>&>(t_index), t_data_path, t_config);
 
   t_index.load(t_config);
 }

@@ -73,7 +73,7 @@ void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std
 }
 
 auto BM_ConstructRCSAWithBWTRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructRCSA<sri::RCSAWithBWTRun<>>(t_state, t_config, t_data_path);
+  BM_ConstructRCSA<sri::RCSABWTRun<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructRCSAWithPsiRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
@@ -115,11 +115,11 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sri::Config t_config, const 
 }
 
 auto BM_ConstructSrCSA = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSABWTRun<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSASlim<>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSABWTRunSlim<>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
@@ -127,11 +127,11 @@ auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State &t_state, sri::Config t_
 };
 
 auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSAValidMark<sri::SrCSA<>>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSAValidArea<sri::SrCSA<>>>(t_state, t_config, t_data_path);
+  BM_ConstructSrIndex<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(t_state, t_config, t_data_path);
 };
 
 auto BM_ConstructSRCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {

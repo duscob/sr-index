@@ -29,13 +29,13 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSAWithBWTRun : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
+class RCSABWTRun : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
  public:
   using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
 
-  explicit RCSAWithBWTRun(const TStorage& t_storage) : Base(t_storage) {}
+  explicit RCSABWTRun(const TStorage& t_storage) : Base(t_storage) {}
 
-  RCSAWithBWTRun() = default;
+  RCSABWTRun() = default;
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -279,9 +279,9 @@ template <typename TStorage = GenericStorage,
           typename TAlphabet = Alphabet<>,
           typename TPsiRLE = PsiCoreRLE<>,
           typename TSA = sdsl::int_vector<>>
-class CSARaw : public RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE> {
+class CSARaw : public RCSABWTRun<TStorage, TAlphabet, TPsiRLE> {
  public:
-  using Base = RCSAWithBWTRun<TStorage, TAlphabet, TPsiRLE>;
+  using Base = RCSABWTRun<TStorage, TAlphabet, TPsiRLE>;
 
   explicit CSARaw(const TStorage& t_storage) : Base(t_storage) {}
 
@@ -364,7 +364,7 @@ template <typename TStorage,
           typename TBvMark,
           typename TMarkToSampleIdx,
           typename TSample>
-void construct(RCSAWithBWTRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample>& t_index,
+void construct(RCSABWTRun<TStorage, TAlphabet<t_width>, TPsiCore, TBvMark, TMarkToSampleIdx, TSample>& t_index,
                const std::string& t_data_path,
                sri::Config& t_config) {
   constructRCSAWithBWTRuns<t_width, TBvMark>(t_data_path, t_config);
