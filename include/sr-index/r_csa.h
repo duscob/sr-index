@@ -178,10 +178,10 @@ class RCSAWithBWTRun : public LocateIndexExtStorage<typename TAlphabet::string_t
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     auto psi_rank = [cref_psi_core](auto tt_c, auto tt_rnk) {
       DataLF data;
-      auto report = [&data](const auto& tt_rank, const auto& tt_run_start, const auto& tt_run_end,
-                            const auto& tt_run_rank) {
-        data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
-      };
+      auto report =
+          [&data](const auto& tt_rank, const auto& tt_run_start, const auto& tt_run_end, const auto& tt_run_rank) {
+            data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
+          };
       cref_psi_core.get().rank(tt_c, tt_rnk, report);
       return data;
     };
@@ -566,10 +566,10 @@ class RCSAWithPsiRun : public LocateIndexExtStorage<typename TAlphabet::string_t
     auto cref_psi_core = this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
     auto psi_rank = [cref_psi_core](auto tt_c, auto tt_rnk) {
       DataLF data;
-      auto report = [&data](const auto& tt_rank, const auto& tt_run_start, const auto& tt_run_end,
-                            const auto& tt_run_rank) {
-        data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
-      };
+      auto report =
+          [&data](const auto& tt_rank, const auto& tt_run_start, const auto& tt_run_end, const auto& tt_run_rank) {
+            data = DataLF{tt_rank, {tt_run_start, tt_run_end, tt_run_rank}};
+          };
       cref_psi_core.get().rank(tt_c, tt_rnk, report);
       return data;
     };
