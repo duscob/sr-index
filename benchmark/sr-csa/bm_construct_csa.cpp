@@ -13,15 +13,15 @@
 #include "sr-index/construct.h"
 #include "sr-index/r_csa.h"
 #include "sr-index/r_csa_bwt.h"
-#include "sr-index/sr_csa_bwt.h"
 #include "sr-index/sr_csa.h"
+#include "sr-index/sr_csa_bwt.h"
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 2u << 8u, "Maximum sampling parameter s.");
 
-void setupCommonCounters(benchmark::State &t_state) {
+void setupCommonCounters(benchmark::State& t_state) {
   t_state.counters["n"] = 0;
   t_state.counters["r"] = 0;
   t_state.counters["s"] = 0;
@@ -29,17 +29,18 @@ void setupCommonCounters(benchmark::State &t_state) {
 }
 
 // Benchmark Warm-up
-static void BM_WarmUp(benchmark::State &_state) {
+static void BM_WarmUp(benchmark::State& _state) {
   for (auto _ : _state) {
     std::vector<int> empty_vector(1000000, 0);
   }
 
   setupCommonCounters(_state);
 }
+
 BENCHMARK(BM_WarmUp);
 
 template <typename TIndex>
-void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path) {
+void BM_ConstructRCSA(benchmark::State& t_state, sri::Config t_config, const std::string& t_data_path) {
   TIndex index;
 
   for (auto _ : t_state) {
@@ -72,17 +73,17 @@ void BM_ConstructRCSA(benchmark::State &t_state, sri::Config t_config, const std
   }
 }
 
-auto BM_ConstructRCSAWithBWTRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructRCSAWithBWTRun = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructRCSA<sri::RCSABWTRun<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructRCSAWithPsiRun = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructRCSAWithPsiRun = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructRCSA<sri::RCSA<>>(t_state, t_config, t_data_path);
 };
 
-template<typename TSrIndex>
-void BM_ConstructSrIndex(benchmark::State &t_state, sri::Config t_config, const std::string &t_data_path) {
-  std::size_t subsample_rate = t_state.range(0); // Subsampling rate
+template <typename TSrIndex>
+void BM_ConstructSrIndex(benchmark::State& t_state, sri::Config t_config, const std::string& t_data_path) {
+  std::size_t subsample_rate = t_state.range(0);  // Subsampling rate
 
   TSrIndex index(subsample_rate);
 
@@ -114,35 +115,35 @@ void BM_ConstructSrIndex(benchmark::State &t_state, sri::Config t_config, const 
   }
 }
 
-auto BM_ConstructSrCSA = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSrCSA = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSABWTRun<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSrCSASlim = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSrCSASlim = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSABWTRunSlim<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSrCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSrCSAValidMark = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSrCSAValidArea = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSrCSAValidArea = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSRCSAValidMark = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSRCSAValidMark = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSAValidMark<>>(t_state, t_config, t_data_path);
 };
 
-auto BM_ConstructSRCSAValidArea = [](benchmark::State &t_state, sri::Config t_config, const auto &t_data_path) {
+auto BM_ConstructSRCSAValidArea = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
   BM_ConstructSrIndex<sri::SrCSAValidArea<>>(t_state, t_config, t_data_path);
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   gflags::SetUsageMessage("This program calculates the sr-csa items for the given text.");
   gflags::AllowCommandLineReparsing();
   gflags::ParseCommandLineFlags(&argc, &argv, false);

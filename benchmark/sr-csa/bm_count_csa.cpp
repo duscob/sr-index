@@ -34,26 +34,26 @@ auto BM_QueryCount = [](benchmark::State& t_state, const auto& t_idx, const auto
 
 auto BM_PrintQueryCount =
     [](benchmark::State& t_state, const auto& t_idx_name, const auto& t_idx, const auto& t_patterns, auto t_seq_size) {
-  std::string idx_name = t_idx_name;
-  replace(idx_name.begin(), idx_name.end(), '/', '_');
-  std::string output_filename = "result-count-" + idx_name + ".csv";
+      std::string idx_name = t_idx_name;
+      replace(idx_name.begin(), idx_name.end(), '/', '_');
+      std::string output_filename = "result-count-" + idx_name + ".csv";
 
-  std::size_t total_occs = 0;
+      std::size_t total_occs = 0;
 
-  for (auto _ : t_state) {
-    std::ofstream out(output_filename);
-    out << "pattern,count,range_start,range_end" << std::endl;
-    total_occs = 0;
-    for (const auto& pattern : t_patterns) {
-      auto range = t_idx.idx->Count(pattern.decoded);
-      auto count = range.second - range.first;
-      total_occs += count;
-      out << "\"" << pattern.encoded << "\"," << count << "," << range.first << "," << range.second << std::endl;
-    }
-  }
+      for (auto _ : t_state) {
+        std::ofstream out(output_filename);
+        out << "pattern,count,range_start,range_end" << std::endl;
+        total_occs = 0;
+        for (const auto& pattern : t_patterns) {
+          auto range = t_idx.idx->Count(pattern.decoded);
+          auto count = range.second - range.first;
+          total_occs += count;
+          out << "\"" << pattern.encoded << "\"," << count << "," << range.first << "," << range.second << std::endl;
+        }
+      }
 
-  UpdateCounter(t_state, t_seq_size, t_idx.size, t_patterns.size(), total_occs);
-};
+      UpdateCounter(t_state, t_seq_size, t_idx.size, t_patterns.size(), total_occs);
+    };
 
 int main(int argc, char* argv[]) {
   gflags::AllowCommandLineReparsing();
@@ -73,8 +73,8 @@ int main(int argc, char* argv[]) {
   Factory<> factory(config);
   const auto n = factory.sizeSequence();
 
-  std::vector<std::pair<const char *, Factory<>::Config>> index_configs = {
-    {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
+  std::vector<std::pair<const char*, Factory<>::Config>> index_configs = {
+      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}},
   };
 
   const std::string print_bm_prefix = "Print-";

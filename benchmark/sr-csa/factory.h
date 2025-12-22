@@ -10,15 +10,15 @@
 #include <sdsl/config.hpp>
 #include <sdsl/int_vector_buffer.hpp>
 
+#include "config.h"
 #include "sr-index/r_csa.h"
 #include "sr-index/r_csa_bwt.h"
-#include "sr-index/sr_csa_bwt.h"
 #include "sr-index/sr_csa.h"
-#include "config.h"
+#include "sr-index/sr_csa_bwt.h"
 
 using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
 
-template<uint8_t t_width = 8>
+template <uint8_t t_width = 8>
 class Factory {
  public:
   enum class IndexEnum {
@@ -40,7 +40,7 @@ class Factory {
     IndexEnum index_type;
     std::size_t sampling_size;
 
-    bool operator<(const Config &t_c) const {
+    bool operator<(const Config& t_c) const {
       return index_type < t_c.index_type || (index_type == t_c.index_type && sampling_size < t_c.sampling_size);
     }
   };
@@ -50,14 +50,16 @@ class Factory {
     n_ = buf.size();
   }
 
-  auto sizeSequence() const { return n_; }
+  auto sizeSequence() const {
+    return n_;
+  }
 
   struct Index {
     std::shared_ptr<sri::LocateIndex<>> idx;
     std::size_t size = 0;
   };
 
-  Index make(const Config &t_config) {
+  Index make(const Config& t_config) {
     auto it = indexes_.find(t_config);
     if (it != indexes_.end()) {
       return it->second;
@@ -80,7 +82,8 @@ class Factory {
       }
 
       case IndexEnum::SR_CSA_BWT: {
-        auto idx = std::make_shared<sri::SrCSABWTRun<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
+        auto idx =
+            std::make_shared<sri::SrCSABWTRun<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;
@@ -103,7 +106,8 @@ class Factory {
       }
 
       case IndexEnum::SR_CSA_BWT_SLIM: {
-        auto idx = std::make_shared<sri::SrCSABWTRunSlim<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
+        auto idx =
+            std::make_shared<sri::SrCSABWTRunSlim<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;
