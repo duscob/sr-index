@@ -29,7 +29,7 @@ void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
   auto num_bytes = t_width / 8;
   load_vector_from_file(text, t_file, num_bytes);
 
-  auto it_zero = std::find(text.begin(), text.end(), (uint64_t) 0);
+  auto it_zero = std::find(text.begin(), text.end(), (uint64_t)0);
   if (it_zero == text.end()) {
     sdsl::append_zero_symbol(text);
   } else if (it_zero != text.end() - 1) {
@@ -39,17 +39,17 @@ void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
   sdsl::store_to_cache(text, KEY_TEXT, t_config);
 }
 
-template<uint8_t t_width>
-void constructBWTRuns(sdsl::cache_config &t_config) {
+template <uint8_t t_width>
+void constructBWTRuns(sdsl::cache_config& t_config) {
   static_assert(t_width == 0 or t_width == 8,
                 "constructBWTRuns: width must be `0` for integer alphabet and `8` for byte alphabet");
 
   // Prepare to stream BWT and SA from disc
   // TODO Use int_vector_buffer instead int_vector to process big files
-//  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
+  //  sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
   sdsl::int_vector<t_width> bwt_buf;
   sdsl::load_from_cache(bwt_buf, sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config);
-//  sdsl::int_vector_buffer<> sa_buf(sdsl::cache_file_name(sdsl::conf::KEY_SA, t_config));
+  //  sdsl::int_vector_buffer<> sa_buf(sdsl::cache_file_name(sdsl::conf::KEY_SA, t_config));
   sdsl::int_vector<> sa_buf;
   sdsl::load_from_cache(sa_buf, sdsl::conf::KEY_SA, t_config);
 
@@ -63,16 +63,16 @@ void constructBWTRuns(sdsl::cache_config &t_config) {
   // Prepare to BWT runs to disc
   const std::size_t buffer_size = 1 << 20;
   const std::size_t n_width = sdsl::bits::hi(n) + 1;
-  auto out_int_vector_buf = [buffer_size, n_width, &t_config](const auto &tt_key) {
+  auto out_int_vector_buf = [buffer_size, n_width, &t_config](const auto& tt_key) {
     return sdsl::int_vector_buffer<>(cache_file_name(tt_key, t_config), std::ios::out, buffer_size, n_width);
   };
 
-  auto bwt_run_first_pos = out_int_vector_buf(conf::KEY_BWT_RUN_FIRST); // BWT run head positions in BWT array
-  auto bwt_run_first_text_pos = out_int_vector_buf(conf::KEY_BWT_RUN_FIRST_TEXT_POS); // BWT run head positions in text
-  auto bwt_run_last_pos = out_int_vector_buf(conf::KEY_BWT_RUN_LAST); // BWT run tail positions in BWT array
-  auto bwt_run_last_text_pos = out_int_vector_buf(conf::KEY_BWT_RUN_LAST_TEXT_POS); // BWT run tail positions in text
+  auto bwt_run_first_pos = out_int_vector_buf(conf::KEY_BWT_RUN_FIRST);  // BWT run head positions in BWT array
+  auto bwt_run_first_text_pos = out_int_vector_buf(conf::KEY_BWT_RUN_FIRST_TEXT_POS);  // BWT run head positions in text
+  auto bwt_run_last_pos = out_int_vector_buf(conf::KEY_BWT_RUN_LAST);  // BWT run tail positions in BWT array
+  auto bwt_run_last_text_pos = out_int_vector_buf(conf::KEY_BWT_RUN_LAST_TEXT_POS);  // BWT run tail positions in text
 
-  size_t n_runs = 0; // # BWT runs
+  size_t n_runs = 0;  // # BWT runs
 
   // First BWT value
   auto bwt_symbol = bwt_buf[0];
@@ -125,7 +125,7 @@ void constructBWTRuns(sdsl::cache_config &t_config) {
 template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
   // Parse Text
-  const char *KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
+  const char* KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
   if (!cache_file_exists(KEY_TEXT, t_config)) {
     auto event = sdsl::memory_monitor::event("Text");
     constructText<t_width>(t_data_path, t_config);
@@ -162,6 +162,6 @@ void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config 
   }
 }
 
-} // namespace sri::inner_sdsl
+}  // namespace sri::inner_sdsl
 
-#endif //SRI_CONSTRUCT_SDSL_H_
+#endif  // SRI_CONSTRUCT_SDSL_H_
