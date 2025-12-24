@@ -11,19 +11,19 @@
 
 namespace sri {
 
-template<uint8_t t_width>
+template <uint8_t t_width>
 struct alphabet_trait {
-  typedef sdsl::byte_alphabet type;
-};
-
-template<>
-struct alphabet_trait<0> {
   typedef sdsl::int_alphabet<> type;
 };
 
-template<uint8_t t_width = 8>
+template <>
+struct alphabet_trait<8> {
+  typedef sdsl::byte_alphabet type;
+};
+
+template <uint8_t t_width = 8>
 class Alphabet : public alphabet_trait<t_width>::type {};
 
-}
+}  // namespace sri
 
-#endif //SRI_ALPHABET_H_
+#endif  // SRI_ALPHABET_H_
