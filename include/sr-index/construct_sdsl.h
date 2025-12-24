@@ -16,8 +16,8 @@
 
 namespace sri::inner_sdsl {
 
-template<uint8_t t_width>
-void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
+template <uint8_t t_width>
+void constructText(const std::string& t_file, Config& t_config) {
   static_assert(t_width == 0 or t_width == 8,
                 "constructText: width must be `0` for integer alphabet and `8` for byte alphabet");
 
@@ -26,7 +26,7 @@ void constructText(const std::string &t_file, sdsl::cache_config &t_config) {
   const auto KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
 
   TText text;
-  auto num_bytes = t_width / 8;
+  auto num_bytes = t_config.data_width / 8;
   load_vector_from_file(text, t_file, num_bytes);
 
   auto it_zero = std::find(text.begin(), text.end(), (uint64_t)0);
@@ -122,8 +122,8 @@ void constructBWTRuns(sdsl::cache_config& t_config) {
   register_cache_file(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
 }
 
-template<uint8_t t_width>
-void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config &t_config) {
+template <uint8_t t_width>
+void constructIndexBaseItems(const std::string& t_data_path, Config& t_config) {
   // Parse Text
   const char* KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
   if (!cache_file_exists(KEY_TEXT, t_config)) {

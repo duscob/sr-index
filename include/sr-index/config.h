@@ -104,6 +104,7 @@ inline auto str(const nlohmann::basic_json<>& t_json) {
 
 struct Config : public sdsl::cache_config {
   std::filesystem::path data_path;
+  uint8_t data_width = 8;
   SAAlgo sa_algo = SDSL_LIBDIVSUFSORT;
   JSON keys;
 
