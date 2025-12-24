@@ -56,10 +56,16 @@ class BaseConfigTests : public testing::Test {
     config_ = sri::Config("", std::filesystem::current_path(), t_sa_algo);
 
     auto filename = sdsl::cache_file_name(key_tmp_input_, config_);
-    sdsl::store_to_file(t_data, filename);
+    std::ofstream out(filename, std::ios::out | std::ios::binary);
+    if (!out) {
+      FAIL() << "Cannot open file: " << filename;
+    }
+    out.write(reinterpret_cast<const char*>(t_data.data()), sizeof(typename TData::value_type) * t_data.size());
+    out.close();
     register_cache_file(key_tmp_input_, config_);
 
     config_.data_path = filename;
+    config_.data_width = sizeof(typename TData::value_type) * 8;
   }
 
   void TearDown() override {
