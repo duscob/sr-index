@@ -45,6 +45,10 @@ int main(int argc, char* argv[]) {
 
   std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
       //      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
+      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
+      {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
+      {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
+      {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
       {"R-CSA-BWT-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_BWT}, false},
       {"SR-CSA-BWT", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BWT}, true},
       {"SR-CSA-BWT-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BWT_VM}, true},
@@ -52,10 +56,6 @@ int main(int argc, char* argv[]) {
       {"SR-CSA-BWT-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BWT_SLIM}, true},
       {"SR-CSA-BWT-VM-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BWT_VM_SLIM}, true},
       {"SR-CSA-BWT-VA-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_BWT_VA_SLIM}, true},
-      {"R-CSA", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
-      {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
-      {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
-      {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};

@@ -157,35 +157,37 @@ int main(int argc, char** argv) {
 
   sri::Config config(data_path, std::filesystem::current_path(), sri::toSAAlgo(FLAGS_sa_algo));
 
-  benchmark::RegisterBenchmark("R-CSA-BWT-Runs", BM_ConstructRCSAWithBWTRun, config, data_path);
+  benchmark::RegisterBenchmark("R-CSA", BM_ConstructRCSA<sri::RCSA<>>, config, data_path);
 
-  benchmark::RegisterBenchmark("R-CSA-Psi-Runs", BM_ConstructRCSAWithPsiRun, config, data_path);
+  benchmark::RegisterBenchmark("R-CSA-BWT-Runs", BM_ConstructRCSA<sri::RCSABWTRun<>>, config, data_path);
 
-  benchmark::RegisterBenchmark("SR-CSA", BM_ConstructSrCSA, config, data_path)
+  benchmark::RegisterBenchmark("SR-CSA", BM_ConstructSrIndex<sri::SrCSA<>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("SR-CSA-Slim", BM_ConstructSrCSASlim, config, data_path)
+  benchmark::RegisterBenchmark("SR-CSA-BWT-Runs", BM_ConstructSrIndex<sri::SrCSABWTRun<>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("SR-CSA-Psi-Runs", BM_ConstructSrCSAWithPsiRuns, config, data_path)
+  benchmark::RegisterBenchmark("SR-CSA-BWT-Runs-Slim", BM_ConstructSrIndex<sri::SrCSABWTRunSlim<>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("SR-CSA-VM", BM_ConstructSrCSAValidMark, config, data_path)
+  benchmark::RegisterBenchmark("SR-CSA-VM", BM_ConstructSrIndex<sri::SrCSAValidMark<>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("SR-CSA-Psi-Runs-VM", BM_ConstructSRCSAValidMark, config, data_path)
+  benchmark::RegisterBenchmark(
+      "SR-CSA-BWT-Runs-VM", BM_ConstructSrIndex<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("SR-CSA-VA", BM_ConstructSrCSAValidArea, config, data_path)
+  benchmark::RegisterBenchmark("SR-CSA-VA", BM_ConstructSrIndex<sri::SrCSAValidArea<>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
-  benchmark::RegisterBenchmark("SR-CSA-Psi-Runs-VA", BM_ConstructSRCSAValidArea, config, data_path)
+  benchmark::RegisterBenchmark(
+      "SR-CSA-BWT-Runs-VA", BM_ConstructSrIndex<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>, config, data_path)
       ->RangeMultiplier(2)
       ->Range(FLAGS_min_s, FLAGS_max_s);
 
