@@ -18,15 +18,16 @@ using PsiRunHeadInd = IntVector;
 using PsiRunTail = IntVector;
 using PsiRunTailAsc = IntVector;
 using PsiRunTailAscLink = IntVector;
-using BitVector = sdsl::sd_vector<>;
-using Marks = BitVector;
+using BitVector = sdsl::bit_vector;
+using SDVector = sdsl::sd_vector<>;
+using Marks = SDVector;
 using SampleRate = std::size_t;
-using SampleIdxs = BitVector;
+using SampleIdxs = SDVector;
 using CumulativeRuns = IntVector;
 
 class BaseConstructTests : public BaseConfigTests {
-public:
-  template<typename T>
+ public:
+  template <typename T>
   void compare(const std::string& t_key, const T& t_e_values, bool t_add_type_hash = false) const {
     T values;
     load_from_cache(values, t_key, config_, t_add_type_hash);
@@ -36,10 +37,9 @@ public:
 };
 
 class RCSATests : public BaseConstructTests,
-                  public testing::WithParamInterface<std::tuple<
-                    String, Psi, PsiRunHead, PsiRunTail, PsiRunTailAsc, PsiRunTailAscLink, Marks
-                  >> {
-protected:
+                  public testing::WithParamInterface<
+                      std::tuple<String, Psi, PsiRunHead, PsiRunTail, PsiRunTailAsc, PsiRunTailAscLink, Marks>> {
+ protected:
   void SetUp() override {
     const auto& data = std::get<0>(GetParam());
     Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
@@ -61,42 +61,43 @@ TEST_P(RCSATests, construct) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-  Basic,
-  RCSATests,
-  testing::Values(
-    std::make_tuple(
-      String{"alabaralaalabarda"},
-      Psi{6, 0, 7, 10, 11, 13, 14, 15, 16, 17, 8, 9, 1, 2, 3, 4, 5, 12},
-      // Psi{6,    0,    7,    10,   11,   13,   14,   15,   16,   17,   8,    9,    1,    2,    3,    4,    5,    12},
-      // SA{17,    16,   8,    2,    11,   6,    0,    9,    4,    13,   3,    12,   15,   7,    1,    10,   5,    14}
-      // BWT{'a',  'd',  'l',  'l',  'l',  'r',  '$',  'a',  'b',  'b',  'a',  'a',  'r',  'a',  'a',  'a',  'a',  'a'},
-      PsiRunHead{17, 16, 8, 2, 6, 3, 15, 7, 5, 14},
-      PsiRunTail{17, 16, 8, 11, 13, 12, 15, 10, 5, 14},
-      PsiRunTailAsc{8, 2, 7, 3, 5, 4, 9, 6, 1, 0},
-      PsiRunTailAscLink{9, 3, 8, 4, 6, 5, 0, 7, 2, 1},
-      Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1})
-    ),
-    std::make_tuple(
-      String{"abcabcababc"},
-      Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
-      // Psi{4,    5,    6,    7,    8,    2,    9,    10,   11,   0,    1,    3},
-      // SA{11,    6,    8,    3,    0,    7,    9,    4,    1,    10,   5,    2},
-      // BWT{'c',  'c',  'b',  'c',  '$',  'a',  'a',  'a',  'a',  'b',  'b',  'b'},
-      PsiRunHead{11, 6, 7, 9, 10, 2},
-      PsiRunTail{11, 0, 7, 1, 5, 2},
-      PsiRunTailAsc{1, 3, 5, 4, 2, 0},
-      PsiRunTailAscLink{2, 4, 0, 5, 3, 1},
-      Marks({1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1})
-    )
-  )
-);
+    Basic,
+    RCSATests,
+    testing::Values(
+        std::make_tuple(
+            String{"alabaralaalabarda"},
+            Psi{6, 0, 7, 10, 11, 13, 14, 15, 16, 17, 8, 9, 1, 2, 3, 4, 5, 12},
+            // Psi{6,    0,    7,    10,   11,   13,   14,   15,   16,   17,   8,    9,    1,    2,    3,    4,    5,    12},
+            // SA{17,    16,   8,    2,    11,   6,    0,    9,    4,    13,   3,    12,   15,   7,    1,    10,   5,    14}
+            // BWT{'a',  'd',  'l',  'l',  'l',  'r',  '$',  'a',  'b',  'b',  'a',  'a',  'r',  'a',  'a',  'a',  'a',  'a'},
+            PsiRunHead{17, 16, 8, 2, 6, 3, 15, 7, 5, 14},
+            PsiRunTail{17, 16, 8, 11, 13, 12, 15, 10, 5, 14},
+            PsiRunTailAsc{8, 2, 7, 3, 5, 4, 9, 6, 1, 0},
+            PsiRunTailAscLink{9, 3, 8, 4, 6, 5, 0, 7, 2, 1},
+            Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1})),
+        std::make_tuple(String{"abcabcababc"},
+                        Psi{4, 5, 6, 7, 8, 2, 9, 10, 11, 0, 1, 3},
+                        // Psi{4,    5,    6,    7,    8,    2,    9,    10,   11,   0,    1,    3},
+                        // SA{11,    6,    8,    3,    0,    7,    9,    4,    1,    10,   5,    2},
+                        // BWT{'c',  'c',  'b',  'c',  '$',  'a',  'a',  'a',  'a',  'b',  'b',  'b'},
+                        PsiRunHead{11, 6, 7, 9, 10, 2},
+                        PsiRunTail{11, 0, 7, 1, 5, 2},
+                        PsiRunTailAsc{1, 3, 5, 4, 2, 0},
+                        PsiRunTailAscLink{2, 4, 0, 5, 3, 1},
+                        Marks({1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}))));
 
 class SRCSATests : public BaseConstructTests,
-                   public testing::WithParamInterface<std::tuple<
-                     String, SampleRate, PsiRunHeadAsc, PsiRunHeadInd, PsiRunHead, PsiRunTail,
-                     PsiRunTailAscLink, Marks, SampleIdxs, CumulativeRuns
-                   >> {
-protected:
+                   public testing::WithParamInterface<std::tuple<String,
+                                                                 SampleRate,
+                                                                 PsiRunHeadAsc,
+                                                                 PsiRunHeadInd,
+                                                                 PsiRunHead,
+                                                                 PsiRunTail,
+                                                                 PsiRunTailAscLink,
+                                                                 Marks,
+                                                                 SampleIdxs,
+                                                                 CumulativeRuns>> {
+ protected:
   void SetUp() override {
     const auto& data = std::get<0>(GetParam());
     Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
@@ -122,42 +123,35 @@ TEST_P(SRCSATests, construct) {
   compare(config_.keys[kPsi][kCumRun].get<std::string>(), std::get<9>(GetParam()), true);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-  Basic,
-  SRCSATests,
-  testing::Values(
-    std::make_tuple(
-      String{"alabaralaalabarda"},
-      4,
-      PsiRunHeadAsc{3, 5, 8, 4, 7, 2, 9, 6, 1, 0},
-      PsiRunHeadInd{0, 1, 2, 3, 8, 9},
-      PsiRunHead{17, 16, 8, 2, 5, 14},
-      PsiRunTail{14, 17, 16, 8, 10, 5},
-      PsiRunTailAscLink{5, 3, 4, 0, 2, 1},
-      Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1}),
-      SampleIdxs({1, 1, 1, 1, 0, 0, 0, 0, 1, 1}),
-      CumulativeRuns{1, 5, 6, 7, 8, 10}
-    ),
-    std::make_tuple(
-      String{"abcabcababc"},
-      4,
-      PsiRunHeadAsc{5, 1, 2, 3, 4, 0},
-      PsiRunHeadInd{0, 1, 2, 5},
-      PsiRunHead{11, 6, 7, 2},
-      PsiRunTail{2, 11, 0, 5},
-      PsiRunTailAscLink{2, 0, 3, 1},
-      Marks({1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}),
-      SampleIdxs({1, 1, 1, 0, 0, 1}),
-      CumulativeRuns{1, 2, 4, 6}
-    )
-  )
-);
+INSTANTIATE_TEST_SUITE_P(Basic,
+                         SRCSATests,
+                         testing::Values(std::make_tuple(String{"alabaralaalabarda"},
+                                                         4,
+                                                         PsiRunHeadAsc{3, 5, 8, 4, 7, 2, 9, 6, 1, 0},
+                                                         PsiRunHeadInd{0, 1, 2, 3, 8, 9},
+                                                         PsiRunHead{17, 16, 8, 2, 5, 14},
+                                                         PsiRunTail{14, 17, 16, 8, 10, 5},
+                                                         PsiRunTailAscLink{5, 3, 4, 0, 2, 1},
+                                                         Marks({0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1}),
+                                                         SampleIdxs({1, 1, 1, 1, 0, 0, 0, 0, 1, 1}),
+                                                         CumulativeRuns{1, 5, 6, 7, 8, 10}),
+                                         std::make_tuple(String{"abcabcababc"},
+                                                         4,
+                                                         PsiRunHeadAsc{5, 1, 2, 3, 4, 0},
+                                                         PsiRunHeadInd{0, 1, 2, 5},
+                                                         PsiRunHead{11, 6, 7, 2},
+                                                         PsiRunTail{2, 11, 0, 5},
+                                                         PsiRunTailAscLink{2, 0, 3, 1},
+                                                         Marks({1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1}),
+                                                         SampleIdxs({1, 1, 1, 0, 0, 1}),
+                                                         CumulativeRuns{1, 2, 4, 6})));
 
 using ValidMarks = sdsl::bit_vector;
 using ValidAreas = IntVector;
+
 class SRCSAValidAreaTests : public BaseConstructTests,
                             public testing::WithParamInterface<std::tuple<String, SampleRate, ValidMarks, ValidAreas>> {
-protected:
+ protected:
   void SetUp() override {
     const auto& data = std::get<0>(GetParam());
     Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
@@ -178,20 +172,7 @@ TEST_P(SRCSAValidAreaTests, construct) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-  Basic,
-  SRCSAValidAreaTests,
-  testing::Values(
-    std::make_tuple(
-      String{"alabaralaalabarda"},
-      4,
-      ValidMarks({1, 1, 1, 0, 0, 1}),
-      ValidAreas{1, 1}
-    ),
-    std::make_tuple(
-      String{"abcabcababc"},
-      4,
-      ValidMarks({1, 0, 1, 0}),
-      ValidAreas{1, 4}
-    )
-  )
-);
+    Basic,
+    SRCSAValidAreaTests,
+    testing::Values(std::make_tuple(String{"alabaralaalabarda"}, 4, ValidMarks({1, 1, 1, 0, 0, 1}), ValidAreas{1, 1}),
+                    std::make_tuple(String{"abcabcababc"}, 4, ValidMarks({1, 0, 1, 0}), ValidAreas{1, 4})));
