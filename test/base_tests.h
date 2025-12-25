@@ -17,6 +17,15 @@
 
 #include "sr-index/config.h"
 
+template <typename TupleT, typename Fn>
+void for_each_tuple(TupleT&& tp, Fn&& fn) {
+  std::apply(
+      [&fn](auto&&... args) {
+        (fn(std::forward<decltype(args)>(args)), ...);
+      },
+      std::forward<TupleT>(tp));
+}
+
 using BWT = sdsl::int_vector<8>;
 
 class BaseAlphabetTests : public testing::Test {
