@@ -36,7 +36,7 @@ struct Item {
 };
 
 template <typename TIndex>
-class RIndexTests : public BaseConfigTests,
+class RIndexTests : public BaseConfigTests<TIndex::Alphabet::int_width>,
                     public testing::WithParamInterface<              //
                         std::tuple<                                  //
                             typename TIndex::Alphabet::string_type,  // Input data
@@ -52,7 +52,7 @@ class RIndexTests : public BaseConfigTests,
  protected:
   void SetUp() override {
     const auto& data = std::get<0>(this->GetParam());
-    Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
+    this->Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
   }
 };
 
@@ -157,7 +157,7 @@ INSTANTIATE_TEST_SUITE_P(
 //~~~~~~~
 
 
-class BaseConstructTests : public BaseConfigTests {
+class BaseConstructTests : public BaseConfigTests<8> {
  public:
   template <typename T>
   void compare(const std::string& t_key, const T& t_e_values, bool t_add_type_hash = false) const {

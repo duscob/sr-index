@@ -58,6 +58,7 @@ using Range = std::pair<std::size_t, std::size_t>;
 using Char = unsigned char;
 using String = std::string;
 
+template <uint8_t t_width>
 class BaseConfigTests : public testing::Test {
  protected:
   template <typename TData>
@@ -75,6 +76,7 @@ class BaseConfigTests : public testing::Test {
 
     config_.data_path = filename;
     config_.data_width = sizeof(typename TData::value_type) * 8;
+    config_.keys = sri::createDefaultKeys<t_width>();
   }
 
   void TearDown() override {

@@ -27,10 +27,13 @@ using ListPatternXValues = std::vector<PatternXValues<TData>>;
 template <typename TData>
 using TConstructor = std::function<std::shared_ptr<sri::LocateIndex<TData>>(const std::string&, sri::Config&)>;
 
-template <typename TData>
-class LocateTests : public BaseConfigTests,
-                    public testing::WithParamInterface<
-                        std::tuple<TConstructor<TData>, std::tuple<TData, ListPatternXValues<TData>>, sri::SAAlgo>> {
+template <typename TAlphabet>
+class LocateTests
+    : public BaseConfigTests<TAlphabet::int_width>,
+      public testing::WithParamInterface<
+          std::tuple<TConstructor<typename TAlphabet::string_type>,
+                     std::tuple<typename TAlphabet::string_type, ListPatternXValues<typename TAlphabet::string_type>>,
+                     sri::SAAlgo>> {
  protected:
   void SetUp() override {
     const auto& data = std::get<0>(std::get<1>(this->GetParam()));
@@ -40,7 +43,7 @@ class LocateTests : public BaseConfigTests,
       GTEST_SKIP_("Tests with BigBWT fail in Debug mode");
     }
 #endif
-    Init(data, sa_algo);
+    this->Init(data, sa_algo);
   }
 };
 
@@ -70,7 +73,7 @@ TConstructor<TData> createSrIndexBuilder() {
 
 using DataBytes = sri::Alphabet<8>::string_type;
 
-class LocateBytesTests : public LocateTests<DataBytes> {};
+class LocateBytesTests : public LocateTests<sri::Alphabet<8>> {};
 
 TEST_P(LocateBytesTests, Locate) {
   auto buildIndex = std::get<0>(GetParam());
@@ -124,7 +127,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 using DataInts = sri::Alphabet<0>::string_type;
 
-class LocateIntsTests : public LocateTests<DataInts> {};
+class LocateIntsTests : public LocateTests<sri::Alphabet<0>> {};
 
 TEST_P(LocateIntsTests, Locate) {
   auto buildIndex = std::get<0>(GetParam());
@@ -176,7 +179,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 template <typename TIndex>
-class LocateTypedTests : public BaseConfigTests {
+class LocateTypedTests : public BaseConfigTests<8> {
  public:
   void SetUp() override {
     data_ = std::make_tuple(String{"abcabcababc"}, String{"ab"}, Values{6, 8, 3, 0});
