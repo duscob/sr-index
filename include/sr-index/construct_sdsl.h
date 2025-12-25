@@ -75,7 +75,7 @@ void constructBWTRuns(sdsl::cache_config& t_config) {
   size_t n_runs = 0;  // # BWT runs
 
   // First BWT value
-  auto bwt_symbol = bwt_buf[0];
+  typename decltype(bwt_buf)::value_type bwt_symbol = bwt_buf[0];  // Required due to int_vector<0>::reference
   auto text_pos = get_bwt_text_pos(0);
 
   // First position starts the first BWT run.
