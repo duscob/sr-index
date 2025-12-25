@@ -122,6 +122,59 @@ INSTANTIATE_TEST_SUITE_P(
 //~~~~~~~
 
 
+using DataInts = sri::Alphabet<0>::string_type;
+
+class LocateIntsTests : public LocateTests<DataInts> {};
+
+TEST_P(LocateIntsTests, Locate) {
+  auto buildIndex = std::get<0>(GetParam());
+  auto index = buildIndex(config_.file_map[key_tmp_input_], config_);
+  const auto& info = std::get<1>(GetParam());
+
+  const auto& listPatternXValues = std::get<1>(info);
+  for (const auto& item : listPatternXValues) {
+    const auto& pattern = std::get<0>(item);
+
+    auto results = index->Locate(pattern);
+    std::sort(results.begin(), results.end());
+
+    auto e_results = std::get<1>(item);
+    std::sort(e_results.begin(), e_results.end());
+    EXPECT_EQ(results, e_results);
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    LocateIndex,
+    LocateIntsTests,
+    testing::Combine(
+        testing::Values(createIndexBuilder<DataInts, sri::RIndex<sri::GenericStorage, sri::Alphabet<0>>>(),
+                        createSrIndexBuilder<DataInts, sri::SrIndex<sri::GenericStorage, sri::Alphabet<0>>>(),
+                        createSrIndexBuilder<DataInts, sri::SrIndexValidMark<sri::GenericStorage, sri::Alphabet<0>>>(),
+                        createSrIndexBuilder<DataInts, sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<0>>>()
+                        // createIndexBuilder<String, sri::RCSABWTRun<>>(),
+                        // createSrIndexBuilder<String, sri::SrCSABWTRun<>>(),
+                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),
+                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),
+                        // createSrIndexBuilder<String, sri::SrCSABWTRunSlim<>>(),
+                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),
+                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),
+                        // createIndexBuilder<DataInts, sri::RCSA<sri::GenericStorage, sri::Alphabet<0>>>()
+                        // createSrIndexBuilder<String, sri::SrCSA<>>(),
+                        // createSrIndexBuilder<String, sri::SrCSAValidMark<>>(),
+                        // createSrIndexBuilder<IntVector, sri::SrCSAValidArea<>>()
+                        ),
+        testing::Values(std::make_tuple(DataInts{'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'a', 'b', 'c'},
+                                        ListPatternXValues<DataInts>{
+                                            std::make_tuple(DataInts{'a', 'b'}, Values{6, 8, 3, 0}),
+                                            std::make_tuple(DataInts{'a', 'b', 'a'}, Values{6}),
+                                            std::make_tuple(DataInts{'b', 'c'}, Values{9, 4, 1}),
+                                        })),
+        testing::Values(sri::SDSL_LIBDIVSUFSORT)));
+
+//~~~~~~~
+
+
 template <typename TIndex>
 class LocateTypedTests : public BaseConfigTests {
  public:
