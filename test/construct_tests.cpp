@@ -157,6 +157,144 @@ INSTANTIATE_TEST_SUITE_P(
 //~~~~~~~
 
 
+template <typename TIndex>
+class RCSATests1 : public BaseConfigTests<TIndex::Alphabet::int_width>,
+                   public testing::WithParamInterface<              //
+                       std::tuple<                                  //
+                           typename TIndex::Alphabet::string_type,  // Input data
+                           std::tuple<Item<IntVector>,              // Psi
+                                      Item<IntVector>,              // Psi Run Head
+                                      Item<IntVector>,              // Psi Run Tail
+                                      // Item<IntVector>,              // Psi Run Tail Asc
+                                      Item<IntVector>  // Psi Run Tail Asc Link
+                                      // Item<SDVector>                // Marks
+                                      >>> {
+ public:
+  using Index = TIndex;
+  using Data = typename TIndex::Alphabet::string_type;
+
+ protected:
+  void SetUp() override {
+    const auto& data = std::get<0>(this->GetParam());
+    this->Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
+  }
+};
+
+//~~~~~~~
+
+
+class RCSABytesTests : public RCSATests1<sri::RCSA<>> {
+ public:
+  static const sri::JSON keys;
+};
+
+const sri::JSON RCSABytesTests::keys = sri::createDefaultKeys<Index::Alphabet::int_width>();
+
+TEST_P(RCSABytesTests, construct) {
+  using namespace sri::conf;
+  Index index;
+  sri::construct(index, config_.data_path, config_);
+
+  auto items = std::get<1>(GetParam());
+  for_each_tuple(items, [this](auto&& tt_item) {
+    decltype(tt_item.value) value;
+    load_from_cache(value, tt_item.key, config_, tt_item.add_type_hash);
+
+    EXPECT_THAT(value, testing::ElementsAreArray(tt_item.value)) << "Key = " << tt_item.key;
+  });
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    RCSABytesTests,
+    testing::Values(std::make_tuple(  //
+        RCSABytesTests::Data{'a', 'l', 'a', 'b', 'a', 'r', 'a', 'l', 'a', 'a', 'l', 'a', 'b', 'a', 'r', 'd', 'a'},
+        std::make_tuple(
+            Item<IntVector> /* Psi */ {
+                RCSABytesTests::keys[kPsi][kBase],
+                IntVector{6, 0, 7, 10, 11, 13, 14, 15, 16, 17, 8, 9, 1, 2, 3, 4, 5, 12},
+            },
+            Item<IntVector> /* Psi Run Head */ {
+                RCSABytesTests::keys[kPsi][kHead][kTextPos],
+                IntVector{17, 16, 8, 2, 6, 3, 15, 7, 5, 14},
+                true,
+            },
+            Item<IntVector> /* Psi Run Tail */ {
+                RCSABytesTests::keys[kPsi][kTail][kTextPos],
+                IntVector{17, 16, 8, 11, 13, 12, 15, 10, 5, 14},
+                true,
+            },
+            // Item<IntVector> /* Psi Run Tail Asc */ {
+            //     RCSABytesTests::keys[kPsi][kTail][kTextPosAsc][kIdx],
+            //     IntVector{8, 2, 7, 3, 5, 4, 9, 6, 1, 0},
+            //     true,
+            // },
+            Item<IntVector> /* Psi Run Tail Asc Link */ {
+                RCSABytesTests::keys[kPsi][kTail][kTextPosAsc][kLink],
+                IntVector{9, 3, 8, 4, 6, 5, 0, 7, 2, 1},
+                true,
+            })  //
+        )));
+
+//~~~~~~~
+
+
+class RCSAIntsTests : public RCSATests1<sri::RCSA<sri::GenericStorage, sri::Alphabet<0>>> {
+ public:
+  static const sri::JSON keys;
+};
+
+const sri::JSON RCSAIntsTests::keys = sri::createDefaultKeys<Index::Alphabet::int_width>();
+
+TEST_P(RCSAIntsTests, construct) {
+  using namespace sri::conf;
+  Index index;
+  sri::construct(index, config_.data_path, config_);
+
+  auto items = std::get<1>(GetParam());
+  for_each_tuple(items, [this](auto&& tt_item) {
+    decltype(tt_item.value) value;
+    load_from_cache(value, tt_item.key, config_, tt_item.add_type_hash);
+
+    EXPECT_THAT(value, testing::ElementsAreArray(tt_item.value)) << "Key = " << tt_item.key;
+  });
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    RCSAIntsTests,
+    testing::Values(std::make_tuple(  //
+        RCSAIntsTests::Data{'a', 'l', 'a', 'b', 'a', 'r', 'a', 'l', 'a', 'a', 'l', 'a', 'b', 'a', 'r', 'd', 'a'},
+        std::make_tuple(
+            Item<IntVector> /* Psi */ {
+                RCSAIntsTests::keys[kPsi][kBase],
+                IntVector{6, 0, 7, 10, 11, 13, 14, 15, 16, 17, 8, 9, 1, 2, 3, 4, 5, 12},
+            },
+            Item<IntVector> /* Psi Run Head */ {
+                RCSAIntsTests::keys[kPsi][kHead][kTextPos],
+                IntVector{17, 16, 8, 2, 6, 3, 15, 7, 5, 14},
+                true,
+            },
+            Item<IntVector> /* Psi Run Tail */ {
+                RCSAIntsTests::keys[kPsi][kTail][kTextPos],
+                IntVector{17, 16, 8, 11, 13, 12, 15, 10, 5, 14},
+                true,
+            },
+            // Item<IntVector> /* Psi Run Tail Asc */ {
+            //     RCSAIntsTests::keys[kPsi][kTail][kTextPosAsc][kIdx],
+            //     IntVector{8, 2, 7, 3, 5, 4, 9, 6, 1, 0},
+            //     true,
+            // },
+            Item<IntVector> /* Psi Run Tail Asc Link */ {
+                RCSAIntsTests::keys[kPsi][kTail][kTextPosAsc][kLink],
+                IntVector{9, 3, 8, 4, 6, 5, 0, 7, 2, 1},
+                true,
+            })  //
+        )));
+
+//~~~~~~~
+
+
 class BaseConstructTests : public BaseConfigTests<8> {
  public:
   template <typename T>
