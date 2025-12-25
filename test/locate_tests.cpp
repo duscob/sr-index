@@ -151,22 +151,28 @@ INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
     LocateIntsTests,
     testing::Combine(
-        testing::Values(createIndexBuilder<DataInts, sri::RIndex<sri::GenericStorage, sri::Alphabet<0>>>(),
-                        createSrIndexBuilder<DataInts, sri::SrIndex<sri::GenericStorage, sri::Alphabet<0>>>(),
-                        createSrIndexBuilder<DataInts, sri::SrIndexValidMark<sri::GenericStorage, sri::Alphabet<0>>>(),
-                        createSrIndexBuilder<DataInts, sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<0>>>()
-                        // createIndexBuilder<String, sri::RCSABWTRun<>>(),
-                        // createSrIndexBuilder<String, sri::SrCSABWTRun<>>(),
-                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),
-                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),
-                        // createSrIndexBuilder<String, sri::SrCSABWTRunSlim<>>(),
-                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),
-                        // createSrIndexBuilder<String, sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),
-                        // createIndexBuilder<DataInts, sri::RCSA<sri::GenericStorage, sri::Alphabet<0>>>()
-                        // createSrIndexBuilder<String, sri::SrCSA<>>(),
-                        // createSrIndexBuilder<String, sri::SrCSAValidMark<>>(),
-                        // createSrIndexBuilder<IntVector, sri::SrCSAValidArea<>>()
-                        ),
+        testing::Values(
+            createIndexBuilder<DataInts, sri::RIndex<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts, sri::SrIndex<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts, sri::SrIndexValidMark<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts, sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createIndexBuilder<DataInts, sri::RCSABWTRun<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts, sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts,
+                                 sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<0>>>>(),
+            createSrIndexBuilder<DataInts,
+                                 sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<0>>>>(),
+            createSrIndexBuilder<DataInts, sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<
+                DataInts,
+                sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<0>>>>(),
+            createSrIndexBuilder<
+                DataInts,
+                sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<0>>>>(),
+            createIndexBuilder<DataInts, sri::RCSA<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts, sri::SrCSA<sri::GenericStorage, sri::Alphabet<0>>>(),
+            createSrIndexBuilder<DataInts, sri::SrCSAValidMark<sri::SrCSA<sri::GenericStorage, sri::Alphabet<0>>>>(),
+            createSrIndexBuilder<DataInts, sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<0>>>>()),
         testing::Values(std::make_tuple(DataInts{'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'a', 'b', 'c'},
                                         ListPatternXValues<DataInts>{
                                             std::make_tuple(DataInts{'a', 'b'}, Values{6, 8, 3, 0}),
