@@ -8,6 +8,7 @@
 
 #include "sr-index/config.h"
 #include "sr-index/r_csa.h"
+#include "sr-index/r_index.h"
 #include "sr-index/sr_csa.h"
 
 #include "base_tests.h"
@@ -24,6 +25,137 @@ using Marks = SDVector;
 using SampleRate = std::size_t;
 using SampleIdxs = SDVector;
 using CumulativeRuns = IntVector;
+
+//~~~~~~~
+
+template <typename T>
+struct Item {
+  std::string key;
+  T value;
+  bool add_type_hash = false;
+};
+
+template <typename TIndex>
+class RIndexTests : public BaseConfigTests,
+                    public testing::WithParamInterface<              //
+                        std::tuple<                                  //
+                            typename TIndex::Alphabet::string_type,  // Input data
+                            std::tuple<Item<IntVector>,              // SA
+                                       Item<IntVector>,              // BWT
+                                       Item<IntVector>,              // Samples
+                                       Item<SDVector>                // Marks
+                                       >>> {
+ public:
+  using Index = TIndex;
+  using Data = typename TIndex::Alphabet::string_type;
+
+ protected:
+  void SetUp() override {
+    const auto& data = std::get<0>(this->GetParam());
+    Init(data, sri::SAAlgo::SDSL_LIBDIVSUFSORT);
+  }
+};
+
+using namespace sri::conf;
+
+//~~~~~~~
+
+
+class RIndexBytesTests : public RIndexTests<sri::RIndex<>> {
+ public:
+  static const sri::JSON keys;
+};
+
+const sri::JSON RIndexBytesTests::keys = sri::createDefaultKeys<Index::Alphabet::int_width>();
+
+TEST_P(RIndexBytesTests, construct) {
+  using namespace sri::conf;
+  Index index;
+  sri::construct(index, config_.data_path, config_);
+
+  auto items = std::get<1>(GetParam());
+  for_each_tuple(items, [this](auto&& tt_item) {
+    decltype(tt_item.value) value;
+    load_from_cache(value, tt_item.key, config_, tt_item.add_type_hash);
+
+    EXPECT_THAT(value, testing::ElementsAreArray(tt_item.value)) << "Key = " << tt_item.key;
+  });
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    RIndexBytesTests,
+    testing::Values(std::make_tuple(  //
+        RIndexBytesTests::Data{'a', 'l', 'a', 'b', 'a', 'r', 'a', 'l', 'a', 'a', 'l', 'a', 'b', 'a', 'r', 'd', 'a'},
+        std::make_tuple(
+            Item<IntVector> /* SA */ {
+                RIndexBytesTests::keys[kSA],
+                IntVector{17, 16, 8, 2, 11, 6, 0, 9, 4, 13, 3, 12, 15, 7, 1, 10, 5, 14},
+            },
+            Item<IntVector> /* BWT */ {
+                RIndexBytesTests::keys[kBWT][kBase],
+                IntVector{'a', 'd', 'l', 'l', 'l', 'r', 0, 'a', 'b', 'b', 'a', 'a', 'r', 'a', 'a', 'a', 'a', 'a'},
+            },
+            Item<IntVector> /* Samples */ {
+                RIndexBytesTests::keys[kBWT][kTail][kTextPos],
+                IntVector{16, 15, 10, 5, 17, 8, 12, 11, 14, 13},
+            },
+            Item<SDVector> /* Marks */ {
+                RIndexBytesTests::keys[kBWT][kHead][kTextPos],
+                SDVector{BitVector{0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1}},
+                true,
+            }))));
+
+//~~~~~~~
+
+
+class RIndexIntsTests : public RIndexTests<sri::RIndex<sri::GenericStorage, sri::Alphabet<0>>> {
+ public:
+  static const sri::JSON keys;
+};
+
+const sri::JSON RIndexIntsTests::keys = sri::createDefaultKeys<Index::Alphabet::int_width>();
+
+TEST_P(RIndexIntsTests, construct) {
+  using namespace sri::conf;
+  Index index;
+  sri::construct(index, config_.data_path, config_);
+
+  auto items = std::get<1>(GetParam());
+  for_each_tuple(items, [this](auto&& tt_item) {
+    decltype(tt_item.value) value;
+    load_from_cache(value, tt_item.key, config_, tt_item.add_type_hash);
+
+    EXPECT_THAT(value, testing::ElementsAreArray(tt_item.value)) << "Key = " << tt_item.key;
+  });
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    RIndexIntsTests,
+    testing::Values(std::make_tuple(  //
+        RIndexIntsTests::Data{'a', 'l', 'a', 'b', 'a', 'r', 'a', 'l', 'a', 'a', 'l', 'a', 'b', 'a', 'r', 'd', 'a'},
+        std::make_tuple(
+            Item<IntVector> /* SA */ {
+                RIndexIntsTests::keys[kSA],
+                IntVector{17, 16, 8, 2, 11, 6, 0, 9, 4, 13, 3, 12, 15, 7, 1, 10, 5, 14},
+            },
+            Item<IntVector> /* BWT */ {
+                RIndexIntsTests::keys[kBWT][kBase],
+                IntVector{'a', 'd', 'l', 'l', 'l', 'r', 0, 'a', 'b', 'b', 'a', 'a', 'r', 'a', 'a', 'a', 'a', 'a'},
+            },
+            Item<IntVector> /* Samples */ {
+                RIndexBytesTests::keys[kBWT][kTail][kTextPos],
+                IntVector{16, 15, 10, 5, 17, 8, 12, 11, 14, 13},
+            },
+            Item<SDVector> /* Marks */ {
+                RIndexBytesTests::keys[kBWT][kHead][kTextPos],
+                SDVector{BitVector{0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1}},
+                true,
+            }))));
+
+//~~~~~~~
+
 
 class BaseConstructTests : public BaseConfigTests {
  public:
