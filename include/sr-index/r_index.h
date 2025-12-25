@@ -29,6 +29,7 @@ template <typename TStorage = GenericStorage,
           typename TSample = sdsl::int_vector<>>
 class RIndex : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
  public:
+  using Alphabet = TAlphabet;
   using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
 
   explicit RIndex(const TStorage& t_storage) : Base(t_storage) {}
