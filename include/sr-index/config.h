@@ -16,7 +16,7 @@ namespace sri {
 enum SAAlgo {
   SDSL_LIBDIVSUFSORT,
   SDSL_SE_SAIS,
-  BIG_BWT
+  BIG_BWT,
 };
 
 using JSON = nlohmann::json;
@@ -37,64 +37,72 @@ constexpr std::string_view kLink = "link";
 constexpr std::string_view kCumRun = "cumulativeRuns";
 constexpr std::string_view kValidMark = "validMark";
 constexpr std::string_view kValidArea = "validArea";
-}
+}  // namespace conf
 
-template<uint8_t t_width>
+template <uint8_t t_width>
 auto createDefaultKeys() {
   using namespace conf;
   JSON keys = {
-    {kAlphabet, "alphabet"},
-    {kSA, sdsl::conf::KEY_SA},
-    {
-      kBWT, {
-        {kBase, sdsl::key_bwt_trait<t_width>::KEY_BWT},
-        {
-          kHead, {
-            {kPos, "bwt_run_first"},
-            {kTextPos, "bwt_run_first_text_pos"},
-          }
-        },
-        {
-          kTail, {
-            {kPos, "bwt_run_last"},
-            {kTextPos, "bwt_run_last_text_pos"},
-          }
-        },
+      {kAlphabet, "alphabet"},
+      {kSA, sdsl::conf::KEY_SA},
+      {
+          kBWT,
+          {
+              {kBase, sdsl::key_bwt_trait<t_width>::KEY_BWT},
+              {
+                  kHead,
+                  {
+                      {kPos, "bwt_run_first"},
+                      {kTextPos, "bwt_run_first_text_pos"},
+                  },
+              },
+              {
+                  kTail,
+                  {
+                      {kPos, "bwt_run_last"},
+                      {kTextPos, "bwt_run_last_text_pos"},
+                  },
+              },
+          },
       },
-    },
-    {
-      kPsi, {
-        {kBase, sdsl::conf::KEY_PSI},
-        {kCumRun, "psi_run_cumulative_count"},
-        {
-          kHead, {
-            {kPos, "psi_run_first"},
-            {kTextPos, "psi_run_first_text_pos"},
-            {kIdx, "psi_run_first_idx"},
-            {
-              kTextPosAsc, {
-                // {kBase, "psi_run_first_text_pos_asc"},
-                {kIdx, "psi_run_first_text_pos_asc_idx"},
-              }
-            }
-          }
-        },
-        {
-          kTail, {
-            {kPos, "psi_run_last"},
-            {kTextPos, "psi_run_last_text_pos"},
-            {
-              kTextPosAsc, {
-                {kIdx, "psi_run_last_text_pos_asc_idx"},
-                {kLink, "psi_run_last_text_pos_asc_link"},
-                {kValidMark, "psi_run_last_text_pos_asc_valid_mark"},
-                {kValidArea, "psi_run_last_text_pos_asc_valid_area"},
-              }
-            },
-          }
-        },
+      {
+          kPsi,
+          {
+              {kBase, sdsl::conf::KEY_PSI},
+              {kCumRun, "psi_run_cumulative_count"},
+              {
+                  kHead,
+                  {
+                      {kPos, "psi_run_first"},
+                      {kTextPos, "psi_run_first_text_pos"},
+                      {kIdx, "psi_run_first_idx"},
+                      {
+                          kTextPosAsc,
+                          {
+                              // {kBase, "psi_run_first_text_pos_asc"},
+                              {kIdx, "psi_run_first_text_pos_asc_idx"},
+                          },
+                      },
+                  },
+              },
+              {
+                  kTail,
+                  {
+                      {kPos, "psi_run_last"},
+                      {kTextPos, "psi_run_last_text_pos"},
+                      {
+                          kTextPosAsc,
+                          {
+                              {kIdx, "psi_run_last_text_pos_asc_idx"},
+                              {kLink, "psi_run_last_text_pos_asc_link"},
+                              {kValidMark, "psi_run_last_text_pos_asc_valid_mark"},
+                              {kValidArea, "psi_run_last_text_pos_asc_valid_area"},
+                          },
+                      },
+                  },
+              },
+          },
       },
-    },
   };
 
   return keys;
@@ -117,21 +125,22 @@ struct Config : public sdsl::cache_config {
          SAAlgo t_sa_algo,
          bool t_delete_files = false,
          JSON t_keys = createDefaultKeys<8>())
-    : cache_config(t_delete_files, t_output_dir, t_data_path.filename()),
-      data_path(t_data_path),
-      sa_algo(t_sa_algo),
-      keys(std::move(t_keys)) {}
+      : cache_config(t_delete_files, t_output_dir, t_data_path.filename()),
+        data_path(t_data_path),
+        sa_algo(t_sa_algo),
+        keys(std::move(t_keys)) {}
 };
 
 inline SAAlgo toSAAlgo(const std::string& t_str) {
   static const std::map<std::string, SAAlgo> name_to_enum = {
-    {"SDSL_LIBDIVSUFSORT", SDSL_LIBDIVSUFSORT},
-    {"SDSL_SE_SAIS", SDSL_SE_SAIS},
-    {"BIG_BWT", BIG_BWT}
+      {"SDSL_LIBDIVSUFSORT", SDSL_LIBDIVSUFSORT},
+      {"SDSL_SE_SAIS", SDSL_SE_SAIS},
+      {"BIG_BWT", BIG_BWT},
   };
 
   return name_to_enum.at(t_str);
 }
-} // namespace sri
 
-#endif //SRI_CONFIG_H_
+}  // namespace sri
+
+#endif  // SRI_CONFIG_H_
