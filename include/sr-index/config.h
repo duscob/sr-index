@@ -23,6 +23,7 @@ using JSON = nlohmann::json;
 
 namespace conf {
 constexpr std::string_view kAlphabet = "alphabet";
+constexpr std::string_view kSA = "sa";
 constexpr std::string_view kBWT = "bwt";
 constexpr std::string_view kPsi = "psi";
 constexpr std::string_view kBase = "base";
@@ -43,6 +44,7 @@ auto createDefaultKeys() {
   using namespace conf;
   JSON keys = {
     {kAlphabet, "alphabet"},
+    {kSA, sdsl::conf::KEY_SA},
     {
       kBWT, {
         {kBase, sdsl::key_bwt_trait<t_width>::KEY_BWT},
