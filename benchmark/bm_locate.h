@@ -17,6 +17,7 @@
 #include <gflags/gflags.h>
 
 #include "base64.h"
+#include "benchmark_base.h"
 
 DEFINE_string(pattern_code, "PLAIN", "Codification Algorithm for pattern: PLAIN, BASE64");
 
