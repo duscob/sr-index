@@ -41,13 +41,13 @@ int main(int argc, char* argv[]) {
 
   // Indexes
   sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
-  auto factory = std::make_shared<Factory<>>(config);
+  auto factory = std::make_shared<Factory>(config);
 
-  std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
-      {"R-Index", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}, false},
-      {"SR-Index", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX}, true},
-      {"SR-Index-VM", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM}, true},
-      {"SR-Index-VA", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA}, true},
+  std::vector<IndexConfig<Factory::Config>> idx_configs = {
+      {"R-Index", Factory::Config{Factory::IndexEnum::R_INDEX}, false},
+      {"SR-Index", Factory::Config{Factory::IndexEnum::SR_INDEX}, true},
+      {"SR-Index-VM", Factory::Config{Factory::IndexEnum::SR_INDEX_VM}, true},
+      {"SR-Index-VA", Factory::Config{Factory::IndexEnum::SR_INDEX_VA}, true},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};

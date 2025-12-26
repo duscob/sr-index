@@ -70,11 +70,11 @@ int main(int argc, char* argv[]) {
   // Indexes
   const sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
 
-  Factory<> factory(config);
+  Factory factory(config);
   auto n = factory.sizeSequence();
 
-  std::vector<std::pair<const char*, Factory<>::Config>> index_configs = {
-      {"R-Index", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}},
+  std::vector<std::pair<const char*, Factory::Config>> index_configs = {
+      {"R-Index", Factory::Config{Factory::IndexEnum::R_INDEX}},
   };
 
   std::string print_bm_prefix = "Print-";
