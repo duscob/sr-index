@@ -18,7 +18,6 @@
 
 #include "../bm_base.h"
 
-template <uint8_t t_width = 8>
 class Factory {
  public:
   enum class IndexEnum {
@@ -46,7 +45,8 @@ class Factory {
   };
 
   explicit Factory(sri::Config t_config) : config_{std::move(t_config)} {
-    sdsl::int_vector_buffer<t_width> buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, config_));
+    using namespace sri::conf;
+    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(config_.keys[kBWT][kBase], config_));
     n_ = buf.size();
   }
 

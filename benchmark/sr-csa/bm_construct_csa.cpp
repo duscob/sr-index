@@ -64,7 +64,8 @@ void BM_ConstructRCSA(benchmark::State& t_state, sri::Config t_config, const std
 
   setupCommonCounters(t_state);
   {
-    sdsl::int_vector_buffer<8> buf(sdsl::cache_file_name(sdsl::key_text_trait<8>::KEY_TEXT, t_config));
+    using namespace sri::conf;
+    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(t_config.keys[kBWT][kBase], t_config));
     t_state.counters["n"] = buf.size();
   }
   {
