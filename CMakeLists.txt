@@ -122,5 +122,8 @@ endif ()
 
 
 if (SR-INDEX_ENABLE_BENCHMARKS)
+    if (NOT SR-INDEX_BENCHMARK_DATA_WIDTH)
+        set(SR-INDEX_BENCHMARK_DATA_WIDTH 8)
+    endif ()
     add_subdirectory(benchmark)
 endif ()

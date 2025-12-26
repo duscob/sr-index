@@ -11,5 +11,7 @@ list(APPEND benchmark_LIBS ${CMAKE_THREAD_LIBS_INIT})
 cxx_executable_with_flags(bm_build_ri_items "" "${benchmark_LIBS}" bm_build_ri_items.cpp)
 cxx_executable_with_flags(bm_locate "" "${benchmark_LIBS}" bm_locate.cpp)
 
+add_compile_definitions(SRI_BENCHMARK_DATA_WIDTH=${SR-INDEX_BENCHMARK_DATA_WIDTH})
+
 add_subdirectory(sr-csa)
 add_subdirectory(sr-index)
