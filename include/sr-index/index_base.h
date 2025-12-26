@@ -17,7 +17,7 @@
 
 namespace sri {
 
-template <typename TSequence = std::string>
+template <typename TSequence = Alphabet<>::string_type>
 class LocateIndex {
  public:
   virtual ~LocateIndex() = default;

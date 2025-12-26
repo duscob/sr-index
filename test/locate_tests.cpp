@@ -97,21 +97,28 @@ INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
     LocateBytesTests,
     testing::Combine(
-        testing::Values(createIndexBuilder<DataBytes, sri::RIndex<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrIndex<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrIndexValidMark<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrIndexValidArea<>>(),
-                        createIndexBuilder<DataBytes, sri::RCSABWTRun<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRun<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunSlim<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>>(),
-                        createIndexBuilder<DataBytes, sri::RCSA<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSA<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSAValidMark<>>(),
-                        createSrIndexBuilder<DataBytes, sri::SrCSAValidArea<>>()),
+        testing::Values(
+            createIndexBuilder<DataBytes, sri::RIndex<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrIndex<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrIndexValidMark<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createIndexBuilder<DataBytes, sri::RCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes,
+                                 sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>>>(),
+            createSrIndexBuilder<DataBytes,
+                                 sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<
+                DataBytes,
+                sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<8>>>>(),
+            createSrIndexBuilder<
+                DataBytes,
+                sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<8>>>>(),
+            createIndexBuilder<DataBytes, sri::RCSA<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrCSAValidMark<sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>>>(),
+            createSrIndexBuilder<DataBytes, sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>>>()),
         testing::Values(std::make_tuple(DataBytes{"abcabcababc"},
                                         ListPatternXValues<DataBytes>{
                                             std::make_tuple(DataBytes{"ab"}, Values{6, 8, 3, 0}),
@@ -200,11 +207,11 @@ class LocateTypedTests : public BaseConfigTests<8> {
 template <typename TIndex>
 class RIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using RIndexes = ::testing::Types<sri::RIndex<>,
-                                  sri::RCSABWTRun<>,
-                                  sri::RCSA<>,
-                                  sri::SrIdxGeneric<sri::SrIndex<>, 2>,
-                                  sri::SrIdxGeneric<sri::SrCSABWTRun<>, 4>>;
+using RIndexes = ::testing::Types<sri::RIndex<sri::GenericStorage, sri::Alphabet<8>>,
+                                  sri::RCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>,
+                                  sri::RCSA<sri::GenericStorage, sri::Alphabet<8>>,
+                                  sri::SrIdxGeneric<sri::SrIndex<sri::GenericStorage, sri::Alphabet<8>>, 2>,
+                                  sri::SrIdxGeneric<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>, 4>>;
 TYPED_TEST_SUITE(RIndexLocateTypedTests, RIndexes);
 
 TYPED_TEST(RIndexLocateTypedTests, serialize) {
@@ -233,18 +240,19 @@ TYPED_TEST(RIndexLocateTypedTests, serialize) {
 template <typename TIndex>
 class SRIndexLocateTypedTests : public LocateTypedTests<TIndex> {};
 
-using SRIndexes = ::testing::Types<sri::SrIndex<>,
-                                   sri::SrIndexValidMark<>,
-                                   sri::SrIndexValidArea<>,
-                                   sri::SrCSABWTRun<>,
-                                   sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>,
-                                   sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>,
-                                   sri::SrCSABWTRunSlim<>,
-                                   sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<>>,
-                                   sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<>>,
-                                   sri::SrCSA<>,
-                                   sri::SrCSAValidMark<>,
-                                   sri::SrCSAValidArea<>>;
+using SRIndexes =
+    ::testing::Types<sri::SrIndex<sri::GenericStorage, sri::Alphabet<8>>,
+                     sri::SrIndexValidMark<sri::GenericStorage, sri::Alphabet<8>>,
+                     sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<8>>,
+                     sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>,
+                     sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>>,
+                     sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<sri::GenericStorage, sri::Alphabet<8>>>,
+                     sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<8>>,
+                     sri::SrCSABWTRunValidMark<sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<8>>>,
+                     sri::SrCSABWTRunValidArea<sri::SrCSABWTRunSlim<sri::GenericStorage, sri::Alphabet<8>>>,
+                     sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>,
+                     sri::SrCSAValidMark<sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>>,
+                     sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>>>;
 TYPED_TEST_SUITE(SRIndexLocateTypedTests, SRIndexes);
 
 TYPED_TEST(SRIndexLocateTypedTests, serialize) {

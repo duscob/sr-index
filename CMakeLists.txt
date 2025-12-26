@@ -79,9 +79,15 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_idx_generic.h
 )
 
+if (NOT SRI_DEFAULT_ALPHABET_WIDTH)
+    set(SRI_DEFAULT_ALPHABET_WIDTH 0)
+endif ()
+
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
+
+add_compile_definitions(SRI_DEFAULT_ALPHABET_WIDTH=${SRI_DEFAULT_ALPHABET_WIDTH})
 add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 target_link_libraries(sr-index INTERFACE nlohmann_json::nlohmann_json)
 

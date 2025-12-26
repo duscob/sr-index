@@ -61,7 +61,7 @@ using namespace sri::conf;
 //~~~~~~~
 
 
-class RIndexBytesTests : public RIndexTests<sri::RIndex<>> {
+class RIndexBytesTests : public RIndexTests<sri::RIndex<sri::GenericStorage, sri::Alphabet<8>>> {
  public:
   static const sri::JSON keys;
 };
@@ -183,7 +183,7 @@ class RCSATests1 : public BaseConfigTests<TIndex::Alphabet::int_width>,
 //~~~~~~~
 
 
-class RCSABytesTests : public RCSATests1<sri::RCSA<>> {
+class RCSABytesTests : public RCSATests1<sri::RCSA<sri::GenericStorage, sri::Alphabet<8>>> {
  public:
   static const sri::JSON keys;
 };
@@ -318,7 +318,7 @@ class RCSATests : public BaseConstructTests,
 
 TEST_P(RCSATests, construct) {
   using namespace sri::conf;
-  sri::RCSA<> index;
+  sri::RCSA<sri::GenericStorage, sri::Alphabet<8>> index;
   sri::constructItems(index, config_);
 
   compare(config_.keys[kPsi][kBase], std::get<1>(GetParam()));
@@ -378,7 +378,7 @@ TEST_P(SRCSATests, construct) {
   using namespace sri::conf;
 
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::SrCSA<> index(subsample_rate);
+  sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>> index(subsample_rate);
   sri::constructItems(index, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";
@@ -432,7 +432,7 @@ TEST_P(SRCSAValidAreaTests, construct) {
   using namespace sri::conf;
 
   const auto& subsample_rate = std::get<1>(GetParam());
-  sri::SrCSAValidArea<> index(subsample_rate);
+  sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<8>>> index(subsample_rate);
   sri::constructItems(index, config_);
 
   const auto prefix = std::to_string(subsample_rate) + "_";

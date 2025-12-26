@@ -12,6 +12,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "alphabet.h"
+
 namespace sri {
 enum SAAlgo {
   SDSL_LIBDIVSUFSORT,
@@ -125,7 +127,7 @@ struct Config : public sdsl::cache_config {
          SAAlgo t_sa_algo,
          bool t_delete_files = false,
          uint8_t t_data_width = 8,
-         JSON t_keys = createDefaultKeys<8>())
+         JSON t_keys = createDefaultKeys<SRI_DEFAULT_ALPHABET_WIDTH>())
       : cache_config(t_delete_files, t_output_dir, t_data_path.filename()),
         data_path(t_data_path),
         sa_algo(t_sa_algo),
