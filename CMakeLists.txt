@@ -80,7 +80,7 @@ set(SOURCE_FILES
 )
 
 if (NOT SRI_DEFAULT_ALPHABET_WIDTH)
-    set(SRI_DEFAULT_ALPHABET_WIDTH 0)
+    set(SRI_DEFAULT_ALPHABET_WIDTH 8)
 endif ()
 
 add_library(sr-index INTERFACE)
