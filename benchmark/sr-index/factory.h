@@ -10,11 +10,11 @@
 #include <sdsl/config.hpp>
 #include <sdsl/int_vector_buffer.hpp>
 
-#include "config.h"
+#include "sr-index/config.h"
 #include "sr-index/r_index.h"
 #include "sr-index/sr_index.h"
 
-#include "../benchmark_base.h"
+#include "../bm_base.h"
 
 template <uint8_t t_width = 8>
 class Factory {

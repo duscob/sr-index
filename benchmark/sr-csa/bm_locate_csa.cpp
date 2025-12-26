@@ -10,8 +10,10 @@
 
 #include <sdsl/config.hpp>
 
+#include "../bm_base.h"
 #include "../bm_locate.h"
 #include "../bm_locate_set.h"
+
 #include "factory.h"
 
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
