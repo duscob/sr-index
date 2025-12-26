@@ -76,14 +76,6 @@ void BM_ConstructRCSA(benchmark::State& t_state, sri::Config t_config, const std
   }
 }
 
-auto BM_ConstructRCSAWithBWTRun = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructRCSA<sri::RCSABWTRun<>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructRCSAWithPsiRun = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructRCSA<sri::RCSA<>>(t_state, t_config, t_data_path);
-};
-
 template <typename TSrIndex>
 void BM_ConstructSrIndex(benchmark::State& t_state, sri::Config t_config, const std::string& t_data_path) {
   std::size_t subsample_rate = t_state.range(0);  // Subsampling rate
@@ -117,34 +109,6 @@ void BM_ConstructSrIndex(benchmark::State& t_state, sri::Config t_config, const 
     t_state.counters["r'"] = buf.size();
   }
 }
-
-auto BM_ConstructSrCSA = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSABWTRun<>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructSrCSASlim = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSABWTRunSlim<>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructSrCSAWithPsiRuns = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSA<>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructSrCSAValidMark = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSABWTRunValidMark<sri::SrCSABWTRun<>>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructSrCSAValidArea = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSABWTRunValidArea<sri::SrCSABWTRun<>>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructSRCSAValidMark = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSAValidMark<>>(t_state, t_config, t_data_path);
-};
-
-auto BM_ConstructSRCSAValidArea = [](benchmark::State& t_state, sri::Config t_config, const auto& t_data_path) {
-  BM_ConstructSrIndex<sri::SrCSAValidArea<>>(t_state, t_config, t_data_path);
-};
 
 int main(int argc, char** argv) {
   gflags::SetUsageMessage("This program calculates the sr-csa items for the given text.");
