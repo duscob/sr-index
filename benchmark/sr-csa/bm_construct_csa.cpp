@@ -16,7 +16,9 @@
 #include "sr-index/sr_csa.h"
 #include "sr-index/sr_csa_bwt.h"
 
+
 DEFINE_string(data, "", "Data file. (MANDATORY)");
+DEFINE_int32(data_width, 8, "Data width: 0 or 8");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 2u << 8u, "Maximum sampling parameter s.");
@@ -156,7 +158,7 @@ int main(int argc, char** argv) {
 
   std::string data_path = FLAGS_data;
 
-  sri::Config config(data_path, std::filesystem::current_path(), sri::toSAAlgo(FLAGS_sa_algo));
+  sri::Config config(data_path, std::filesystem::current_path(), sri::toSAAlgo(FLAGS_sa_algo), false, FLAGS_data_width);
 
   benchmark::RegisterBenchmark("R-CSA", BM_ConstructRCSA<sri::RCSA<>>, config, data_path);
 

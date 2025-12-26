@@ -16,6 +16,7 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+DEFINE_int32(data_width, 8, "Data width: 0 or 8");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 auto BM_QueryCount = [](benchmark::State& t_state, const auto& t_idx, const auto& t_patterns, auto t_seq_size) {
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
   auto patterns = ReadPatterns(FLAGS_patterns);
 
   // Indexes
-  const sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
+  const sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true, FLAGS_data_width);
 
   Factory factory(config);
   const auto n = factory.sizeSequence();

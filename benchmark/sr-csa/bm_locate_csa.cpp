@@ -10,15 +10,16 @@
 
 #include <sdsl/config.hpp>
 
-#include "../bm_base.h"
 #include "../bm_locate.h"
 #include "../bm_locate_set.h"
 
 #include "factory.h"
 
+
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+DEFINE_int32(data_width, 8, "Data width: 0 or 8");
 
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");
@@ -42,7 +43,7 @@ int main(int argc, char* argv[]) {
   auto patterns = ReadPatterns(FLAGS_patterns);
 
   // Indexes
-  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
+  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true, FLAGS_data_width);
   auto factory = std::make_shared<Factory>(config);
 
   std::vector<IndexConfig<Factory::Config>> idx_configs = {
