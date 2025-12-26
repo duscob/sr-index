@@ -188,11 +188,10 @@ auto RegisterLocateBenchmarks = [](const auto& t_name,
 };
 
 struct Pattern {
-  std::string encoded;
-  std::string decoded;
+  Sequence encoded;
+  Sequence decoded;
 
-  Pattern(std::string t_encoded, std::string t_decoded)
-      : encoded(std::move(t_encoded)), decoded(std::move(t_decoded)) {}
+  Pattern(Sequence t_encoded, Sequence t_decoded) : encoded(std::move(t_encoded)), decoded(std::move(t_decoded)) {}
 };
 
 enum PatternCode {
@@ -233,7 +232,14 @@ auto ReadPatterns(const std::string& t_pattern_path) {
     if (buffer.empty())
       continue;
 
-    patterns.emplace_back(buffer, decode(buffer));
+    Sequence pattern;
+    Sequence::value_type value;
+    std::stringstream ss(buffer);
+    while (ss >> value) {
+      pattern.push_back(value);
+    }
+
+    patterns.emplace_back(pattern, decode(pattern));
   }
   pattern_file.close();
 
