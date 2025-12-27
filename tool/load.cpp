@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]) {
   std::size_t subsampling_rate = 16;
-  sri::SrIndexValidArea<> index(subsampling_rate);
+  sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<8>> index(subsampling_rate);
 
   // Loading the full index from a single file.
   std::string index_file = "/path/to/index/file";

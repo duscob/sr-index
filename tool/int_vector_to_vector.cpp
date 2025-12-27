@@ -13,6 +13,7 @@
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
 DEFINE_string(key, "", "File key. (MANDATORY)");
+DEFINE_int32(int_width, 32, "Int width.");
 DEFINE_bool(hash_type, false, "Add hash type to file key.");
 
 int main(int argc, char* argv[]) {
@@ -26,8 +27,8 @@ int main(int argc, char* argv[]) {
   sdsl::load_from_cache(ivec, FLAGS_key, config, FLAGS_hash_type);
 
   std::ofstream fs(sdsl::cache_file_name(FLAGS_key, config) + ".vec.bin", std::ios::out | std::ios::binary);
-  for (sdsl::int_vector<>::value_type item : ivec) {
-    fs.write(reinterpret_cast<const char *>(&item), sizeof(sdsl::int_vector<>::value_type));
+  for (uint64_t item : ivec) {
+    fs.write(reinterpret_cast<const char*>(&item), FLAGS_int_width);
     // fs.write(&item, sizeof(sdsl::int_vector<>::value_type));
   }
   fs.close();
