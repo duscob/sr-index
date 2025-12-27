@@ -6,7 +6,7 @@ int main(int argc, char* argv[]) {
   sri::Config config(data_path, output_path, sri::SAAlgo::SDSL_SE_SAIS);
 
   std::size_t subsampling_rate = 16;
-  sri::SrIndexValidArea<> index(subsampling_rate);
+  sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<8>> index(subsampling_rate);
 
   // Constructing required components and serializing them in separated files.
   // After construction, the full index is loaded in the `index` variable
