@@ -26,6 +26,36 @@ and space.
 ***
 
 
+Implemented Indexes
+-----
+
+This repository provides implementations of the following indexes:
+
+- **$r$-index** (`RIndex`): Base $r$-index for repetitive texts, using the BWT runs structure and $\phi$ function.
+- **$sr$-index** (`SrIndex`): Subsampled version of the $r$-index with reduced space usage.
+- **$sr$-index with valid marks** (`SrIndexValidMark`): Enhanced $sr$-index that marks valid remaining samplings
+  for $\phi$ function.
+- **$sr$-index with valid areas** (`SrIndexValidArea`): Enhanced $sr$-index that tracks valid text areas of remaing
+  samplings for $\phi$ function.
+- **$r$-csa** (`RCSA`): Compressed Suffix Array adapted for repetitive texts, analogous to the $r$-index (but
+  using $\psi$ array instead of BWT, and $\phi^{-1}$ function)
+- **$sr$-csa** (`SrCSA`): Subsampled version of the $r$-csa with reduced space usage
+- **$sr$-csa with valid marks** (`SrCSAValidMark`): Enhanced $sr$-csa that marks valid remaining samplings
+  for $\phi^{-1}$ function.
+- **$sr$-csa with valid areas** (`SrCSAValidArea`): Enhanced $sr$-csa that tracks valid text areas of remaing samplings
+  for $\phi^{-1}$ function.
+
+All indexes support:
+
+- **Count**: Count the number of occurrences of a pattern.
+- **Locate**: Find all occurrences of a pattern in the indexed text.
+
+The indexes work with both byte alphabets (text files) and integer alphabets (binary files) through generic template
+parameters.
+
+***
+
+
 Requirements
 -----
 
