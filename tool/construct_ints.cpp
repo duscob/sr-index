@@ -1,14 +1,14 @@
-#include <sr-index/sr_index.h>
+#include <sr-index/sr_csa.h>
 
 int main(int argc, char* argv[]) {
   std::string data_path = "/path/to/data/file";
   auto output_path = std::filesystem::current_path();
-  uint8_t alphabet_size = 16;
+  uint8_t alphabet_size = 16;  // Input file stores a sequence of 16-bits ints
   sri::Config config(
       data_path, output_path, sri::SAAlgo::SDSL_SE_SAIS, false, alphabet_size, sri::createDefaultKeys<0>());
 
   std::size_t subsampling_rate = 16;
-  sri::SrIndexValidArea<sri::GenericStorage, sri::Alphabet<0>> index(subsampling_rate);
+  sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<0>>> index(subsampling_rate);
 
   // Constructing required components and serializing them in separated files.
   // After construction, the full index is loaded in the `index` variable
