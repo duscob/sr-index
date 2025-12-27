@@ -3,7 +3,7 @@ $sr$-index and $sr$-csa: Fast and Small Indexes for Repetitive Texts
 
 
 > Dustin Cobas, Travis Gagie, and Gonzalo Navarro. Fast and Small Subsampled R-indexes. ACM Transactions on Algorithms,
-> Volume 22, Issue 1, Article 7 (October 2026), Pages 1–39.
+> Volume 22, Issue 1, Article 7 (October 2025), Pages 1–39.
 
 Overview
 -----
@@ -24,15 +24,6 @@ Our experiments demonstrate that the theoretical analysis falls short in describ
 and space.
 
 
-Stack and Build System
------
-
-- Language: C++17 (enforced via CMake)
-- Build system: CMake (minimum 3.10)
-- Dependency management: CMake FetchContent/ExternalProject
-- Testing: Google Test/Mock (via CTest)
-- Benchmarks: Google Benchmark
-- CLI flags: GFlags
 
 Requirements
 -----
@@ -40,12 +31,11 @@ Requirements
 - C++17-capable compiler
     - GCC 8+ (note: special linking for std::filesystem on GCC < 9 is handled in CMake)
     - Clang 7+ (or compatible)
-- CMake 3.10+
+- CMake 3.10+ (Build system and dependency management)
 - Git and internet access during the first configure to fetch dependencies
 - POSIX-like environment recommended; Windows may work but is not a primary target
 
-Third‑party Dependencies
------
+### Third‑party Dependencies
 
 All core dependencies are fetched and built automatically by CMake:
 
@@ -53,7 +43,7 @@ All core dependencies are fetched and built automatically by CMake:
   #fork [duscob](https://github.com/duscob)
 - [nlohmann/json](https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz) #v3.12.0 (tarball)
 - [Big-BWT](https://github.com/duscob/Big-BWT.git) #fork [duscob](https://github.com/duscob): Optional
-- [gflags](https://github.com/gflags/gflags.git) #master
+- [gflags](https://github.com/gflags/gflags.git) #v2.3.0: Optional (CLI flags for tools and benchmarks)
 - [Google Test](https://github.com/google/googletest.git) #release-1.11.0: Optional (for tests)
 - [Google Benchmark](https://github.com/google/benchmark.git) #v1.9.4: Optional (for benchmarks)
 
