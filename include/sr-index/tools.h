@@ -162,7 +162,8 @@ class RankOfChar {
  public:
   explicit RankOfChar(const TRLEString &t_string) : string_{t_string} {}
 
-  auto operator()(std::size_t t_pos, unsigned char t_char) const {
+  template <typename TChar>
+  auto operator()(std::size_t t_pos, TChar t_char) const {
     return string_.get().rank(t_pos, t_char);
   }
 

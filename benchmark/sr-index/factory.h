@@ -10,13 +10,12 @@
 #include <sdsl/config.hpp>
 #include <sdsl/int_vector_buffer.hpp>
 
+#include "sr-index/config.h"
 #include "sr-index/r_index.h"
 #include "sr-index/sr_index.h"
-#include "config.h"
 
-using ExternalGenericStorage = std::reference_wrapper<sri::GenericStorage>;
+#include "../bm_base.h"
 
-template<uint8_t t_width = 8>
 class Factory {
  public:
   enum class IndexEnum {
@@ -30,24 +29,27 @@ class Factory {
     IndexEnum index_type;
     std::size_t sampling_size;
 
-    bool operator<(const Config &t_c) const {
+    bool operator<(const Config& t_c) const {
       return index_type < t_c.index_type || (index_type == t_c.index_type && sampling_size < t_c.sampling_size);
     }
   };
 
   explicit Factory(sri::Config t_config) : config_{std::move(t_config)} {
-    sdsl::int_vector_buffer<t_width> buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, config_));
+    using namespace sri::conf;
+    sdsl::int_vector_buffer<> buf(sdsl::cache_file_name(config_.keys[kBWT][kBase], config_));
     n_ = buf.size();
   }
 
-  auto sizeSequence() const { return n_; }
+  auto sizeSequence() const {
+    return n_;
+  }
 
   struct Index {
-    std::shared_ptr<sri::LocateIndex> idx;
+    std::shared_ptr<sri::LocateIndex<>> idx;
     std::size_t size = 0;
   };
 
-  Index make(const Config &t_config) {
+  Index make(const Config& t_config) {
     auto it = indexes_.find(t_config);
     if (it != indexes_.end()) {
       return it->second;
@@ -70,16 +72,16 @@ class Factory {
       }
 
       case IndexEnum::SR_INDEX_VM: {
-        auto idx = std::make_shared<sri::SrIndexValidMark<ExternalGenericStorage>>(
-            std::ref(storage_), t_config.sampling_size);
+        auto idx =
+            std::make_shared<sri::SrIndexValidMark<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;
       }
 
       case IndexEnum::SR_INDEX_VA: {
-        auto idx = std::make_shared<sri::SrIndexValidArea<ExternalGenericStorage>>(
-            std::ref(storage_), t_config.sampling_size);
+        auto idx =
+            std::make_shared<sri::SrIndexValidArea<ExternalGenericStorage>>(std::ref(storage_), t_config.sampling_size);
         idx->load(config_);
         index = {idx, sdsl::size_in_bytes(*idx)};
         break;
@@ -103,4 +105,4 @@ class Factory {
   std::map<Config, Index> indexes_;
 };
 
-#endif //SRI_BENCHMARK_SR_INDEX_FACTORY_H_
+#endif  // SRI_BENCHMARK_SR_INDEX_FACTORY_H_

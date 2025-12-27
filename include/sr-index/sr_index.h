@@ -12,18 +12,18 @@
 
 namespace sri {
 
-template<typename TStorage = GenericStorage,
-    typename TAlphabet = Alphabet<>,
-    typename TBwtRLE = RLEString<>,
-    typename TBvMark = sdsl::sd_vector<>,
-    typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>,
-    typename TBvSampleIdx = sdsl::sd_vector<>>
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>,
+          typename TBvSampleIdx = sdsl::sd_vector<>>
 class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample> {
  public:
   using Base = RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample>;
 
-  SrIndex(const TStorage &t_storage, std::size_t t_sr)
+  SrIndex(const TStorage& t_storage, std::size_t t_sr)
       : Base(t_storage), subsample_rate_{t_sr}, key_prefix_{std::to_string(subsample_rate_) + "_"} {}
 
   explicit SrIndex(std::size_t t_sr)
@@ -31,22 +31,25 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
 
   SrIndex() = default;
 
-  std::size_t SubsampleRate() const { return subsample_rate_; }
+  std::size_t SubsampleRate() const {
+    return subsample_rate_;
+  }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
     this->loadInner(source);
   }
 
-  void load(std::istream &in) override {
+  void load(std::istream& in) override {
     sdsl::read_member(subsample_rate_, in);
     TSource source(std::ref(in));
     this->loadInner(source);
   }
 
-  using typename Base::size_type;
   using typename Base::ItemKey;
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = 0;
@@ -54,105 +57,112 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
 
     written_bytes += Base::serialize(out, v, name);
 
-    written_bytes += this->template serializeItem<TBvSampleIdx>(
-        key(ItemKey::SAMPLES_IDX), out, child, "samples_idx");
-    written_bytes += this->template serializeRank<TBvSampleIdx>(
-        key(ItemKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+    written_bytes += this->template serializeItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), out, child, "samples_idx");
+    written_bytes +=
+        this->template serializeRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), out, child, "samples_idx_rank");
 
     return written_bytes;
   }
 
  protected:
-
   using Base::key;
+
   void setupKeyNames() override {
     Base::setupKeyNames();
-//    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
-//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_BWT_RLE;
+    //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
+    //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_BWT_RLE;
     key(ItemKey::SAMPLES) = key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS;
     key(ItemKey::MARKS) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST;
     key(ItemKey::MARK_TO_SAMPLE) = key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
     key(ItemKey::SAMPLES_IDX) = key_prefix_ + conf::KEY_BWT_RUN_LAST_IDX;
   }
 
-  using typename Base::TSource;
   using typename Base::Range;
+  using typename Base::TSource;
 
-  void loadAllItems(TSource &t_source) override {
+  void loadAllItems(TSource& t_source) override {
     Base::loadAllItems(t_source);
 
     this->template loadItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
     this->template loadBVRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
   }
 
-  void constructIndex(TSource &t_source) override {
-    constructIndex(t_source,
-                   [this](auto &t_source) { return this->constructPhiForRange(t_source); });
+  void constructIndex(TSource& t_source) override {
+    constructIndex(t_source, [this](auto& t_source) {
+      return this->constructPhiForRange(t_source);
+    });
   }
 
-  template<typename TConstructPhiForRange>
-  void constructIndex(TSource &t_source, const TConstructPhiForRange &t_construct_phi_for_range) {
+  template <typename TConstructPhiForRange>
+  void constructIndex(TSource& t_source, const TConstructPhiForRange& t_construct_phi_for_range) {
     this->index_.reset(new RIndexBase{
+        typename TAlphabet::string_type{},
         this->constructLF(t_source),
         this->constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),
         this->constructComputeSAValues(t_construct_phi_for_range(t_source), constructComputeToehold(t_source)),
         this->n_,
-        [](const auto &tt_step) { return DataBackwardSearchStep{0, RunDataExt{0, 0, false, 0}}; },
+        [](const auto& tt_step) {
+          return DataBackwardSearchStep{0, RunDataExt{0, 0, false, 0}};
+        },
         this->constructGetSymbol(t_source),
-        [](auto tt_seq_size) { return Range{0, tt_seq_size}; },
-        this->constructIsRangeEmpty()
-    });
+        [](auto tt_seq_size) {
+          return Range{0, tt_seq_size};
+        },
+        this->constructIsRangeEmpty()});
   }
 
-  using typename Base::RunData;
   using typename Base::Char;
+  using typename Base::RunData;
+
   struct RunDataExt : public RunData {
-    bool is_run_end; // If current position is the end of a run
-    std::size_t next_pos; // Position for next LF step
+    bool is_run_end;       // If current position is the end of a run
+    std::size_t next_pos;  // Position for next LF step
 
     explicit RunDataExt(Char t_c, std::size_t t_end_run_rnk, bool t_is_run_end, std::size_t tt_next_pos)
         : RunData{t_c, t_end_run_rnk}, is_run_end{t_is_run_end}, next_pos{tt_next_pos} {}
+
     virtual ~RunDataExt() = default;
   };
 
   using DataBackwardSearchStep = sri::DataBackwardSearchStep<RunDataExt>;
 
   auto constructCreateDataBackwardSearchStep() {
-    return [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
-      const auto &[next_start, next_end] = tt_next_range;
+    return [](const auto& tt_range, const auto& tt_c, const auto& tt_next_range, const auto& tt_step) {
+      const auto& [next_start, next_end] = tt_next_range;
       return DataBackwardSearchStep{tt_step, RunDataExt{tt_c, next_end.run.rank, true, next_end.value - 1}};
     };
   }
 
-  auto constructGetSample(TSource &t_source) {
+  auto constructGetSample(TSource& t_source) {
     auto cref_samples = this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
     auto cref_bv_sample_idx = this->template loadItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
     auto bv_sample_idx_rank = this->template loadBVRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), t_source, true);
 
     return [cref_samples, cref_bv_sample_idx, bv_sample_idx_rank](auto tt_run_rnk) {
       return cref_bv_sample_idx.get()[tt_run_rnk]
-             ? std::optional<std::size_t>(cref_samples.get()[bv_sample_idx_rank(tt_run_rnk)])
-             : std::nullopt;
+                 ? std::optional<std::size_t>(cref_samples.get()[bv_sample_idx_rank(tt_run_rnk)])
+                 : std::nullopt;
     };
   }
 
-  auto constructComputeToehold(TSource &t_source) {
+  auto constructComputeToehold(TSource& t_source) {
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
 
     auto get_sample = constructGetSample(t_source);
-    auto get_sample_run_data = [get_sample](const RunDataExt &tt_run_data) {
+    auto get_sample_run_data = [get_sample](const RunDataExt& tt_run_data) {
       return tt_run_data.is_run_end ? get_sample(tt_run_data.last_run_rnk) : std::nullopt;
     };
 
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
-    auto lf_run_data = [cref_bwt_rle, cref_alphabet](RunDataExt &tt_run_data) {
-      auto report = [&tt_run_data, cref_alphabet](
-          auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_run_start, auto tt_run_end, auto tt_symbol_run_rnk) {
-        tt_run_data.c = tt_c;
-        tt_run_data.last_run_rnk = tt_run_rnk;
-        tt_run_data.is_run_end = tt_run_data.next_pos == tt_run_end - 1;
-        tt_run_data.next_pos = cref_alphabet.get().C[tt_c] + tt_rnk;
-      };
+    auto lf_run_data = [cref_bwt_rle, cref_alphabet](RunDataExt& tt_run_data) {
+      auto report =
+          [&tt_run_data, cref_alphabet](
+              auto tt_rnk, auto tt_c, auto tt_run_rnk, auto tt_run_start, auto tt_run_end, auto tt_symbol_run_rnk) {
+            tt_run_data.c = tt_c;
+            tt_run_data.last_run_rnk = tt_run_rnk;
+            tt_run_data.is_run_end = tt_run_data.next_pos == tt_run_end - 1;
+            tt_run_data.next_pos = cref_alphabet.get().C[tt_c] + tt_rnk;
+          };
 
       cref_bwt_rle.get().rank(tt_run_data.next_pos, report);
 
@@ -175,12 +185,12 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
     std::size_t rnk;
     bool is_run_end;
 
-    bool operator<(const Run &rhs) const {
+    bool operator<(const Run& rhs) const {
       return start < rhs.start;
     }
   };
 
-  auto constructSplitInBWTRuns(TSource &t_source) {
+  auto constructSplitInBWTRuns(TSource& t_source) {
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
     return [cref_bwt_rle](auto tt_first, auto tt_last) {
       std::vector<Run> runs;
@@ -194,44 +204,55 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
     };
   }
 
-  auto constructLFForPhi(TSource &t_source) {
+  auto constructLFForPhi(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
     auto cumulative = RandomAccessForCRefContainer(std::cref(cref_alphabet.get().C));
     this->n_ = cumulative[cref_alphabet.get().sigma];
 
     auto cref_bwt_rle = this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
-    auto bwt_rank = [cref_bwt_rle](const auto &tt_c, const auto &tt_pos) {
+    auto bwt_rank = [cref_bwt_rle](const auto& tt_c, const auto& tt_pos) {
       return cref_bwt_rle.get().rank(tt_pos, tt_c);
     };
 
-    auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto &tt_smaller_c) {
+    auto create_range = [](auto tt_c_before_sp, auto tt_c_until_ep, const auto& tt_smaller_c) {
       return Run{tt_c_before_sp + tt_smaller_c, tt_c_until_ep + tt_smaller_c, 0, 0, false};
     };
 
     Run empty_range{0, 0, 0, 0, false};
 
     auto lf = LF(bwt_rank, cumulative, create_range, empty_range);
-    return [lf](const Run &tt_run) {
+    return [lf](const Run& tt_run) {
       return lf(tt_run.start, tt_run.end, tt_run.c);
     };
   }
 
-  auto constructPhiForRange(TSource &t_source) {
+  auto constructPhiForRange(TSource& t_source) {
     auto phi = this->constructPhi(t_source, this->constructGetMarkToSampleIdx(t_source, true));
-    auto phi_simple = [phi](const auto &tt_value) { return phi(tt_value).first; };
+    auto phi_simple = [phi](const auto& tt_value) {
+      return phi(tt_value).first;
+    };
     auto get_sample = constructGetSample(t_source);
-    auto get_sample_run =
-        [get_sample](const Run &tt_run) { return tt_run.is_run_end ? get_sample(tt_run.rnk) : std::nullopt; };
+    auto get_sample_run = [get_sample](const Run& tt_run) {
+      return tt_run.is_run_end ? get_sample(tt_run.rnk) : std::nullopt;
+    };
     auto split = constructSplitInBWTRuns(t_source);
-    auto split_range = [split](const Range &tt_range) { return split(tt_range.start, tt_range.end); };
-    auto split_run = [split](const Run &tt_run) { return split(tt_run.start, tt_run.end); };
+    auto split_range = [split](const Range& tt_range) {
+      return split(tt_range.start, tt_range.end);
+    };
+    auto split_run = [split](const Run& tt_run) {
+      return split(tt_run.start, tt_run.end);
+    };
     auto lf = constructLFForPhi(t_source);
-    auto is_range_empty = [](const Range &tt_range) { return !(tt_range.start < tt_range.end); };
-    auto update_run = [](Run &tt_run) {
+    auto is_range_empty = [](const Range& tt_range) {
+      return !(tt_range.start < tt_range.end);
+    };
+    auto update_run = [](Run& tt_run) {
       --tt_run.end;
       tt_run.is_run_end = false;
     };
-    auto is_run_empty = [](const Run &tt_run) { return !(tt_run.start < tt_run.end); };
+    auto is_run_empty = [](const Run& tt_run) {
+      return !(tt_run.start < tt_run.end);
+    };
     return PhiBackwardForRange(phi_simple,
                                get_sample_run,
                                split_range,
@@ -248,28 +269,29 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
   std::string key_prefix_;
 };
 
-template<typename TStorage = GenericStorage,
-    typename TAlphabet = Alphabet<>,
-    typename TBwtRLE = RLEString<>,
-    typename TBvMark = sdsl::sd_vector<>,
-    typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>,
-    typename TBvSampleIdx = sdsl::sd_vector<>,
-    typename TBvValidMark = sdsl::bit_vector>
-class SrIndexValidMark : public SrIndex<
-    TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>,
+          typename TBvSampleIdx = sdsl::sd_vector<>,
+          typename TBvValidMark = sdsl::bit_vector>
+class SrIndexValidMark
+    : public SrIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> {
  public:
   using Base = SrIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>;
 
-  SrIndexValidMark(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrIndexValidMark(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
   explicit SrIndexValidMark(std::size_t t_sr) : Base(t_sr) {}
 
   SrIndexValidMark() = default;
 
-  using typename Base::size_type;
   using typename Base::ItemKey;
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = Base::serialize(out, v, name);
@@ -280,39 +302,37 @@ class SrIndexValidMark : public SrIndex<
   }
 
  protected:
-
   using Base::key;
 
   void setupKeyNames() override {
     Base::setupKeyNames();
-//    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
-//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-//    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
-//    key(SrIndexKey::MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
-//    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
-//    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_IDX;
+    //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
+    //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+    //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    //    key(SrIndexKey::MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+    //    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+    //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_IDX;
     key(ItemKey::VALID_MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
   }
 
   using typename Base::TSource;
 
-  void loadAllItems(TSource &t_source) override {
+  void loadAllItems(TSource& t_source) override {
     Base::loadAllItems(t_source);
 
     this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
   }
 
-  void constructIndex(TSource &t_source) override {
-    Base::constructIndex(t_source,
-                         [this](auto &t_source) {
-                           auto phi = this->constructPhi(t_source, constructGetMarkToSampleIdx(t_source));
-                           return constructPhiForRange(t_source, phi);
-                         });
+  void constructIndex(TSource& t_source) override {
+    Base::constructIndex(t_source, [this](auto& t_source) {
+      auto phi = this->constructPhi(t_source, constructGetMarkToSampleIdx(t_source));
+      return constructPhiForRange(t_source, phi);
+    });
   }
 
   using Base::constructIndex;
 
-  auto constructGetMarkToSampleIdx(TSource &t_source) {
+  auto constructGetMarkToSampleIdx(TSource& t_source) {
     auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
     auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
     return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
@@ -321,21 +341,30 @@ class SrIndexValidMark : public SrIndex<
   using typename Base::Range;
   using typename Base::Run;
 
-  template<typename TPhi>
-  auto constructPhiForRange(TSource &t_source, const TPhi &t_phi) {
+  template <typename TPhi>
+  auto constructPhiForRange(TSource& t_source, const TPhi& t_phi) {
     auto get_sample = this->constructGetSample(t_source);
-    auto get_sample_run =
-        [get_sample](const Run &tt_run) { return tt_run.is_run_end ? get_sample(tt_run.rnk) : std::nullopt; };
+    auto get_sample_run = [get_sample](const Run& tt_run) {
+      return tt_run.is_run_end ? get_sample(tt_run.rnk) : std::nullopt;
+    };
     auto split = this->constructSplitInBWTRuns(t_source);
-    auto split_range = [split](const Range &tt_range) { return split(tt_range.start, tt_range.end); };
-    auto split_run = [split](const Run &tt_run) { return split(tt_run.start, tt_run.end); };
+    auto split_range = [split](const Range& tt_range) {
+      return split(tt_range.start, tt_range.end);
+    };
+    auto split_run = [split](const Run& tt_run) {
+      return split(tt_run.start, tt_run.end);
+    };
     auto lf = this->constructLFForPhi(t_source);
-    auto is_range_empty = [](const Range &tt_range) { return !(tt_range.start < tt_range.end); };
-    auto update_run = [](Run &tt_run) {
+    auto is_range_empty = [](const Range& tt_range) {
+      return !(tt_range.start < tt_range.end);
+    };
+    auto update_run = [](Run& tt_run) {
       --tt_run.end;
       tt_run.is_run_end = false;
     };
-    auto is_run_empty = [](const Run &tt_run) { return !(tt_run.start < tt_run.end); };
+    auto is_run_empty = [](const Run& tt_run) {
+      return !(tt_run.start < tt_run.end);
+    };
     return PhiBackwardForRangeWithValidity(t_phi,
                                            get_sample_run,
                                            split_range,
@@ -349,30 +378,37 @@ class SrIndexValidMark : public SrIndex<
   }
 };
 
-template<typename TStorage = GenericStorage,
-    typename TAlphabet = Alphabet<>,
-    typename TBwtRLE = RLEString<>,
-    typename TBvMark = sdsl::sd_vector<>,
-    typename TMarkToSampleIdx = sdsl::int_vector<>,
-    typename TSample = sdsl::int_vector<>,
-    typename TBvSampleIdx = sdsl::sd_vector<>,
-    typename TBvValidMark = sdsl::bit_vector,
-    typename TValidArea = sdsl::int_vector<>>
-class SrIndexValidArea : public SrIndexValidMark<
-    TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> {
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>,
+          typename TBvSampleIdx = sdsl::sd_vector<>,
+          typename TBvValidMark = sdsl::bit_vector,
+          typename TValidArea = sdsl::int_vector<>>
+class SrIndexValidArea : public SrIndexValidMark<TStorage,
+                                                 TAlphabet,
+                                                 TBwtRLE,
+                                                 TBvMark,
+                                                 TMarkToSampleIdx,
+                                                 TSample,
+                                                 TBvSampleIdx,
+                                                 TBvValidMark> {
  public:
-  using Base = SrIndexValidMark<
-      TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark>;
+  using Base =
+      SrIndexValidMark<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark>;
 
-  SrIndexValidArea(const TStorage &t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
+  SrIndexValidArea(const TStorage& t_storage, std::size_t t_sr) : Base(t_storage, t_sr) {}
 
   explicit SrIndexValidArea(std::size_t t_sr) : Base(t_sr) {}
 
   SrIndexValidArea() = default;
 
-  using typename Base::size_type;
   using typename Base::ItemKey;
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
 
     size_type written_bytes = Base::serialize(out, v, name);
@@ -386,23 +422,23 @@ class SrIndexValidArea : public SrIndexValidMark<
   }
 
  protected:
-
   using Base::key;
+
   void setupKeyNames() override {
     Base::setupKeyNames();
-//    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
-//    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
-//    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
-//    key(SrIndexKey::MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
-//    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
-//    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_IDX;
-//    key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
+    //    key(SrIndexKey::ALPHABET) = conf::KEY_ALPHABET;
+    //    key(SrIndexKey::NAVIGATE) = sdsl::conf::KEY_PSI;
+    //    key(SrIndexKey::SAMPLES) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    //    key(SrIndexKey::MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_BY_FIRST;
+    //    key(SrIndexKey::MARK_TO_SAMPLE) = this->key_prefix_ + conf::KEY_BWT_RUN_LAST_TEXT_POS_SORTED_TO_FIRST_IDX;
+    //    key(SrIndexKey::SAMPLES_IDX) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_IDX;
+    //    key(SrIndexKey::VALID_MARKS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_MARK;
     key(ItemKey::VALID_AREAS) = this->key_prefix_ + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA;
   }
 
   using typename Base::TSource;
 
-  void loadAllItems(TSource &t_source) override {
+  void loadAllItems(TSource& t_source) override {
     Base::loadAllItems(t_source);
 
     this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
@@ -410,23 +446,20 @@ class SrIndexValidArea : public SrIndexValidMark<
     this->template loadItem<TValidArea>(key(ItemKey::VALID_AREAS), t_source);
   }
 
-  void constructIndex(TSource &t_source) override {
-    Base::constructIndex(t_source,
-                         [this](auto &t_source) {
-                           auto phi = this->constructPhi(t_source,
-                                                         constructGetMarkToSampleIdx(t_source),
-                                                         constructValidateSample(t_source));
-                           return this->constructPhiForRange(t_source, phi);
-                         });
+  void constructIndex(TSource& t_source) override {
+    Base::constructIndex(t_source, [this](auto& t_source) {
+      auto phi = this->constructPhi(t_source, constructGetMarkToSampleIdx(t_source), constructValidateSample(t_source));
+      return this->constructPhiForRange(t_source, phi);
+    });
   }
 
-  auto constructGetMarkToSampleIdx(TSource &t_source) {
+  auto constructGetMarkToSampleIdx(TSource& t_source) {
     auto cref_mark_to_sample_idx = this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
     auto cref_bv_valid_mark = this->template loadItem<TBvValidMark>(key(ItemKey::VALID_MARKS), t_source, true);
     return RandomAccessForTwoContainers(cref_mark_to_sample_idx, cref_bv_valid_mark);
   }
 
-  auto constructValidateSample(TSource &t_source) {
+  auto constructValidateSample(TSource& t_source) {
     auto bv_valid_mark_rank = this->template loadBVRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
         key(ItemKey::VALID_MARKS), t_source, true);
     auto cref_valid_area = this->template loadItem<TValidArea>(key(ItemKey::VALID_AREAS), t_source);
@@ -436,33 +469,63 @@ class SrIndexValidArea : public SrIndexValidMark<
   }
 };
 
-template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
-void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config);
+template <uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
+void constructSRI(const std::string& t_data_path, std::size_t t_subsample_rate, sri::Config& t_config);
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx>
-void construct(SrIndex<
-    TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx> &t_index,
-               const std::string &t_data_path,
-               sri::Config &t_config) {
+template <typename TStorage,
+          template <uint8_t> typename TAlphabet,
+          uint8_t t_width,
+          typename TBwtRLE,
+          typename TBvMark,
+          typename TMarkToSampleIdx,
+          typename TSample,
+          typename TBvSampleIdx>
+void construct(
+    SrIndex<TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx>& t_index,
+    const std::string& t_data_path,
+    sri::Config& t_config) {
   constructSRI<t_width, TBvMark, TBvSampleIdx>(t_data_path, t_index.SubsampleRate(), t_config);
 
   t_index.load(t_config);
 }
 
-template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
-void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config);
+template <uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
+void constructSRIValidMark(const std::string& t_data_path, std::size_t t_subsample_rate, sri::Config& t_config);
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx, typename TBvValidMark>
-void construct(SrIndexValidMark<
-    TStorage, TAlphabet<t_width>, TBwtRLE, TBvMark, TMarkToSampleIdx, TSample, TBvSampleIdx, TBvValidMark> &t_index,
-               const std::string &t_data_path,
-               sri::Config &t_config) {
+template <typename TStorage,
+          template <uint8_t> typename TAlphabet,
+          uint8_t t_width,
+          typename TBwtRLE,
+          typename TBvMark,
+          typename TMarkToSampleIdx,
+          typename TSample,
+          typename TBvSampleIdx,
+          typename TBvValidMark>
+void construct(SrIndexValidMark<TStorage,
+                                TAlphabet<t_width>,
+                                TBwtRLE,
+                                TBvMark,
+                                TMarkToSampleIdx,
+                                TSample,
+                                TBvSampleIdx,
+                                TBvValidMark>& t_index,
+               const std::string& t_data_path,
+               sri::Config& t_config) {
   constructSRIValidMark<t_width, TBvMark, TBvSampleIdx, TBvValidMark>(t_data_path, t_index.SubsampleRate(), t_config);
 
   t_index.load(t_config);
 }
 
-template<typename TStorage, template<uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE, typename TBvMark, typename TMarkToSampleIdx, typename TSample, typename TBvSampleIdx, typename TBvValidMark, typename TValidArea>
+template <typename TStorage,
+          template <uint8_t> typename TAlphabet,
+          uint8_t t_width,
+          typename TBwtRLE,
+          typename TBvMark,
+          typename TMarkToSampleIdx,
+          typename TSample,
+          typename TBvSampleIdx,
+          typename TBvValidMark,
+          typename TValidArea>
 void construct(SrIndexValidArea<TStorage,
                                 TAlphabet<t_width>,
                                 TBwtRLE,
@@ -471,20 +534,20 @@ void construct(SrIndexValidArea<TStorage,
                                 TSample,
                                 TBvSampleIdx,
                                 TBvValidMark,
-                                TValidArea> &t_index,
-               const std::string &t_data_path,
-               sri::Config &t_config) {
+                                TValidArea>& t_index,
+               const std::string& t_data_path,
+               sri::Config& t_config) {
   constructSRIValidMark<t_width, TBvMark, TBvSampleIdx, TBvValidMark>(t_data_path, t_index.SubsampleRate(), t_config);
 
   t_index.load(t_config);
 }
 
-void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
 
-void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
 
-template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
-void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config) {
+template <uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
+void constructSRI(const std::string& t_data_path, std::size_t t_subsample_rate, sri::Config& t_config) {
   constructRIndex<t_width, TBvMark>(t_data_path, t_config);
 
   auto prefix = std::to_string(t_subsample_rate) + "_";
@@ -538,13 +601,12 @@ void constructSRI(const std::string &t_data_path, std::size_t t_subsample_rate, 
       constructBitVectorFromIntVector<TBvMark>(key, t_config, n, false);
     }
   }
-
 }
 
-void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config);
+void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
 
-template<uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
-void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsample_rate, sri::Config &t_config) {
+template <uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
+void constructSRIValidMark(const std::string& t_data_path, std::size_t t_subsample_rate, sri::Config& t_config) {
   constructSRI<t_width, TBvMark, TBvSampleIdx>(t_data_path, t_subsample_rate, t_config);
 
   auto prefix_key = std::to_string(t_subsample_rate) + "_";
@@ -570,11 +632,11 @@ void constructSRIValidMark(const std::string &t_data_path, std::size_t t_subsamp
   }
 }
 
-void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Samples
-  sdsl::int_vector<> samples; // BWT-run end positions in text
+  sdsl::int_vector<> samples;  // BWT-run end positions in text
   sdsl::load_from_cache(samples, conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
   auto r = samples.size();
   auto log_r = sdsl::bits::hi(r) + 1;
@@ -594,11 +656,8 @@ void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_ra
   // Compute sub-sampled indices for sampled values
   sdsl::int_vector<> subsamples_idx;
   {
-    auto subsamples_idx_vec = computeSampling(t_subsample_rate,
-                                              sorted_samples_idx.begin(),
-                                              sorted_samples_idx.end(),
-                                              samples,
-                                              req_samples_idx);
+    auto subsamples_idx_vec = computeSampling(
+        t_subsample_rate, sorted_samples_idx.begin(), sorted_samples_idx.end(), samples, req_samples_idx);
 
     std::sort(subsamples_idx_vec.begin(), subsamples_idx_vec.end());
 
@@ -612,14 +671,15 @@ void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_ra
   {
     // Compute sub-samples
     sdsl::int_vector<> subsamples(subsamples_idx.size(), 0, samples.width());
-    std::transform(subsamples_idx.begin(), subsamples_idx.end(), subsamples.begin(),
-                   [&samples](auto tt_i) { return samples[tt_i]; });
+    std::transform(subsamples_idx.begin(), subsamples_idx.end(), subsamples.begin(), [&samples](auto tt_i) {
+      return samples[tt_i];
+    });
 
     sdsl::store_to_cache(subsamples, prefix + conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config);
   }
 }
 
-auto computeSampleToMarkLinksForPhiBackward(const std::string &t_prefix, sdsl::cache_config &t_config) {
+auto computeSampleToMarkLinksForPhiBackward(const std::string& t_prefix, sdsl::cache_config& t_config) {
   // Sub-sampled indices of samples
   sdsl::int_vector<> subsamples_idx;
   sdsl::load_from_cache(subsamples_idx, t_prefix + conf::KEY_BWT_RUN_LAST_IDX, t_config);
@@ -640,7 +700,7 @@ auto computeSampleToMarkLinksForPhiBackward(const std::string &t_prefix, sdsl::c
   return subsample_to_mark_links;
 }
 
-void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks
@@ -661,7 +721,9 @@ void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate
     std::transform(subsample_to_mark_links.begin(),
                    subsample_to_mark_links.end(),
                    subsampled_mark_text_pos.begin(),
-                   [&marks](auto tt_i) { return marks[tt_i]; });
+                   [&marks](auto tt_i) {
+                     return marks[tt_i];
+                   });
   }
 
   auto log_r_prime = sdsl::bits::hi(r_prime) + 1;
@@ -673,18 +735,17 @@ void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate
   // Sort indexes by text positions of its marks, becoming in the links from the sub-sampled marks to sub-sampled samples.
   std::sort(subsampled_mark_to_subsample_links.begin(),
             subsampled_mark_to_subsample_links.end(),
-            [&subsampled_mark_text_pos](const auto &tt_a, const auto &tt_b) {
+            [&subsampled_mark_text_pos](const auto& tt_a, const auto& tt_b) {
               return subsampled_mark_text_pos[tt_a] < subsampled_mark_text_pos[tt_b];
             });
 
   sdsl::store_to_cache(subsampled_mark_text_pos, prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST, t_config);
 
-  sdsl::store_to_cache(subsampled_mark_to_subsample_links,
-                       prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX,
-                       t_config);
+  sdsl::store_to_cache(
+      subsampled_mark_to_subsample_links, prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config);
 }
 
-void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config &t_config) {
+void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   sdsl::int_vector<> marks;
@@ -692,13 +753,17 @@ void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl
   sdsl::int_vector<> sorted_marks_idx;
   sdsl::load_from_cache(sorted_marks_idx, conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_IDX, t_config);
   auto it_marks_idx = sorted_marks_idx.begin();
-  auto get_next_mark = [&marks, &it_marks_idx]() { return marks[*(it_marks_idx++)]; };
+  auto get_next_mark = [&marks, &it_marks_idx]() {
+    return marks[*(it_marks_idx++)];
+  };
 
   sdsl::int_vector<> submarks;
   sdsl::load_from_cache(submarks, prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_BY_LAST, t_config);
   std::sort(submarks.begin(), submarks.end());
   auto it_submarks = submarks.begin();
-  auto get_next_submark = [&it_submarks]() { return *(it_submarks++); };
+  auto get_next_submark = [&it_submarks]() {
+    return *(it_submarks++);
+  };
 
   auto r_prime = submarks.size();
   std::vector<std::pair<std::size_t, std::size_t>> validity;
@@ -708,7 +773,8 @@ void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl
     auto valid_area = tt_next_mark - tt_submark;
     validity.emplace_back(tt_i, valid_area);
 
-    if (max_valid_area < valid_area) max_valid_area = valid_area;
+    if (max_valid_area < valid_area)
+      max_valid_area = valid_area;
   };
 
   computeSubmarksValidity(r_prime, get_next_mark, get_next_submark, report);
@@ -738,6 +804,6 @@ void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl
   sdsl::register_cache_file(prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_VALID_AREA, t_config);
 }
 
-}
+}  // namespace sri
 
-#endif //SRI_SR_INDEX_H_
+#endif  // SRI_SR_INDEX_H_

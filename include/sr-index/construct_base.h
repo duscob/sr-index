@@ -81,7 +81,7 @@ void constructBWTRLE(sdsl::cache_config &t_config) {
 
     auto bwt_s = sdsl::random_access_container(get_symbol, bwt_buf.size());
 
-    RLEString<> bwt_rle(bwt_s.begin(), bwt_s.end());
+    RLEStringS<t_width> bwt_rle(bwt_s.begin(), bwt_s.end());
 
     sdsl::store_to_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
   }

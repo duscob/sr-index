@@ -12,11 +12,14 @@
 
 #include "../bm_locate.h"
 #include "../bm_locate_set.h"
+
 #include "factory.h"
+
 
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+DEFINE_int32(data_width, 8, "Data width: 0 or 8");
 
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");
@@ -40,22 +43,22 @@ int main(int argc, char* argv[]) {
   auto patterns = ReadPatterns(FLAGS_patterns);
 
   // Indexes
-  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
-  auto factory = std::make_shared<Factory<>>(config);
+  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true, FLAGS_data_width);
+  auto factory = std::make_shared<Factory>(config);
 
-  std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
-    //      {"CSA_RAW", Factory<>::Config{Factory<>::IndexEnum::CSA_RAW}, false},
-    {"R-CSA-BWT-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA}, false},
-    {"R-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::R_CSA_PSI_RUNS}, false},
-    {"SR-CSA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA}, true},
-    {"SR-CSA-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VM}, true},
-    {"SR-CSA-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_VA}, true},
-    {"SR-CSA-Slim", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM}, true},
-    {"SR-CSA-Slim-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VM}, true},
-    {"SR-CSA-Slim-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_SLIM_VA}, true},
-    {"SR-CSA-PSI-RUNS", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_PSI_RUNS}, true},
-    {"SR-CSA-PSI-RUNS-VM", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_PSI_RUNS_VM}, true},
-    {"SR-CSA-PSI-RUNS-VA", Factory<>::Config{Factory<>::IndexEnum::SR_CSA_PSI_RUNS_VA}, true},
+  std::vector<IndexConfig<Factory::Config>> idx_configs = {
+      //      {"CSA_RAW", Factory::Config{Factory::IndexEnum::CSA_RAW}, false},
+      {"R-CSA", Factory::Config{Factory::IndexEnum::R_CSA}, false},
+      {"SR-CSA", Factory::Config{Factory::IndexEnum::SR_CSA}, true},
+      {"SR-CSA-VM", Factory::Config{Factory::IndexEnum::SR_CSA_VM}, true},
+      {"SR-CSA-VA", Factory::Config{Factory::IndexEnum::SR_CSA_VA}, true},
+      {"R-CSA-BWT-RUNS", Factory::Config{Factory::IndexEnum::R_CSA_BWT}, false},
+      {"SR-CSA-BWT", Factory::Config{Factory::IndexEnum::SR_CSA_BWT}, true},
+      {"SR-CSA-BWT-VM", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_VM}, true},
+      {"SR-CSA-BWT-VA", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_VA}, true},
+      {"SR-CSA-BWT-Slim", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_SLIM}, true},
+      {"SR-CSA-BWT-VM-Slim", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_VM_SLIM}, true},
+      {"SR-CSA-BWT-VA-Slim", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_VA_SLIM}, true},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};

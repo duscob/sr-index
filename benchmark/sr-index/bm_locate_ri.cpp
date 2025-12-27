@@ -17,6 +17,7 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
+DEFINE_int32(data_width, 8, "Data width: 0 or 8");
 
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");
@@ -40,14 +41,14 @@ int main(int argc, char* argv[]) {
   auto patterns = ReadPatterns(FLAGS_patterns);
 
   // Indexes
-  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true);
-  auto factory = std::make_shared<Factory<>>(config);
+  sri::Config config(FLAGS_data_name, FLAGS_data_dir, sri::SDSL_LIBDIVSUFSORT, true, FLAGS_data_width);
+  auto factory = std::make_shared<Factory>(config);
 
-  std::vector<IndexConfig<Factory<>::Config>> idx_configs = {
-    {"R-Index", Factory<>::Config{Factory<>::IndexEnum::R_INDEX}, false},
-    {"SR-Index", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX}, true},
-    {"SR-Index-VM", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VM}, true},
-    {"SR-Index-VA", Factory<>::Config{Factory<>::IndexEnum::SR_INDEX_VA}, true},
+  std::vector<IndexConfig<Factory::Config>> idx_configs = {
+      {"R-Index", Factory::Config{Factory::IndexEnum::R_INDEX}, false},
+      {"SR-Index", Factory::Config{Factory::IndexEnum::SR_INDEX}, true},
+      {"SR-Index-VM", Factory::Config{Factory::IndexEnum::SR_INDEX_VM}, true},
+      {"SR-Index-VA", Factory::Config{Factory::IndexEnum::SR_INDEX_VA}, true},
   };
 
   LocateBenchmarkConfig locate_bm_config{FLAGS_report_stats, FLAGS_reps, FLAGS_min_time, FLAGS_print_result};

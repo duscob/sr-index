@@ -3,7 +3,7 @@ $sr$-index and $sr$-csa: Fast and Small Indexes for Repetitive Texts
 
 
 > Dustin Cobas, Travis Gagie, and Gonzalo Navarro. Fast and Small Subsampled R-indexes. ACM Transactions on Algorithms,
-> Volume 22, Issue 1, Article 7 (October 2026), Pages 1–39.
+> Volume 22, Issue 1, Article 7 (October 2025), Pages 1–39.
 
 Overview
 -----
@@ -23,16 +23,38 @@ Our experiments demonstrate that the theoretical analysis falls short in describ
 1.5–4.0 times less space, sharply outperforming virtually every other compressed index on repetitive texts in both time
 and space.
 
+***
 
-Stack and Build System
+
+Implemented Indexes
 -----
 
-- Language: C++17 (enforced via CMake)
-- Build system: CMake (minimum 3.10)
-- Dependency management: CMake FetchContent/ExternalProject
-- Testing: Google Test/Mock (via CTest)
-- Benchmarks: Google Benchmark
-- CLI flags: GFlags
+This repository provides implementations of the following indexes:
+
+- **$r$-index** (`RIndex`): Base $r$-index for repetitive texts, using the BWT runs structure and $\phi$ function.
+- **$sr$-index** (`SrIndex`): Subsampled version of the $r$-index with reduced space usage.
+- **$sr$-index with valid marks** (`SrIndexValidMark`): Enhanced $sr$-index that marks valid remaining samplings
+  for $\phi$ function.
+- **$sr$-index with valid areas** (`SrIndexValidArea`): Enhanced $sr$-index that tracks valid text areas of remaing
+  samplings for $\phi$ function.
+- **$r$-csa** (`RCSA`): Compressed Suffix Array adapted for repetitive texts, analogous to the $r$-index (but
+  using $\psi$ array instead of BWT, and $\phi^{-1}$ function)
+- **$sr$-csa** (`SrCSA`): Subsampled version of the $r$-csa with reduced space usage
+- **$sr$-csa with valid marks** (`SrCSAValidMark`): Enhanced $sr$-csa that marks valid remaining samplings
+  for $\phi^{-1}$ function.
+- **$sr$-csa with valid areas** (`SrCSAValidArea`): Enhanced $sr$-csa that tracks valid text areas of remaing samplings
+  for $\phi^{-1}$ function.
+
+All indexes support:
+
+- **Count**: Count the number of occurrences of a pattern.
+- **Locate**: Find all occurrences of a pattern in the indexed text.
+
+The indexes work with both byte alphabets (text files) and integer alphabets (binary files) through generic template
+parameters.
+
+***
+
 
 Requirements
 -----
@@ -40,12 +62,11 @@ Requirements
 - C++17-capable compiler
     - GCC 8+ (note: special linking for std::filesystem on GCC < 9 is handled in CMake)
     - Clang 7+ (or compatible)
-- CMake 3.10+
+- CMake 3.10+ (Build system and dependency management)
 - Git and internet access during the first configure to fetch dependencies
 - POSIX-like environment recommended; Windows may work but is not a primary target
 
-Third‑party Dependencies
------
+### Third‑party Dependencies
 
 All core dependencies are fetched and built automatically by CMake:
 
@@ -53,14 +74,18 @@ All core dependencies are fetched and built automatically by CMake:
   #fork [duscob](https://github.com/duscob)
 - [nlohmann/json](https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz) #v3.12.0 (tarball)
 - [Big-BWT](https://github.com/duscob/Big-BWT.git) #fork [duscob](https://github.com/duscob): Optional
-- [gflags](https://github.com/gflags/gflags.git) #master
+- [gflags](https://github.com/gflags/gflags.git) #v2.3.0: Optional (CLI flags for tools and benchmarks)
 - [Google Test](https://github.com/google/googletest.git) #release-1.11.0: Optional (for tests)
 - [Google Benchmark](https://github.com/google/benchmark.git) #v1.9.4: Optional (for benchmarks)
 
-Library consumption: Adding **$sr$-indexes** into an Existing CMake Project
+***
+
+
+Library Consumption: Adding **$sr$-indexes** into an Existing CMake Project
 -----
 
 This repository provides a header-only C++ library that implements **$sr$-index** and **$sr$-csa**.
+
 
 #### Fetching and Adding **$sr$-indexes**
 
@@ -87,9 +112,12 @@ FetchContent_GetProperties(${ExternalProjectName})
 include_directories(${${ExternalProjectName}_SOURCE_DIR}/include)
 ```
 
+### Byte Alphabet (Text File)
+
 #### Constructing and Storing **$sr$-index**
 
-The following snippet constructs a $sr$-index for a given text file and stores it in a given directory.
+The following snippet constructs a $sr$-index (with valid areas) for a given text file and stores it in a given
+directory.
 
 ```c++
 #include <sr-index/sr_index.h>
@@ -119,7 +147,8 @@ int main(int argc, char *argv[]) {
 
 #### Loading and Using **$sr$-index**
 
-The following snippet loads a $sr$-index from a single file and uses it to locate occurrences of a given pattern.
+The following snippet loads a $sr$-index (with valid areas) from a single file and uses it to locate occurrences of a
+given pattern.
 
 ```c++
 #include <sr-index/sr_index.h>
@@ -132,6 +161,14 @@ int main(int argc, char *argv[]) {
   // Loading the full index from a single file.
   std::string index_file = "/path/to/index/file";
   sdsl::load_from_file(index, index_file);
+    
+  // Loading the full index from individual component files
+  // If you did not store the full index in a single file,
+  // you can use the separated components stores in different files uncommenting the following lines.
+  // std::string data_path = "/path/to/data/file";  // only the data filename is required
+  // auto output_path = std::filesystem::current_path();
+  // sri::Config config(data_path, output_path, sri::SAAlgo::SDSL_SE_SAIS);
+  // index.load(config);
 
   // Locating occurrences of the given pattern
   std::vector<std::size_t> result = index.Locate("pattern");
@@ -143,6 +180,79 @@ int main(int argc, char *argv[]) {
 }
 
 ```
+
+### Int Alphabet (Binary File)
+
+#### Constructing and Storing **$sr$-csa**
+
+The following snippet constructs a $sr$-csa (with valid areas) for a given binary file of 16-bit ints and stores it in a
+given directory.
+
+```c++
+#include <sr-index/sr_csa.h>
+
+int main(int argc, char* argv[]) {
+  std::string data_path = "/path/to/data/file";
+  auto output_path = std::filesystem::current_path();
+  uint8_t alphabet_size = 16;  // Input file stores a sequence of 16-bits ints
+  sri::Config config(
+      data_path, output_path, sri::SAAlgo::SDSL_SE_SAIS, false, alphabet_size, sri::createDefaultKeys<0>());
+
+  std::size_t subsampling_rate = 16;
+  sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<0>>> index(subsampling_rate);
+
+  // Constructing required components and serializing them in separated files.
+  // After construction, the full index is loaded in the `index` variable
+  // and is ready to be used with locate and count operations.
+  sri::construct(index, data_path, config);
+
+  // Serializing the full index in a single file.
+  // This is not required if you keep all the files created in the output_path.
+  std::string index_file = "/path/to/index/file";
+  sdsl::store_to_file(index, index_file);
+
+  return 0;
+}
+```
+
+#### Loading and Using **$sr$-csa**
+
+The following snippet loads a $sr$-csa (with valid areas) from a single file and uses it to locate occurrences of a
+given pattern.
+
+```c++
+#include <sr-index/sr_csa.h>
+
+int main(int argc, char* argv[]) {
+  std::size_t subsampling_rate = 16;
+  sri::SrCSAValidArea<sri::SrCSA<sri::GenericStorage, sri::Alphabet<0>>> index(subsampling_rate);
+
+  // Loading the full index from a single file.
+  std::string index_file = "/path/to/index/file";
+  sdsl::load_from_file(index, index_file);
+
+  // Loading the full index from individual component files
+  // If you did not store the full index in a single file,
+  // you can use the separated components stored in different files uncommenting the following lines.
+  // std::string data_path = "/path/to/data/file";  // only the data filename is required
+  // auto output_path = std::filesystem::current_path();
+  // uint8_t alphabet_size = 16;  // Input file stores a sequence of 16-bits ints
+  // sri::Config config(
+  //     data_path, output_path, sri::SAAlgo::SDSL_SE_SAIS, false, alphabet_size, sri::createDefaultKeys<0>());
+
+  // Locating occurrences of the given pattern
+  std::vector<uint64_t> pattern = {112, 97, 116, 116, 101, 114, 110};
+  std::vector<std::size_t> result = index.Locate(pattern);
+
+  // Processing the result
+  // ...
+
+  return 0;
+}
+```
+
+***
+
 
 Standalone Build and Use
 -----
@@ -198,8 +308,7 @@ These are Google Benchmark executables; some may also accept gflags. Usage varie
 TODO: Document specific CLI flags and input formats for each benchmark once stabilized.
 
 
-Running tests
------
+### Running tests
 
 Build with tests enabled, then use CTest:
 
@@ -219,6 +328,9 @@ Environment variables and external tools
 
 If you need to use a system-provided Big-BWT instead of the fetched one, you may adjust CMake to point `BIGBWT_EXE`
 accordingly. TODO: Provide an option to override `BIGBWT_EXE` via CMake.
+
+***
+
 
 Project structure
 -----
@@ -243,16 +355,20 @@ Key headers (non-exhaustive): `r_index.h`, `sr_index.h`, `r_csa.h`, `sr_csa.h`, 
 `toehold.h`, `sampling.h`, `rle_string.hpp`, `sparse_sd_vector.hpp`, `sparse_hyb_vector.hpp`, `huff_string.hpp`,
 `construct*.h(pp)`.
 
-Development notes
------
+### Development notes
 
 - Compiler flags are configured for Debug/Release/RelWithDebInfo in `CMakeLists.txt`.
 - On GCC 8, `-lstdc++fs` is linked automatically for std::filesystem support.
+
+***
+
 
 License
 -----
 
 TODO: Add license file and specify the licensing terms for this repository.
+
+***
 
 
 Citation

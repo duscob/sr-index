@@ -4,8 +4,8 @@ include(FetchContent)
 FetchContent_Declare(
         ${ExternalProjectName}
         GIT_REPOSITORY https://github.com/gflags/gflags.git
-        #        GIT_TAG v2.2.2
-        GIT_TAG master
+        GIT_TAG v2.3.0
+        #        GIT_TAG main
         FIND_PACKAGE_ARGS
 )
 

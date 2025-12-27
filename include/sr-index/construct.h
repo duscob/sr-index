@@ -76,7 +76,7 @@ void constructPsi(sdsl::cache_config &t_config) {
 
   sdsl::int_vector<> psi;
   {
-    RLEString<> bwt_rle;
+    RLEStringS<t_width> bwt_rle;
     sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
     auto get_bwt_symbol = [&bwt_rle](size_t tt_i) { return bwt_rle[tt_i]; };
 
@@ -101,7 +101,7 @@ void constructPsiRuns(Config &t_config) {
   typename alphabet_trait<t_width>::type alphabet;
   sdsl::load_from_cache(alphabet, conf::KEY_ALPHABET, t_config);
 
-  RLEString<> bwt_rle;
+  RLEStringS<t_width> bwt_rle;
   sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
 
   for (const auto &part : {conf::kHead, conf::kTail}) {
@@ -133,7 +133,7 @@ void constructPsiRuns(Config &t_config) {
     }
 
     psi_run_text_pos.close();
-    sdsl::register_cache_file(key_psi_run_text_pos, t_config);
+    register_cache_file<sdsl::int_vector<>>(key_psi_run_text_pos, t_config);
   }
 }
 
@@ -180,7 +180,7 @@ void constructMarkToSampleLinksForPhiForwardWithBWTRuns(sdsl::cache_config &t_co
   sdsl::load_from_cache(bwt_run_last, conf::KEY_BWT_RUN_LAST, t_config);
 
   // LF
-  RLEString<> bwt_rle;
+  RLEStringS<t_width> bwt_rle;
   sdsl::load_from_cache(bwt_rle, conf::KEY_BWT_RLE, t_config);
   auto get_char = sri::buildRandomAccessForContainer(std::cref(bwt_rle));
   auto get_rank_of_char = sri::buildRankOfChar(std::cref(bwt_rle));

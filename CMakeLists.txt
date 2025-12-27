@@ -72,14 +72,22 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/index_base.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_index.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_index.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa_bwt.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa_bwt.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/r_csa.h
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa.h
-        ${PROJECT_SOURCE_DIR}/include/sr-index/sr_csa_psi.h
+        ${PROJECT_SOURCE_DIR}/include/sr-index/sr_idx_generic.h
 )
+
+if (NOT SRI_DEFAULT_ALPHABET_WIDTH)
+    set(SRI_DEFAULT_ALPHABET_WIDTH 8)
+endif ()
 
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
+
+add_compile_definitions(SRI_DEFAULT_ALPHABET_WIDTH=${SRI_DEFAULT_ALPHABET_WIDTH})
 add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 target_link_libraries(sr-index INTERFACE nlohmann_json::nlohmann_json)
 
@@ -114,8 +122,10 @@ if (SR-INDEX_ENABLE_TOOLS)
     list(APPEND tool_LIBS ${CMAKE_THREAD_LIBS_INIT})
 
     cxx_executable_with_flags(int_vector_to_vector "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/int_vector_to_vector.cpp)
-    cxx_executable_with_flags(construct "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct.cpp)
-    cxx_executable_with_flags(load "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load.cpp)
+    cxx_executable_with_flags(construct "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct_bytes.cpp)
+    cxx_executable_with_flags(load "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load_bytes.cpp)
+    cxx_executable_with_flags(construct_ints "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct_ints.cpp)
+    cxx_executable_with_flags(load_ints "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load_ints.cpp)
 endif ()
 
 
