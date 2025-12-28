@@ -18,7 +18,9 @@ namespace sri {
 enum SAAlgo {
   SDSL_LIBDIVSUFSORT,
   SDSL_SE_SAIS,
+#ifdef SRI_USE_BIG_BWT
   BIG_BWT,
+#endif
 };
 
 using JSON = nlohmann::json;
@@ -139,7 +141,9 @@ inline SAAlgo toSAAlgo(const std::string& t_str) {
   static const std::map<std::string, SAAlgo> name_to_enum = {
       {"SDSL_LIBDIVSUFSORT", SDSL_LIBDIVSUFSORT},
       {"SDSL_SE_SAIS", SDSL_SE_SAIS},
+#ifdef SRI_USE_BIG_BWT
       {"BIG_BWT", BIG_BWT},
+#endif
   };
 
   return name_to_enum.at(t_str);

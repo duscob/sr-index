@@ -93,6 +93,13 @@ TEST_P(LocateBytesTests, Locate) {
   }
 }
 
+auto SAAlgoValues = testing::Values(sri::SDSL_LIBDIVSUFSORT
+#ifdef SRI_USE_BIG_BWT
+                                    ,
+                                    sri::BIG_BWT
+#endif
+);
+
 INSTANTIATE_TEST_SUITE_P(
     LocateIndex,
     LocateBytesTests,
@@ -125,9 +132,7 @@ INSTANTIATE_TEST_SUITE_P(
                                             std::make_tuple(DataBytes{"aba"}, Values{6}),
                                             std::make_tuple(DataBytes{"bc"}, Values{9, 4, 1}),
                                         })),
-        testing::Values(sri::SDSL_LIBDIVSUFSORT,
-                        sri::BIG_BWT  // Fails in Debug Mode
-                        )));
+        SAAlgoValues));
 
 //~~~~~~~
 

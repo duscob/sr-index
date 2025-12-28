@@ -6,6 +6,7 @@ project(sr-index LANGUAGES CXX)
 option(SR-INDEX_ENABLE_TESTS "Enable tests of the ${PROJECT_NAME} project." ON)
 option(SR-INDEX_ENABLE_TOOLS "Enable tools of the ${PROJECT_NAME} project." ON)
 option(SR-INDEX_ENABLE_BENCHMARKS "Enable benchmarks of the ${PROJECT_NAME} project." ON)
+option(SR-INDEX_ENABLE_BIG_BWT "Enable Big-BWT for the ${PROJECT_NAME} project." OFF)
 
 
 # Location of internal cmake modules
@@ -33,10 +34,11 @@ add_link_options(LINKER:--as-needed)
 
 # Setup dependencies
 include(ConfigSDSL)
-include(ConfigBigBWT)
 include(ConfigJSON)
-include(ConfigGFlags)
-set(GFLAGS_LIB gflags::gflags)
+
+if (SR-INDEX_ENABLE_BIG_BWT)
+    include(ConfigBigBWT)
+endif ()
 
 # Set common include folder for module
 set(COMMON_INCLUDES
@@ -88,11 +90,17 @@ target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 
 add_compile_definitions(SRI_DEFAULT_ALPHABET_WIDTH=${SRI_DEFAULT_ALPHABET_WIDTH})
-add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
 target_link_libraries(sr-index INTERFACE nlohmann_json::nlohmann_json)
+if (SR-INDEX_ENABLE_BIG_BWT)
+    add_compile_definitions(SRI_USE_BIG_BWT=1)
+    add_definitions(-DBIGBWT_EXE=\"${BigBWT_BINARY_DIR}/bigbwt\")
+endif ()
 
 
 include(internal_utils)
+
+include(ConfigGFlags)
+set(GFLAGS_LIB gflags::gflags)
 
 if (SR-INDEX_ENABLE_TESTS)
     enable_testing()
