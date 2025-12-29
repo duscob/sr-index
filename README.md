@@ -274,6 +274,7 @@ Configuration options:
 - `SR-INDEX_ENABLE_TESTS` (ON/OFF, default ON): build unit tests
 - `SR-INDEX_ENABLE_TOOLS` (ON/OFF, default ON): build auxiliary tools
 - `SR-INDEX_ENABLE_BENCHMARKS` (ON/OFF, default ON): build benchmarks
+- `SR-INDEX_ENABLE_BIG_BWT` (ON/OFF, default OFF): enable Big-BWT support and define `SRI_USE_BIG_BWT=1`
 
 This project builds an interface library target named `sr-index` and optional executables. There is no install step
 provided by default. If you need installation, consider adding `install()` rules or consuming the project via
@@ -322,9 +323,20 @@ ctest --output-on-failure
 Environment variables and external tools
 -----
 
-- Big-BWT: During construction, the code may invoke an external Big-BWT executable. The path is configured at build time
-  via `-DBIGBWT_EXE` definition set by CMake to the fetched Big-BWT binary directory. No runtime environment variables
-  are currently required.
+### Big-BWT
+
+Big-BWT is an optional dependency that can be enabled at build time using the `SR-INDEX_ENABLE_BIG_BWT` CMake option:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSR-INDEX_ENABLE_BIG_BWT=ON
+cmake --build build --parallel
+```
+
+When enabled:
+- The `SRI_USE_BIG_BWT=1` preprocessor definition is set, enabling Big-BWT code paths
+- During index construction, the code may invoke an external Big-BWT executable to compute the BWT
+- The Big-BWT executable path is configured at build time via the `-DBIGBWT_EXE` definition, which CMake sets to the fetched Big-BWT binary directory
+- No runtime environment variables are currently required
 
 If you need to use a system-provided Big-BWT instead of the fetched one, you may adjust CMake to point `BIGBWT_EXE`
 accordingly. TODO: Provide an option to override `BIGBWT_EXE` via CMake.

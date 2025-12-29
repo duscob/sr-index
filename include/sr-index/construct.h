@@ -14,7 +14,9 @@
 #include "config.h"
 #include "construct_base.h"
 #include "construct_sdsl.h"
+#ifdef SRI_USE_BIG_BWT
 #include "construct_big_bwt.h"
+#endif
 #include "alphabet.h"
 #include "psi.h"
 #include "tools.h"
@@ -48,9 +50,11 @@ void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_conf
       sdsl::construct_config().byte_algo_sa = sdsl::SE_SAIS;
       inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
       break;
+#ifdef SRI_USE_BIG_BWT
     case BIG_BWT:
       inner_big_bwt::constructIndexBaseItems<t_width>(t_data_path, t_config);
       break;
+#endif
   }
 }
 

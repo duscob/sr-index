@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
       {"SR-CSA", Factory::Config{Factory::IndexEnum::SR_CSA}, true},
       {"SR-CSA-VM", Factory::Config{Factory::IndexEnum::SR_CSA_VM}, true},
       {"SR-CSA-VA", Factory::Config{Factory::IndexEnum::SR_CSA_VA}, true},
-      {"R-CSA-BWT-RUNS", Factory::Config{Factory::IndexEnum::R_CSA_BWT}, false},
+      {"R-CSA-BWT", Factory::Config{Factory::IndexEnum::R_CSA_BWT}, false},
       {"SR-CSA-BWT", Factory::Config{Factory::IndexEnum::SR_CSA_BWT}, true},
       {"SR-CSA-BWT-VM", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_VM}, true},
       {"SR-CSA-BWT-VA", Factory::Config{Factory::IndexEnum::SR_CSA_BWT_VA}, true},
