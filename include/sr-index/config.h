@@ -12,8 +12,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include "alphabet.h"
-
 namespace sri {
 enum SAAlgo {
   SDSL_LIBDIVSUFSORT,
