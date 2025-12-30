@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+
+#include "config.h"
+
 namespace sri {
 
 template <typename TSrIdx, uint32_t TSubsampleRate>
