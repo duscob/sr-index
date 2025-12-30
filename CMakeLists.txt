@@ -8,6 +8,8 @@ option(SR-INDEX_ENABLE_TOOLS "Enable tools of the ${PROJECT_NAME} project." ON)
 option(SR-INDEX_ENABLE_BENCHMARKS "Enable benchmarks of the ${PROJECT_NAME} project." ON)
 option(SR-INDEX_ENABLE_BIG_BWT "Enable Big-BWT for the ${PROJECT_NAME} project." OFF)
 
+set(SR-INDEX_DEFAULT_ALPHABET_WIDTH 8 CACHE STRING "Default alphabet width for the ${PROJECT_NAME} project.")
+
 
 # Location of internal cmake modules
 set(CMAKE_MODULE_PATH
@@ -81,15 +83,11 @@ set(SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/include/sr-index/sr_idx_generic.h
 )
 
-if (NOT SRI_DEFAULT_ALPHABET_WIDTH)
-    set(SRI_DEFAULT_ALPHABET_WIDTH 8)
-endif ()
-
 add_library(sr-index INTERFACE)
 target_sources(sr-index INTERFACE ${SOURCE_FILES})
 target_include_directories(sr-index INTERFACE ${PROJECT_SOURCE_DIR}/include/sr-index)
 
-add_compile_definitions(SRI_DEFAULT_ALPHABET_WIDTH=${SRI_DEFAULT_ALPHABET_WIDTH})
+add_compile_definitions(SRI_DEFAULT_ALPHABET_WIDTH=${SR-INDEX_DEFAULT_ALPHABET_WIDTH})
 target_link_libraries(sr-index INTERFACE nlohmann_json::nlohmann_json)
 if (SR-INDEX_ENABLE_BIG_BWT)
     add_compile_definitions(SRI_USE_BIG_BWT=1)
