@@ -29,13 +29,13 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSA : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
+class RCSA : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type> {
  public:
   using Alphabet = TAlphabet;
   using Samples = TSample;
   using BvMarks = TBvMark;
   using MarksToSamples = TMarkToSampleIdx;
-  using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
+  using Base = LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>;
 
   explicit RCSA(const TStorage& t_storage) : Base(t_storage) {}
 

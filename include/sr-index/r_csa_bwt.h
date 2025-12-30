@@ -29,10 +29,10 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSABWTRun : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
+class RCSABWTRun : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type> {
  public:
   using Alphabet = TAlphabet;
-  using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
+  using Base = LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>;
 
   explicit RCSABWTRun(const TStorage& t_storage) : Base(t_storage) {}
 

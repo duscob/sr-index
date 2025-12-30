@@ -305,7 +305,7 @@ class IndexBaseWithExternalStorage {
 //~~~~~~~
 
 
-template <typename TSequence, typename TStorage = GenericStorage>
+template <typename TStorage = GenericStorage, typename TSequence = Alphabet<>::string_type>
 class LocateIndexExtStorage : public LocateIndex<TSequence>, public IndexBaseWithExternalStorage<TStorage> {
  public:
   explicit LocateIndexExtStorage(const TStorage& t_storage) : IndexBaseWithExternalStorage<TStorage>(t_storage) {}
@@ -350,10 +350,22 @@ auto buildSharedPtrRIndex(const TBackwardNav& t_lf,
     return tt_range.second < tt_range.first;
   };
 
-  return std::make_shared<RIndexBase<TSequence, TBackwardNav, TGetLastValue, TComputeAllValues, TGetFinalValue,
-                                     TGetSymbol, TFnCreateFullRange, TFnIsRangeEmpty>>(
-      TSequence{}, t_lf, t_get_last_value, t_compute_all_values, t_bwt_size, t_get_final_sa_value, t_get_symbol,
-      create_full_range, is_range_empty);
+  return std::make_shared<RIndexBase<TSequence,
+                                     TBackwardNav,
+                                     TGetLastValue,
+                                     TComputeAllValues,
+                                     TGetFinalValue,
+                                     TGetSymbol,
+                                     TFnCreateFullRange,
+                                     TFnIsRangeEmpty>>(TSequence{},
+                                                       t_lf,
+                                                       t_get_last_value,
+                                                       t_compute_all_values,
+                                                       t_bwt_size,
+                                                       t_get_final_sa_value,
+                                                       t_get_symbol,
+                                                       create_full_range,
+                                                       is_range_empty);
 }
 
 }  // namespace sri
