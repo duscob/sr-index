@@ -285,7 +285,7 @@ class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string
   auto constructGetSymbol(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](auto tt_c) {
+    auto get_symbol = [cref_alphabet](typename TAlphabet::char_type tt_c) {
       return cref_alphabet.get().char2comp[tt_c];
     };
     return get_symbol;
