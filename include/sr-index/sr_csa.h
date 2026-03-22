@@ -594,7 +594,7 @@ inline auto computeSampleToMarkLinksForPhiForwardWithPsiRuns(const std::string& 
 
   // Sub-sampled indices of samples
   sdsl::int_vector<> subsamples_idx;
-  sdsl::load_from_cache(subsamples_idx, t_prefix + keys[kPsi][kHead][kIdx].get<std::string>(), t_config);
+  sdsl::load_from_cache(subsamples_idx, t_prefix + keys[kPsi][kHead][kIdx].get<std::string>(), t_config, true);
 
   sdsl::int_vector<> subsample_to_mark_links(subsamples_idx.size(), 0, subsamples_idx.width());
 
