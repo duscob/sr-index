@@ -563,7 +563,7 @@ inline auto constructSubsamplingBackwardSamplesForPhiForwardWithPsiRuns(const st
   std::transform(subsamples_idx.begin(), subsamples_idx.end(), subsamples.begin(), [&samples](auto tt_i) {
     return samples[tt_i];
   });
-  sri::store_to_cache(subsamples, prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config, true);
+  sdsl::store_to_cache(subsamples, prefix + keys[kPsi][kHead][kTextPos].get<std::string>(), t_config, true);
 
   return subsamples;
 }
@@ -584,7 +584,7 @@ void constructSubsamplesForPhiForwardWithPsiRuns(const std::size_t t_subsample_r
 
   if (!std::is_same_v<TSamples, sdsl::int_vector<>>) {
     auto subsamples = construct<TSamples>(subsamples_iv);
-    sri::store_to_cache(subsamples, key, t_config, true);
+    sdsl::store_to_cache(subsamples, key, t_config, true);
   }
 }
 
@@ -641,7 +641,7 @@ void constructSubmarksForPhiForwardWithPsiRuns(const std::size_t t_subsample_rat
   sdsl::int_vector<> submarks_iv;
   if (!sdsl::cache_file_exists<sdsl::int_vector<>>(key, t_config)) {
     submarks_iv = computeSubmarksForPhiForwardWithPsiRuns(prefix, t_config);
-    sri::store_to_cache(submarks_iv, key, t_config, true);
+    sdsl::store_to_cache(submarks_iv, key, t_config, true);
   } else {
     sdsl::load_from_cache(submarks_iv, key, t_config, true);
   }
@@ -689,14 +689,14 @@ void constructSubmarkLinksForPhiForwardWithPsiRuns(const std::size_t t_subsample
   sdsl::int_vector<> submark_to_subsample_links_iv;
   if (!sdsl::cache_file_exists<sdsl::int_vector<>>(key, t_config)) {
     submark_to_subsample_links_iv = computeSubmarkLinksForPhiForwardWithPsiRuns(prefix, t_config);
-    sri::store_to_cache(submark_to_subsample_links_iv, key, t_config, true);
+    sdsl::store_to_cache(submark_to_subsample_links_iv, key, t_config, true);
   } else {
     sdsl::load_from_cache(submark_to_subsample_links_iv, key, t_config, true);
   }
 
   if (!std::is_same_v<TMarksToSamples, sdsl::int_vector<>>) {
     auto submark_to_subsample_links = construct<TMarksToSamples>(submark_to_subsample_links_iv);
-    sri::store_to_cache(submark_to_subsample_links, key, t_config, true);
+    sdsl::store_to_cache(submark_to_subsample_links, key, t_config, true);
   }
 }
 
@@ -721,7 +721,7 @@ void constructCumulativeCountsWithPsiRuns(Config& t_config) {
   }
 
   auto cumulative_counts = construct<TRunCumulativeCounts>(cumulative_counts_iv);
-  sri::store_to_cache(cumulative_counts, keys[kPsi][kCumRun], t_config, true);
+  sdsl::store_to_cache(cumulative_counts, keys[kPsi][kCumRun], t_config, true);
 }
 
 inline void constructSubmarksValidity(std::size_t t_subsample_rate, Config& t_config);
@@ -799,8 +799,8 @@ inline void constructSubmarksValidity(const std::size_t t_subsample_rate, Config
     valid_areas[i] = it->second;
   }
 
-  sri::store_to_cache(valid_marks, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidMark]), t_config, true);
-  sri::store_to_cache(valid_areas, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]), t_config, true);
+  sdsl::store_to_cache(valid_marks, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidMark]), t_config, true);
+  sdsl::store_to_cache(valid_areas, prefix + str(keys[kPsi][kTail][kTextPosAsc][kValidArea]), t_config, true);
 }
 
 template <typename... TArgs>
@@ -823,7 +823,7 @@ void constructItems(SrCSAValidArea<TArgs...>& t_index, Config& t_config) {
     sdsl::load_from_cache(valid_areas_iv, key, t_config, true);
 
     auto valid_areas = construct<typename Index::ValidAreas>(valid_areas_iv);
-    sri::store_to_cache(valid_areas, key, t_config, true);
+    sdsl::store_to_cache(valid_areas, key, t_config, true);
   }
 }
 }  // namespace sri

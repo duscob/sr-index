@@ -304,7 +304,7 @@ void constructItems(RCSA<TArgs...>& t_index, Config& t_config) {
     sdsl::load_from_cache(samples_iv, keys[kPsi][kHead][kTextPos], t_config, true);
 
     auto samples = sri::construct<typename Index::Samples>(samples_iv);
-    sri::store_to_cache(samples, keys[kPsi][kHead][kTextPos], t_config, true);
+    sdsl::store_to_cache(samples, keys[kPsi][kHead][kTextPos], t_config, true);
   }
 
   // Construct Successor on the text positions of Psi run last item
@@ -327,7 +327,7 @@ void constructItems(RCSA<TArgs...>& t_index, Config& t_config) {
 
     if (!std::is_same_v<typename Index::MarksToSamples, sdsl::int_vector<>>) {
       auto values = sri::construct<typename Index::MarksToSamples>(mark_to_sample_links);
-      sri::store_to_cache(values, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+      sdsl::store_to_cache(values, keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
     }
   }
 }

@@ -4,7 +4,7 @@ include(FetchContent)
 FetchContent_Declare(
         ${ExternalProjectName}
         GIT_REPOSITORY https://github.com/duscob/sdsl-lite.git
-        GIT_TAG master
+        GIT_TAG feature/io-cache
         FIND_PACKAGE_ARGS
 )
 
