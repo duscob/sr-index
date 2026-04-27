@@ -91,7 +91,7 @@ void constructPsi(sdsl::cache_config &t_config) {
 
   {
     sri::PsiCoreRLE<> psi_rle(alphabet.C, psi);
-    sri::store_to_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
+    sdsl::store_to_cache(psi_rle, sdsl::conf::KEY_PSI, t_config, true);
   }
 }
 
@@ -137,7 +137,7 @@ void constructPsiRuns(Config &t_config) {
     }
 
     psi_run_text_pos.close();
-    register_cache_file<sdsl::int_vector<>>(key_psi_run_text_pos, t_config);
+    sdsl::register_cache_file<sdsl::int_vector<>>(key_psi_run_text_pos, t_config);
   }
 }
 
@@ -238,7 +238,7 @@ inline auto constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config)
   auto [sorted_marks_idx, mark_to_sample_links] = constructMarkToSampleLinks(marks, get_link);
 
   // sdsl::store_to_cache(sorted_marks_idx, t_config.keys[kPsi][kTail][kTextPosAsc][kIdx], t_config);
-  sri::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
+  sdsl::store_to_cache(mark_to_sample_links, t_config.keys[kPsi][kTail][kTextPosAsc][kLink], t_config, true);
 
   return mark_to_sample_links;
 }
@@ -302,13 +302,13 @@ void constructBitVectorFromIntVector(TValues &t_values,
   sdsl::bit_vector bv_tmp = constructBitVectorFromIntVector(t_values, t_bv_size, t_init_value);
 
   TBitVector bv(std::move(bv_tmp));
-  sri::store_to_cache(bv, t_key, t_config, true);
+  sdsl::store_to_cache(bv, t_key, t_config, true);
 
   TBVRank bv_rank(&bv);
-  sri::store_to_cache(bv_rank, t_key, t_config, true);
+  sdsl::store_to_cache(bv_rank, t_key, t_config, true);
 
   TBVSelect bv_select(&bv);
-  sri::store_to_cache(bv_select, t_key, t_config, true);
+  sdsl::store_to_cache(bv_select, t_key, t_config, true);
 }
 
 template<typename TBitVector,

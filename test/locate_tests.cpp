@@ -38,7 +38,7 @@ class LocateTests
   void SetUp() override {
     const auto& data = std::get<0>(std::get<1>(this->GetParam()));
     const auto& sa_algo = std::get<2>(this->GetParam());
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(SRI_USE_BIG_BWT)
     if (sa_algo == sri::SAAlgo::BIG_BWT) {
       GTEST_SKIP_("Tests with BigBWT fail in Debug mode");
     }

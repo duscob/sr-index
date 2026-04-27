@@ -133,6 +133,15 @@ class RIndexBase : public LocateIndex<TSequence> {
 
 using GenericStorage = std::map<std::string, std::any>;
 
+// Disambiguates an in-memory storage key by the stored type, so a `GenericStorage` shared
+// across multiple indexes (e.g. via `ExternalGenericStorage` in the benchmarks) can hold
+// different concrete components under the same logical t_key without collision. Used for
+// every storage_ access in the helpers below.
+template <typename TItem>
+inline std::string storageKey(const std::string& t_key) {
+  return t_key + "_" + sdsl::util::class_to_hash(TItem{});
+}
+
 template <typename TItem>
 const TItem* get(const GenericStorage& t_storage, const std::string& t_key) {
   auto it = t_storage.find(t_key);
@@ -195,12 +204,20 @@ class IndexBaseWithExternalStorage {
 
   template <typename TItem>
   auto loadRawItem(const std::string& t_key, TSource& t_source, bool t_add_type_hash = false) {
-    auto item = get<TItem>(storage_, t_key);
+    // The in-memory storage key is always type-discriminated (decoupled from t_add_type_hash,
+    // which controls the on-disk filename only). This lets a shared GenericStorage hold
+    // distinct components under the same logical t_key for different indexes, and ensures
+    // a (t_key, TItem) pair always hits the same cache entry regardless of how subsequent
+    // callers spell the t_add_type_hash flag.
+    const auto sk = storageKey<TItem>(t_key);
+    auto item = get<TItem>(storage_, sk);
     if (!item) {
-      TItem data;
-      load(data, t_source, t_key, t_add_type_hash);
-
-      item = set(storage_, t_key, std::move(data));
+      // Store a default-constructed item first, then load into it in place. Loading then
+      // moving into storage would invalidate SDSL rank/select support pointers (e.g.
+      // rank_support_sd::m_v) wired up via set_vector during deserialization.
+      auto* mutable_item = const_cast<TItem*>(set(storage_, sk, TItem{}));
+      load(*mutable_item, t_source, t_key, t_add_type_hash);
+      item = mutable_item;
     }
     return item;
   }
@@ -233,16 +250,18 @@ class IndexBaseWithExternalStorage {
 
   template <typename TBv, typename TBvRank = typename TBv::rank_1_type>
   auto loadBVRank(const std::string& t_key, TSource& t_source, bool t_add_type_hash = false) {
-    auto key_rank = t_key + "_rank";
-    auto item_rank = get<TBvRank>(storage_, key_rank);
+    // The rank's storage entry is type-discriminated by TBvRank — different TBv variants
+    // sharing t_key produce different rank-support types, and must not collide on the
+    // shared storage_ map.
+    const auto sk_rank = storageKey<TBvRank>(t_key + "_rank");
+    auto item_rank = get<TBvRank>(storage_, sk_rank);
     if (!item_rank) {
       auto item_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
-      TBvRank rank;
-      load(rank, t_source, t_key, t_add_type_hash);
-      rank.set_vector(item_bv);
-
-      item_rank = set(storage_, key_rank, std::move(rank));
+      auto* mutable_rank = const_cast<TBvRank*>(set(storage_, sk_rank, TBvRank{}));
+      load(*mutable_rank, t_source, t_key, t_add_type_hash);
+      mutable_rank->set_vector(item_bv);
+      item_rank = mutable_rank;
     }
 
     return std::cref(*item_rank);
@@ -250,16 +269,15 @@ class IndexBaseWithExternalStorage {
 
   template <typename TBv, typename TBvSelect = typename TBv::select_1_type>
   auto loadBVSelect(const std::string& t_key, TSource& t_source, bool t_add_type_hash = false) {
-    auto key_select = t_key + "_select";
-    auto item_select = get<TBvSelect>(storage_, key_select);
+    const auto sk_select = storageKey<TBvSelect>(t_key + "_select");
+    auto item_select = get<TBvSelect>(storage_, sk_select);
     if (!item_select) {
       auto item_bv = loadRawItem<TBv>(t_key, t_source, t_add_type_hash);
 
-      TBvSelect select;
-      load(select, t_source, t_key, t_add_type_hash);
-      select.set_vector(item_bv);
-
-      item_select = set(storage_, key_select, std::move(select));
+      auto* mutable_select = const_cast<TBvSelect*>(set(storage_, sk_select, TBvSelect{}));
+      load(*mutable_select, t_source, t_key, t_add_type_hash);
+      mutable_select->set_vector(item_bv);
+      item_select = mutable_select;
     }
 
     return std::cref(*item_select);
@@ -270,7 +288,8 @@ class IndexBaseWithExternalStorage {
                             std::ostream& out,
                             sdsl::structure_tree_node* v,
                             const std::string& name) const {
-    auto item = get<TItem>(storage_, t_key);
+    // Mirror the type-discriminated storage key used by loadRawItem.
+    auto item = get<TItem>(storage_, storageKey<TItem>(t_key));
     if (item) {
       return sdsl::serialize(*item, out, v, name);
     }
