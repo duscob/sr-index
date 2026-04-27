@@ -18,12 +18,19 @@
 namespace sri {
 
 template <typename TSequence = Alphabet<>::string_type>
+class CountIndex {
+ public:
+  virtual ~CountIndex() = default;
+
+  virtual std::pair<std::size_t, std::size_t> Count(const TSequence& _pattern) const = 0;
+};
+
+template <typename TSequence = Alphabet<>::string_type>
 class LocateIndex {
  public:
   virtual ~LocateIndex() = default;
 
   virtual std::vector<std::size_t> Locate(const TSequence& _pattern) const = 0;
-  virtual std::pair<std::size_t, std::size_t> Count(const TSequence& _pattern) const = 0;
 };
 
 //~~~~~~~
@@ -31,64 +38,22 @@ class LocateIndex {
 
 template <typename TSequence,
           typename TBackwardNav,
-          typename TUpdateToeholdData,
-          typename TComputeAllValues,
-          typename TGetInitialToeholdData,
           typename TGetSymbol,
           typename TCreateFullRange,
           typename TIsRangeEmpty>
-class RIndexBase : public LocateIndex<TSequence> {
+class RIndexCountBase : public CountIndex<TSequence> {
  public:
-  RIndexBase(const TSequence& t_sequence,
-             const TBackwardNav& t_lf,
-             const TUpdateToeholdData& t_update_toehold_data,
-             const TComputeAllValues& t_compute_all_values,
-             std::size_t t_bwt_size,
-             const TGetInitialToeholdData& t_get_initial_toehold_data,
-             const TGetSymbol& t_get_symbol,
-             const TCreateFullRange& t_create_full_range,
-             const TIsRangeEmpty& t_is_range_empty)
+  RIndexCountBase(const TSequence& t_sequence,
+                  const TBackwardNav& t_lf,
+                  std::size_t t_bwt_size,
+                  const TGetSymbol& t_get_symbol,
+                  const TCreateFullRange& t_create_full_range,
+                  const TIsRangeEmpty& t_is_range_empty)
       : lf_{t_lf},
-        update_toehold_data_{t_update_toehold_data},
-        compute_all_values_{t_compute_all_values},
         bwt_size_{t_bwt_size},
-        get_initial_toehold_data_{t_get_initial_toehold_data},
         get_symbol_{t_get_symbol},
         create_full_range_{t_create_full_range},
         is_range_empty_{t_is_range_empty} {}
-
-  std::vector<std::size_t> Locate(const TSequence& t_pattern) const override {
-    std::vector<std::size_t> values;
-    auto report = [&values](const auto& v) {
-      values.emplace_back(v);
-    };
-
-    Locate(t_pattern, report);
-
-    return values;
-  }
-
-  template <typename TPattern, typename TReport>
-  void Locate(const TPattern& t_pattern, TReport& t_report) const {
-    auto range = create_full_range_(bwt_size_);
-
-    auto i = t_pattern.size() - 1;
-    // TODO use default value (step == 0) instead of get_initial_toehold_data_
-    auto toehold_data = get_initial_toehold_data_(i);
-
-    for (auto it = rbegin(t_pattern); it != rend(t_pattern) && !is_range_empty_(range); ++it, --i) {
-      auto c = get_symbol_(*it);
-
-      auto next_range = lf_(range, c);
-      update_toehold_data_(range, next_range, c, i, toehold_data);
-
-      range = next_range;
-    }
-
-    if (!is_range_empty_(range)) {
-      compute_all_values_(range, toehold_data, t_report);
-    }
-  }
 
   std::pair<std::size_t, std::size_t> Count(const TSequence& t_pattern) const override {
     std::pair<std::size_t, std::size_t> range;
@@ -114,18 +79,81 @@ class RIndexBase : public LocateIndex<TSequence> {
     t_report(range);
   }
 
- private:
+ protected:
   TBackwardNav lf_;
-  TUpdateToeholdData update_toehold_data_;
-  TComputeAllValues compute_all_values_;
-
   std::size_t bwt_size_;
-  TGetInitialToeholdData get_initial_toehold_data_;
-
   TGetSymbol get_symbol_;
-
   TCreateFullRange create_full_range_;
   TIsRangeEmpty is_range_empty_;
+};
+
+//~~~~~~~
+
+
+template <typename TSequence,
+          typename TBackwardNav,
+          typename TUpdateToeholdData,
+          typename TComputeAllValues,
+          typename TGetInitialToeholdData,
+          typename TGetSymbol,
+          typename TCreateFullRange,
+          typename TIsRangeEmpty>
+class RIndexBase : public RIndexCountBase<TSequence, TBackwardNav, TGetSymbol, TCreateFullRange, TIsRangeEmpty>,
+                   public LocateIndex<TSequence> {
+ public:
+  using CountBase = RIndexCountBase<TSequence, TBackwardNav, TGetSymbol, TCreateFullRange, TIsRangeEmpty>;
+
+  RIndexBase(const TSequence& t_sequence,
+             const TBackwardNav& t_lf,
+             const TUpdateToeholdData& t_update_toehold_data,
+             const TComputeAllValues& t_compute_all_values,
+             std::size_t t_bwt_size,
+             const TGetInitialToeholdData& t_get_initial_toehold_data,
+             const TGetSymbol& t_get_symbol,
+             const TCreateFullRange& t_create_full_range,
+             const TIsRangeEmpty& t_is_range_empty)
+      : CountBase(t_sequence, t_lf, t_bwt_size, t_get_symbol, t_create_full_range, t_is_range_empty),
+        update_toehold_data_{t_update_toehold_data},
+        compute_all_values_{t_compute_all_values},
+        get_initial_toehold_data_{t_get_initial_toehold_data} {}
+
+  std::vector<std::size_t> Locate(const TSequence& t_pattern) const override {
+    std::vector<std::size_t> values;
+    auto report = [&values](const auto& v) {
+      values.emplace_back(v);
+    };
+
+    Locate(t_pattern, report);
+
+    return values;
+  }
+
+  template <typename TPattern, typename TReport>
+  void Locate(const TPattern& t_pattern, TReport& t_report) const {
+    auto range = this->create_full_range_(this->bwt_size_);
+
+    auto i = t_pattern.size() - 1;
+    // TODO use default value (step == 0) instead of get_initial_toehold_data_
+    auto toehold_data = get_initial_toehold_data_(i);
+
+    for (auto it = rbegin(t_pattern); it != rend(t_pattern) && !this->is_range_empty_(range); ++it, --i) {
+      auto c = this->get_symbol_(*it);
+
+      auto next_range = this->lf_(range, c);
+      update_toehold_data_(range, next_range, c, i, toehold_data);
+
+      range = next_range;
+    }
+
+    if (!this->is_range_empty_(range)) {
+      compute_all_values_(range, toehold_data, t_report);
+    }
+  }
+
+ private:
+  TUpdateToeholdData update_toehold_data_;
+  TComputeAllValues compute_all_values_;
+  TGetInitialToeholdData get_initial_toehold_data_;
 };
 
 //~~~~~~~
@@ -325,6 +353,24 @@ class IndexBaseWithExternalStorage {
 
 
 template <typename TStorage = GenericStorage, typename TSequence = Alphabet<>::string_type>
+class CountIndexExtStorage : public CountIndex<TSequence>, public IndexBaseWithExternalStorage<TStorage> {
+ public:
+  explicit CountIndexExtStorage(const TStorage& t_storage) : IndexBaseWithExternalStorage<TStorage>(t_storage) {}
+
+  CountIndexExtStorage() = default;
+
+  std::pair<std::size_t, std::size_t> Count(const TSequence& t_pattern) const override {
+    return index_->Count(t_pattern);
+  }
+
+ protected:
+  std::shared_ptr<CountIndex<TSequence>> index_ = nullptr;
+};
+
+//~~~~~~~
+
+
+template <typename TStorage = GenericStorage, typename TSequence = Alphabet<>::string_type>
 class LocateIndexExtStorage : public LocateIndex<TSequence>, public IndexBaseWithExternalStorage<TStorage> {
  public:
   explicit LocateIndexExtStorage(const TStorage& t_storage) : IndexBaseWithExternalStorage<TStorage>(t_storage) {}
@@ -333,10 +379,6 @@ class LocateIndexExtStorage : public LocateIndex<TSequence>, public IndexBaseWit
 
   std::vector<std::size_t> Locate(const TSequence& t_pattern) const override {
     return index_->Locate(t_pattern);
-  }
-
-  std::pair<std::size_t, std::size_t> Count(const TSequence& t_pattern) const override {
-    return index_->Count(t_pattern);
   }
 
  protected:
