@@ -19,13 +19,23 @@ DEFINE_string(data_name, "data", "Data file basename.");
 DEFINE_int32(data_width, 8, "Data width in bits: 8, 16, 32 or 64");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
+// Cross-cast the pointed-to interface to `sri::CountIndex` so the same lambda works whether
+// `t_idx.idx` is a `shared_ptr<sri::LocateIndex<>>` (locate factory) or a
+// `shared_ptr<sri::CountIndex<>>` (count factory). Every concrete index that implements one of
+// these interfaces also implements the other, so the cast always succeeds.
+template <typename TIdx>
+const sri::CountIndex<>& AsCountIndex(const TIdx& t_idx) {
+  return dynamic_cast<const sri::CountIndex<>&>(*t_idx.idx);
+}
+
 auto BM_QueryCount = [](benchmark::State& t_state, const auto& t_idx, const auto& t_patterns, auto t_seq_size) {
+  const auto& count_iface = AsCountIndex(t_idx);
   std::size_t total_occs = 0;
 
   for (auto _ : t_state) {
     total_occs = 0;
     for (const auto& pattern : t_patterns) {
-      auto range = t_idx.idx->Count(pattern.decoded);
+      auto range = count_iface.Count(pattern.decoded);
       total_occs += range.second - range.first;
     }
   }
@@ -35,6 +45,7 @@ auto BM_QueryCount = [](benchmark::State& t_state, const auto& t_idx, const auto
 
 auto BM_PrintQueryCount =
     [](benchmark::State& t_state, const auto& t_idx_name, const auto& t_idx, const auto& t_patterns, auto t_seq_size) {
+      const auto& count_iface = AsCountIndex(t_idx);
       std::string idx_name = t_idx_name;
       replace(idx_name.begin(), idx_name.end(), '/', '_');
       std::string output_filename = "result-count-" + idx_name + ".csv";
@@ -46,7 +57,7 @@ auto BM_PrintQueryCount =
         out << "pattern,count,range_start,range_end" << std::endl;
         total_occs = 0;
         for (const auto& pattern : t_patterns) {
-          auto range = t_idx.idx->Count(pattern.decoded);
+          auto range = count_iface.Count(pattern.decoded);
           auto count = range.second - range.first;
           total_occs += count;
           out << "\"" << pattern.encoded << "\"," << count << "," << range.first << "," << range.second << std::endl;
@@ -87,6 +98,16 @@ int main(int argc, char* argv[]) {
     if (FLAGS_print_result) {
       auto print_bm_name = print_bm_prefix + idx_config.first;
       benchmark::RegisterBenchmark(print_bm_name, BM_PrintQueryCount, idx_config.first, index, patterns, n);
+    }
+  }
+
+  // Count-only path: loads alphabet + bwt-rle only (no samples / marks / mark-to-sample). Same
+  // BM_QueryCount lambda works because `t_idx.idx->Count(...)` resolves through CountIndex.
+  {
+    auto count_only = factory.makeCount();
+    benchmark::RegisterBenchmark("R-Index-Count", BM_QueryCount, count_only, patterns, n);
+    if (FLAGS_print_result) {
+      benchmark::RegisterBenchmark("Print-R-Index-Count", BM_PrintQueryCount, "R-Index-Count", count_only, patterns, n);
     }
   }
 

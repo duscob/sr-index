@@ -59,6 +59,23 @@ class Factory {
     std::size_t size = 0;
   };
 
+  // Count-only index: loads strictly fewer components than the locate variants. Useful for
+  // measuring the load-time / memory cost of count-only queries against the same corpus.
+  struct CountIndex {
+    std::shared_ptr<sri::CountIndex<>> idx;
+    std::size_t size = 0;
+  };
+
+  CountIndex makeCount() {
+    if (count_index_.idx) {
+      return count_index_;
+    }
+    auto idx = std::make_shared<sri::RCSACount<ExternalGenericStorage>>(std::ref(storage_));
+    idx->load(config_);
+    count_index_ = {idx, sdsl::size_in_bytes(*idx)};
+    return count_index_;
+  }
+
   Index make(const Config& t_config) {
     auto it = indexes_.find(t_config);
     if (it != indexes_.end()) {
@@ -175,6 +192,7 @@ class Factory {
   sri::GenericStorage storage_;
 
   std::map<Config, Index> indexes_;
+  CountIndex count_index_;
 };
 
 #endif  // SRI_BENCHMARK_SR_CSA_FACTORY_H_
