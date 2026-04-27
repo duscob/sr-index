@@ -16,7 +16,7 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
-DEFINE_int32(data_width, 8, "Data width: 0 or 8");
+DEFINE_int32(data_width, 8, "Data width in bits: 8, 16, 32 or 64");
 DEFINE_bool(print_result, false, "Execute benchmark that print results per index.");
 
 auto BM_QueryCount = [](benchmark::State& t_state, const auto& t_idx, const auto& t_patterns, auto t_seq_size) {

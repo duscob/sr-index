@@ -26,6 +26,7 @@ enum SAAlgo {
 using JSON = nlohmann::json;
 
 namespace conf {
+constexpr std::string_view kText = "text";
 constexpr std::string_view kAlphabet = "alphabet";
 constexpr std::string_view kSA = "sa";
 constexpr std::string_view kBWT = "bwt";
@@ -47,6 +48,7 @@ template <uint8_t t_width>
 auto createDefaultKeys() {
   using namespace conf;
   JSON keys = {
+      {kText, sdsl::key_text_trait<t_width>::KEY_TEXT},
       {kAlphabet, "alphabet"},
       {kSA, sdsl::conf::KEY_SA},
       {

@@ -19,7 +19,7 @@
 DEFINE_string(patterns, "", "Patterns file. (MANDATORY)");
 DEFINE_string(data_dir, "./", "Data directory.");
 DEFINE_string(data_name, "data", "Data file basename.");
-DEFINE_int32(data_width, 8, "Data width: 0 or 8");
+DEFINE_int32(data_width, 8, "Data width in bits: 8, 16, 32 or 64");
 
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 128, "Maximum sampling parameter s.");

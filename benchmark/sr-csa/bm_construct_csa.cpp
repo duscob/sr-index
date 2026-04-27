@@ -18,7 +18,7 @@
 
 
 DEFINE_string(data, "", "Data file. (MANDATORY)");
-DEFINE_int32(data_width, 8, "Data width: 0 or 8");
+DEFINE_int32(data_width, 8, "Data width in bits: 8, 16, 32 or 64");
 DEFINE_string(sa_algo, "SDSL_SE_SAIS", "Suffix Array Algorithm: SDSL_SE_SAIS, SDSL_LIBDIVSUFSORT, BIG_BWT");
 DEFINE_int32(min_s, 4, "Minimum sampling parameter s.");
 DEFINE_int32(max_s, 2u << 8u, "Maximum sampling parameter s.");

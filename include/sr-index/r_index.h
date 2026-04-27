@@ -27,10 +27,10 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RIndex : public LocateIndexExtStorage<typename TAlphabet::string_type, TStorage> {
+class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type> {
  public:
   using Alphabet = TAlphabet;
-  using Base = LocateIndexExtStorage<typename TAlphabet::string_type, TStorage>;
+  using Base = LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>;
 
   explicit RIndex(const TStorage& t_storage) : Base(t_storage) {}
 
@@ -285,7 +285,7 @@ class RIndex : public LocateIndexExtStorage<typename TAlphabet::string_type, TSt
   auto constructGetSymbol(TSource& t_source) {
     auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
 
-    auto get_symbol = [cref_alphabet](auto tt_c) {
+    auto get_symbol = [cref_alphabet](typename TAlphabet::char_type tt_c) {
       return cref_alphabet.get().char2comp[tt_c];
     };
     return get_symbol;
