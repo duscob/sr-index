@@ -133,6 +133,10 @@ if (SR-INDEX_ENABLE_TOOLS)
     cxx_executable_with_flags(load "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load_bytes.cpp)
     cxx_executable_with_flags(construct_ints "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct_ints.cpp)
     cxx_executable_with_flags(load_ints "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load_ints.cpp)
+    cxx_executable_with_flags(construct_count "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct_count_bytes.cpp)
+    cxx_executable_with_flags(load_count "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load_count_bytes.cpp)
+    cxx_executable_with_flags(construct_count_ints "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/construct_count_ints.cpp)
+    cxx_executable_with_flags(load_count_ints "" "${tool_LIBS}" ${PROJECT_SOURCE_DIR}/tool/load_count_ints.cpp)
 endif ()
 
 
