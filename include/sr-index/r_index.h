@@ -21,20 +21,21 @@
 
 namespace sri {
 
+// Count-only base of RIndex: owns alphabet + bwt-rle and supports `Count` only. The locate-only
+// state (samples, marks, mark-to-sample) lives in `RIndex` below. The bundled file format of
+// `RIndex` is `[RIndexCount prefix][locate suffix]`, so an RIndexCount can load either a
+// count-only bundle or the prefix of a locate bundle.
 template <typename TStorage = GenericStorage,
           typename TAlphabet = Alphabet<>,
-          typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
-          typename TBvMark = sdsl::sd_vector<>,
-          typename TMarkToSampleIdx = sdsl::int_vector<>,
-          typename TSample = sdsl::int_vector<>>
-class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type> {
+          typename TBwtRLE = RLEStringS<TAlphabet::int_width>>
+class RIndexCount : public CountIndexExtStorage<TStorage, typename TAlphabet::string_type> {
  public:
   using Alphabet = TAlphabet;
-  using Base = LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>;
+  using Base = CountIndexExtStorage<TStorage, typename TAlphabet::string_type>;
 
-  explicit RIndex(const TStorage& t_storage) : Base(t_storage) {}
+  explicit RIndexCount(const TStorage& t_storage) : Base(t_storage) {}
 
-  RIndex() = default;
+  RIndexCount() = default;
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -57,15 +58,6 @@ class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string
 
     written_bytes += this->template serializeItem<TBwtRLE>(key(ItemKey::NAVIGATE), out, child, "bwt");
 
-    written_bytes += this->template serializeItem<TSample>(key(ItemKey::SAMPLES), out, child, "samples");
-
-    written_bytes += this->template serializeItem<TBvMark>(key(ItemKey::MARKS), out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(key(ItemKey::MARKS), out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(key(ItemKey::MARKS), out, child, "marks_select");
-
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
-
     return written_bytes;
   }
 
@@ -83,42 +75,25 @@ class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string
   virtual void setupKeyNames() {
     key(ItemKey::ALPHABET) = conf::KEY_ALPHABET;
     key(ItemKey::NAVIGATE) = conf::KEY_BWT_RLE;
-    key(ItemKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
-    key(ItemKey::MARKS) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
-    key(ItemKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
   }
 
   virtual void loadAllItems(TSource& t_source) {
     this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
-
     this->template loadItem<TBwtRLE>(key(ItemKey::NAVIGATE), t_source);
-
-    this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
-
-    this->template loadItem<TBvMark>(key(ItemKey::MARKS), t_source, true);
-    this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
-    this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
-
-    this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
   }
 
   virtual void constructIndex(TSource& t_source) {
-    this->index_.reset(
-        new RIndexBase{typename TAlphabet::string_type{},                                                            //
-                       constructLF(t_source),                                                                        //
-                       constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),    //
-                       constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),  //
-                       this->n_,                                                                                     //
-                       [](const auto& tt_step) {
-                         return DataBackwardSearchStep{0, RunData{0, 0}};
-                       },                             //
-                       constructGetSymbol(t_source),  //
-                       [](auto tt_seq_size) {
-                         return Range{0, tt_seq_size};
-                       },  //
-                       constructIsRangeEmpty()});
+    this->index_.reset(new RIndexCountBase{typename TAlphabet::string_type{},
+                                           constructLF(t_source),
+                                           this->n_,
+                                           constructGetSymbol(t_source),
+                                           [](auto tt_seq_size) {
+                                             return Range{0, tt_seq_size};
+                                           },
+                                           constructIsRangeEmpty()});
   }
 
+  // Types and helpers shared between Count and Locate.
   struct DataLF {
     std::size_t value = 0;
 
@@ -156,6 +131,8 @@ class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string
     DataLF end;
   };
 
+  using Char = typename TAlphabet::comp_char_type;
+
   auto constructIsRangeEmpty() {
     return [](const Range& tt_range) {
       return !(tt_range.start < tt_range.end);
@@ -191,7 +168,104 @@ class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string
     };
   }
 
-  using Char = typename TAlphabet::comp_char_type;
+  auto constructGetSymbol(TSource& t_source) {
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
+
+    auto get_symbol = [cref_alphabet](typename TAlphabet::char_type tt_c) {
+      return cref_alphabet.get().char2comp[tt_c];
+    };
+    return get_symbol;
+  }
+};
+
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TBwtRLE = RLEStringS<TAlphabet::int_width>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>>
+class RIndex : public RIndexCount<TStorage, TAlphabet, TBwtRLE>, public LocateIndex<typename TAlphabet::string_type> {
+ public:
+  using Alphabet = TAlphabet;
+  using Base = RIndexCount<TStorage, TAlphabet, TBwtRLE>;
+
+  explicit RIndex(const TStorage& t_storage) : Base(t_storage) {}
+
+  RIndex() = default;
+
+  using typename Base::ItemKey;
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = Base::serialize(out, child, name);
+
+    written_bytes += this->template serializeItem<TSample>(key(ItemKey::SAMPLES), out, child, "samples");
+
+    written_bytes += this->template serializeItem<TBvMark>(key(ItemKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(ItemKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(ItemKey::MARKS), out, child, "marks_select");
+
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+
+    return written_bytes;
+  }
+
+  std::vector<std::size_t> Locate(const typename TAlphabet::string_type& t_pattern) const override {
+    // index_ (inherited from CountIndexExtStorage) holds an RIndexBase, which IS-A LocateIndex
+    // via multiple inheritance. CountIndex and LocateIndex are unrelated bases of RIndexBase, so
+    // we cross-cast through the runtime type to reach the LocateIndex subobject.
+    return dynamic_cast<const LocateIndex<typename TAlphabet::string_type>&>(*this->index_).Locate(t_pattern);
+  }
+
+ protected:
+  using typename Base::TSource;
+
+  using Base::key;
+
+  void setupKeyNames() override {
+    Base::setupKeyNames();
+    key(ItemKey::SAMPLES) = conf::KEY_BWT_RUN_LAST_TEXT_POS;
+    key(ItemKey::MARKS) = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
+    key(ItemKey::MARK_TO_SAMPLE) = conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX;
+  }
+
+  void loadAllItems(TSource& t_source) override {
+    Base::loadAllItems(t_source);
+
+    this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source);
+
+    this->template loadItem<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
+
+    this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source);
+  }
+
+  void constructIndex(TSource& t_source) override {
+    this->index_.reset(
+        new RIndexBase{typename TAlphabet::string_type{},                                                            //
+                       this->constructLF(t_source),                                                                  //
+                       constructComputeDataBackwardSearchStep(t_source, constructCreateDataBackwardSearchStep()),    //
+                       constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),  //
+                       this->n_,                                                                                     //
+                       [](const auto& tt_step) {
+                         return DataBackwardSearchStep{0, RunData{0, 0}};
+                       },                                   //
+                       this->constructGetSymbol(t_source),  //
+                       [](auto tt_seq_size) {
+                         return Range{0, tt_seq_size};
+                       },  //
+                       this->constructIsRangeEmpty()});
+  }
+
+  using typename Base::Char;
+  using typename Base::DataLF;
+  using typename Base::Position;
+  using typename Base::Range;
+  using typename Base::RangeLF;
 
   struct RunData {
     Char c;                    // Character for LF step in the range
@@ -281,19 +355,20 @@ class RIndex : public LocateIndexExtStorage<TStorage, typename TAlphabet::string
 
     return ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
   }
-
-  auto constructGetSymbol(TSource& t_source) {
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
-
-    auto get_symbol = [cref_alphabet](typename TAlphabet::char_type tt_c) {
-      return cref_alphabet.get().char2comp[tt_c];
-    };
-    return get_symbol;
-  }
 };
 
 template <uint8_t t_width, typename TBvMark>
 void constructRIndex(const std::string& t_data_path, sri::Config& t_config);
+
+template <typename TStorage, template <uint8_t> typename TAlphabet, uint8_t t_width, typename TBwtRLE>
+void construct(RIndexCount<TStorage, TAlphabet<t_width>, TBwtRLE>& t_index,
+               const std::string& t_data_path,
+               sri::Config& t_config) {
+
+  constructIndexBaseItems<t_width>(t_data_path, t_config);
+
+  t_index.load(t_config);
+}
 
 template <typename TStorage,
           template <uint8_t> typename TAlphabet,

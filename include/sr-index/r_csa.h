@@ -23,25 +23,19 @@
 
 namespace sri {
 
-template <typename TStorage = GenericStorage,
-          typename TAlphabet = Alphabet<>,
-          typename TPsiRLE = PsiCoreRLE<>,
-          typename TBvMark = sdsl::sd_vector<>,
-          typename TMarkToSampleIdx = sdsl::int_vector<>,
-          typename TSample = sdsl::int_vector<>>
-class RCSA : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type> {
+// Count-only base of RCSA: owns alphabet + psi-RLE only. Locate-only state (samples, marks,
+// mark-to-sample) lives in `RCSA` below. Bundle layout: `[RCSACount prefix][locate suffix]`.
+template <typename TStorage = GenericStorage, typename TAlphabet = Alphabet<>, typename TPsiRLE = PsiCoreRLE<>>
+class RCSACount : public CountIndexExtStorage<TStorage, typename TAlphabet::string_type> {
  public:
   using Alphabet = TAlphabet;
-  using Samples = TSample;
-  using BvMarks = TBvMark;
-  using MarksToSamples = TMarkToSampleIdx;
-  using Base = LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>;
+  using Base = CountIndexExtStorage<TStorage, typename TAlphabet::string_type>;
 
-  explicit RCSA(const TStorage& t_storage) : Base(t_storage) {}
+  explicit RCSACount(const TStorage& t_storage) : Base(t_storage) {}
 
-  RCSA() = default;
+  RCSACount() = default;
 
-  virtual ~RCSA() = default;
+  virtual ~RCSACount() = default;
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
@@ -64,15 +58,6 @@ class RCSA : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_t
 
     written_bytes += this->template serializeItem<TPsiRLE>(key(ItemKey::NAVIGATE), out, child, "psi");
 
-    written_bytes += this->template serializeItem<TSample>(key(ItemKey::SAMPLES), out, child, "samples");
-
-    written_bytes += this->template serializeItem<TBvMark>(key(ItemKey::MARKS), out, child, "marks");
-    written_bytes += this->template serializeRank<TBvMark>(key(ItemKey::MARKS), out, child, "marks_rank");
-    written_bytes += this->template serializeSelect<TBvMark>(key(ItemKey::MARKS), out, child, "marks_select");
-
-    written_bytes +=
-        this->template serializeItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
-
     return written_bytes;
   }
 
@@ -91,46 +76,25 @@ class RCSA : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_t
     using namespace sri::conf;
     key(ItemKey::ALPHABET) = t_keys[kAlphabet];
     key(ItemKey::NAVIGATE) = t_keys[kPsi][kBase];
-    key(ItemKey::SAMPLES) = t_keys[kPsi][kHead][kTextPos];
-    key(ItemKey::MARKS) = t_keys[kPsi][kTail][kTextPos];
-    key(ItemKey::MARK_TO_SAMPLE) = t_keys[kPsi][kTail][kTextPosAsc][kLink];
   }
 
   virtual void loadAllItems(TSource& t_source) {
     this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
-
     this->template loadItem<TPsiRLE>(key(ItemKey::NAVIGATE), t_source, true);
-
-    this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source, true);
-
-    this->template loadItem<TBvMark>(key(ItemKey::MARKS), t_source, true);
-    this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
-    this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
-
-    this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source, true);
   }
 
   virtual void constructIndex(TSource& t_source) {
-    this->index_.reset(
-        new RIndexBase{typename TAlphabet::string_type{},  //
-                       constructLF(t_source),              //
-                       constructComputeDataBackwardSearchStep(
-                           [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
-                             const auto& [start, end] = tt_next_range;
-                             return DataBackwardSearchStep{tt_step, RunData{tt_c, start.run.rank}};
-                           }),                                                                                       //
-                       constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),  //
-                       this->n_,                                                                                     //
-                       [](const auto& tt_step) {
-                         return DataBackwardSearchStep{0, RunData{0, 0}};
-                       },                             //
-                       constructGetSymbol(t_source),  //
-                       [](auto tt_seq_size) {
-                         return Range{0, tt_seq_size};
-                       },  //
-                       constructIsRangeEmpty()});
+    this->index_.reset(new RIndexCountBase{typename TAlphabet::string_type{},
+                                           constructLF(t_source),
+                                           this->n_,
+                                           constructGetSymbol(t_source),
+                                           [](auto tt_seq_size) {
+                                             return Range{0, tt_seq_size};
+                                           },
+                                           constructIsRangeEmpty()});
   }
 
+  // Types and helpers shared between Count and Locate.
   struct DataLF {
     std::size_t value = 0;
 
@@ -204,6 +168,112 @@ class RCSA : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_t
     return LF(psi_rank, cumulative, create_range, empty_range);
   }
 
+  auto constructGetSymbol(TSource& t_source) {
+    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
+
+    auto get_symbol = [cref_alphabet](typename TAlphabet::char_type tt_c) {
+      return cref_alphabet.get().char2comp[tt_c];
+    };
+    return get_symbol;
+  }
+};
+
+template <typename TStorage = GenericStorage,
+          typename TAlphabet = Alphabet<>,
+          typename TPsiRLE = PsiCoreRLE<>,
+          typename TBvMark = sdsl::sd_vector<>,
+          typename TMarkToSampleIdx = sdsl::int_vector<>,
+          typename TSample = sdsl::int_vector<>>
+class RCSA : public RCSACount<TStorage, TAlphabet, TPsiRLE>, public LocateIndex<typename TAlphabet::string_type> {
+ public:
+  using Alphabet = TAlphabet;
+  using Samples = TSample;
+  using BvMarks = TBvMark;
+  using MarksToSamples = TMarkToSampleIdx;
+  using Base = RCSACount<TStorage, TAlphabet, TPsiRLE>;
+
+  explicit RCSA(const TStorage& t_storage) : Base(t_storage) {}
+
+  RCSA() = default;
+
+  ~RCSA() override = default;
+
+  using typename Base::ItemKey;
+  using typename Base::size_type;
+
+  size_type serialize(std::ostream& out, sdsl::structure_tree_node* v, const std::string& name) const override {
+    auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+
+    size_type written_bytes = Base::serialize(out, child, name);
+
+    written_bytes += this->template serializeItem<TSample>(key(ItemKey::SAMPLES), out, child, "samples");
+
+    written_bytes += this->template serializeItem<TBvMark>(key(ItemKey::MARKS), out, child, "marks");
+    written_bytes += this->template serializeRank<TBvMark>(key(ItemKey::MARKS), out, child, "marks_rank");
+    written_bytes += this->template serializeSelect<TBvMark>(key(ItemKey::MARKS), out, child, "marks_select");
+
+    written_bytes +=
+        this->template serializeItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), out, child, "mark_to_sample");
+
+    return written_bytes;
+  }
+
+  std::vector<std::size_t> Locate(const typename TAlphabet::string_type& t_pattern) const override {
+    return dynamic_cast<const LocateIndex<typename TAlphabet::string_type>&>(*this->index_).Locate(t_pattern);
+  }
+
+ protected:
+  using typename Base::TSource;
+
+  using Base::key;
+
+  void setupKeyNames(const JSON& t_keys) override {
+    Base::setupKeyNames(t_keys);
+    using namespace sri::conf;
+    key(ItemKey::SAMPLES) = t_keys[kPsi][kHead][kTextPos];
+    key(ItemKey::MARKS) = t_keys[kPsi][kTail][kTextPos];
+    key(ItemKey::MARK_TO_SAMPLE) = t_keys[kPsi][kTail][kTextPosAsc][kLink];
+  }
+
+  void loadAllItems(TSource& t_source) override {
+    Base::loadAllItems(t_source);
+
+    this->template loadItem<TSample>(key(ItemKey::SAMPLES), t_source, true);
+
+    this->template loadItem<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    this->template loadBVRank<TBvMark>(key(ItemKey::MARKS), t_source, true);
+    this->template loadBVSelect<TBvMark>(key(ItemKey::MARKS), t_source, true);
+
+    this->template loadItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), t_source, true);
+  }
+
+  void constructIndex(TSource& t_source) override {
+    this->index_.reset(
+        new RIndexBase{typename TAlphabet::string_type{},  //
+                       this->constructLF(t_source),        //
+                       constructComputeDataBackwardSearchStep(
+                           [](const Range& tt_range, auto tt_c, const RangeLF& tt_next_range, std::size_t tt_step) {
+                             const auto& [start, end] = tt_next_range;
+                             return DataBackwardSearchStep{tt_step, RunData{tt_c, start.run.rank}};
+                           }),                                                                                       //
+                       constructComputeSAValues(constructPhiForRange(t_source), constructComputeToehold(t_source)),  //
+                       this->n_,                                                                                     //
+                       [](const auto& tt_step) {
+                         return DataBackwardSearchStep{0, RunData{0, 0}};
+                       },                                   //
+                       this->constructGetSymbol(t_source),  //
+                       [](auto tt_seq_size) {
+                         return Range{0, tt_seq_size};
+                       },  //
+                       this->constructIsRangeEmpty()});
+  }
+
+  using typename Base::Char;
+  using typename Base::DataLF;
+  using typename Base::Position;
+  using typename Base::Range;
+  using typename Base::RangeLF;
+
   struct RunData {
     Char c;                    // Character for LF step in the range
     std::size_t partial_rank;  // Rank of first run item (total rank for symbol c and partial rank for all symbols)
@@ -265,16 +335,23 @@ class RCSA : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_t
 
     return ComputeAllValuesWithPhiForRange(t_phi_range, t_compute_toehold, update_range);
   }
-
-  auto constructGetSymbol(TSource& t_source) {
-    auto cref_alphabet = this->template loadItem<TAlphabet>(key(ItemKey::ALPHABET), t_source);
-
-    auto get_symbol = [cref_alphabet](typename TAlphabet::char_type tt_c) {
-      return cref_alphabet.get().char2comp[tt_c];
-    };
-    return get_symbol;
-  }
 };
+
+template <typename... TArgs>
+void constructItems(RCSACount<TArgs...>& t_index, Config& t_config) {
+  using Index = RCSACount<TArgs...>;
+  using namespace sri::conf;
+  constexpr auto width = Index::Alphabet::int_width;
+  const auto& keys = t_config.keys;
+
+  constructIndexBaseItems<width>(t_config.data_path, t_config);
+
+  // Construct Psi (count needs only psi-RLE, not the run heads or marks)
+  if (!cache_file_exists(keys[kPsi][kBase], t_config)) {
+    auto event = sdsl::memory_monitor::event("Psi");
+    constructPsi<width>(t_config);
+  }
+}
 
 template <typename... TArgs>
 void constructItems(RCSA<TArgs...>& t_index, Config& t_config) {

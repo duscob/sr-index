@@ -29,7 +29,8 @@ template <typename TStorage = GenericStorage,
           typename TBvMark = sdsl::sd_vector<>,
           typename TMarkToSampleIdx = sdsl::int_vector<>,
           typename TSample = sdsl::int_vector<>>
-class RCSABWTRun : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type> {
+class RCSABWTRun : public LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>,
+                   public CountIndex<typename TAlphabet::string_type> {
  public:
   using Alphabet = TAlphabet;
   using Base = LocateIndexExtStorage<TStorage, typename TAlphabet::string_type>;
@@ -37,6 +38,13 @@ class RCSABWTRun : public LocateIndexExtStorage<TStorage, typename TAlphabet::st
   explicit RCSABWTRun(const TStorage& t_storage) : Base(t_storage) {}
 
   RCSABWTRun() = default;
+
+  std::pair<std::size_t, std::size_t> Count(const typename TAlphabet::string_type& t_pattern) const override {
+    // index_ (inherited from LocateIndexExtStorage) holds an RIndexBase, which IS-A CountIndex
+    // via multiple inheritance. CountIndex and LocateIndex are unrelated bases of RIndexBase, so
+    // we cross-cast through the runtime type to reach the CountIndex subobject.
+    return dynamic_cast<const CountIndex<typename TAlphabet::string_type>&>(*this->index_).Count(t_pattern);
+  }
 
   void load(Config t_config) override {
     TSource source(std::ref(t_config));
