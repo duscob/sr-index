@@ -429,6 +429,23 @@ auto buildSharedPtrRIndex(const TBackwardNav& t_lf,
                                                        is_range_empty);
 }
 
+template <typename TSequence, typename TBackwardNav, typename TGetSymbol>
+auto buildSharedPtrRIndexCount(const TBackwardNav& t_lf, std::size_t t_bwt_size, const TGetSymbol& t_get_symbol) {
+  using Range = std::pair<std::size_t, std::size_t>;
+  using TFnCreateFullRange = std::function<Range(std::size_t)>;
+  auto create_full_range = [](auto tt_seq_size) {
+    return Range{0, tt_seq_size - 1};
+  };
+
+  using TFnIsRangeEmpty = std::function<bool(const Range&)>;
+  auto is_range_empty = [](const auto& tt_range) {
+    return tt_range.second < tt_range.first;
+  };
+
+  return std::make_shared<RIndexCountBase<TSequence, TBackwardNav, TGetSymbol, TFnCreateFullRange, TFnIsRangeEmpty>>(
+      TSequence{}, t_lf, t_bwt_size, t_get_symbol, create_full_range, is_range_empty);
+}
+
 }  // namespace sri
 
 #endif  // SRI_INDEX_BASE_H_
