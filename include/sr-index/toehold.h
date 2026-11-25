@@ -104,7 +104,7 @@ auto buildComputeDataBackwardSearchStepForPhiForward(const TCreateData &t_create
 }
 
 //TODO Remove this function if is not used
-auto buildComputeDataBackwardSearchStepForPhiForward() {
+inline auto buildComputeDataBackwardSearchStepForPhiForward() {
   auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
     const auto &[start, end] = tt_next_range;
     return DataBackwardSearchStepForward{tt_step, start.run.start};

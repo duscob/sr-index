@@ -35,7 +35,7 @@ struct StringRun {
   range_t range{1, 0};
 };
 
-bool operator==(const StringRun& a, const StringRun& b) {
+inline bool operator==(const StringRun& a, const StringRun& b) {
   return a.run == b.run && a.c == b.c && a.range == b.range;
 }
 

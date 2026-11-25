@@ -29,14 +29,14 @@ const std::string KEY_BIG_BWT_ESA = "big_bwt_esa";
 
 namespace inner_big_bwt {
 
-void registerBigBWTFiles(const std::string &t_data_path, sdsl::cache_config &t_config) {
+inline void registerBigBWTFiles(const std::string &t_data_path, sdsl::cache_config &t_config) {
   t_config.file_map[conf::KEY_BIG_BWT] = t_data_path + ".bwt";
   t_config.file_map[conf::KEY_BIG_BWT_LOG] = t_data_path + ".log";
   t_config.file_map[conf::KEY_BIG_BWT_SSA] = t_data_path + ".ssa";
   t_config.file_map[conf::KEY_BIG_BWT_ESA] = t_data_path + ".esa";
 }
 
-void constructBWT(const std::string &t_data_path, sdsl::cache_config &t_config, const std::string &t_bigbwt_exe) {
+inline void constructBWT(const std::string &t_data_path, sdsl::cache_config &t_config, const std::string &t_bigbwt_exe) {
   auto command = t_bigbwt_exe + " -s -e " + t_data_path + " > /dev/null 2>&1";
   std::system(command.c_str());
 
@@ -51,7 +51,7 @@ void constructBWT(const std::string &t_data_path, sdsl::cache_config &t_config, 
   register_cache_file(sdsl::conf::KEY_BWT, t_config);
 }
 
-void constructBWTRuns(sdsl::cache_config &t_config) {
+inline void constructBWTRuns(sdsl::cache_config &t_config) {
   const auto n = std::filesystem::file_size(sdsl::cache_file_name(conf::KEY_BIG_BWT, t_config));
 
   // Prepare to store BWT runs to disc

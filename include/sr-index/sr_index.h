@@ -542,9 +542,9 @@ void construct(SrIndexValidArea<TStorage,
   t_index.load(t_config);
 }
 
-void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
+inline void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
 
-void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
+inline void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
 
 template <uint8_t t_width, typename TBvMark, typename TBvSampleIdx>
 void constructSRI(const std::string& t_data_path, std::size_t t_subsample_rate, sri::Config& t_config) {
@@ -603,7 +603,7 @@ void constructSRI(const std::string& t_data_path, std::size_t t_subsample_rate, 
   }
 }
 
-void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
+inline void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config& t_config);
 
 template <uint8_t t_width, typename TBvMark, typename TBvSampleIdx, typename TBvValidMark>
 void constructSRIValidMark(const std::string& t_data_path, std::size_t t_subsample_rate, sri::Config& t_config) {
@@ -632,7 +632,7 @@ void constructSRIValidMark(const std::string& t_data_path, std::size_t t_subsamp
   }
 }
 
-void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
+inline void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Samples
@@ -679,7 +679,7 @@ void constructSubsamplingForwardSamplesForPhiBackward(std::size_t t_subsample_ra
   }
 }
 
-auto computeSampleToMarkLinksForPhiBackward(const std::string& t_prefix, sdsl::cache_config& t_config) {
+inline auto computeSampleToMarkLinksForPhiBackward(const std::string& t_prefix, sdsl::cache_config& t_config) {
   // Sub-sampled indices of samples
   sdsl::int_vector<> subsamples_idx;
   sdsl::load_from_cache(subsamples_idx, t_prefix + conf::KEY_BWT_RUN_LAST_IDX, t_config);
@@ -700,7 +700,7 @@ auto computeSampleToMarkLinksForPhiBackward(const std::string& t_prefix, sdsl::c
   return subsample_to_mark_links;
 }
 
-void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
+inline void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   // Text positions of marks indices associated to sub-samples, i.e., text positions of sub-sampled marks
@@ -745,7 +745,7 @@ void constructSubsamplingForwardMarksForPhiBackward(std::size_t t_subsample_rate
       subsampled_mark_to_subsample_links, prefix + conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config);
 }
 
-void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
+inline void constructSubsamplingForwardMarksValidity(std::size_t t_subsample_rate, sdsl::cache_config& t_config) {
   auto prefix = std::to_string(t_subsample_rate) + "_";
 
   sdsl::int_vector<> marks;

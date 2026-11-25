@@ -243,7 +243,7 @@ inline auto constructMarkToSampleLinksForPhiForwardWithPsiRuns(Config &t_config)
   return mark_to_sample_links;
 }
 
-void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
+inline void constructMarkToSampleLinksForPhiBackward(sdsl::cache_config &t_config) {
   // Marks
   sdsl::int_vector<> marks; // Text position of the first symbol in BWT runs
   sdsl::load_from_cache(marks, conf::KEY_BWT_RUN_FIRST_TEXT_POS, t_config);
