@@ -398,17 +398,15 @@ void constructRIndex(const std::string& t_data_path, sri::Config& t_config) {
     }
   }
 
-  std::size_t n;
-  {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-    n = bwt_buf.size();
-  }
-
   {
     // Construct Predecessor on the text positions of BWT run first letter
     auto event = sdsl::memory_monitor::event("Predecessor");
     const auto key_marks = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
     if (!sdsl::cache_file_exists<TBvMark>(key_marks, t_config)) {
+      // The text length, read only when it is needed: closing an int_vector_buffer rewrites the file's
+      // header, so reading it on every call would touch the BWT of a fully built index.
+      const auto n =
+          sdsl::int_vector_buffer<t_width>(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config)).size();
       constructBitVectorFromIntVector<TBvMark>(key_marks, t_config, n, false);
     }
   }

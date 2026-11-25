@@ -397,15 +397,13 @@ void constructRCSAWithBWTRuns(const std::string& t_data_path, sri::Config& t_con
     constructMarkToSampleLinksForPhiForwardWithBWTRuns<t_width>(t_config);
   }
 
-  std::size_t n;
-  {
-    sdsl::int_vector_buffer<t_width> bwt_buf(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config));
-    n = bwt_buf.size();
-  }
-
   // Construct Successor on the text positions of BWT run last letter
   if (!sdsl::cache_file_exists<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config)) {
     auto event = sdsl::memory_monitor::event("Successor");
+    // The text length, read only when it is needed: closing an int_vector_buffer rewrites the file's
+    // header, so reading it on every call would touch the BWT of a fully built index.
+    const auto n =
+        sdsl::int_vector_buffer<t_width>(sdsl::cache_file_name(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config)).size();
     constructBitVectorFromIntVector<TBvMark>(conf::KEY_BWT_RUN_LAST_TEXT_POS, t_config, n, false);
   }
 }
